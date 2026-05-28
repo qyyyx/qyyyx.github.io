@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>立方体打洞可视化工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow: hidden;
+        }
+        
+        .app-container {
+            display: flex;
+            height: 100vh;
+            padding: 16px;
+            gap: 16px;
+        }
+        
+        /* 左侧面板 */
+        .left-panel {
+            width: 280px;
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow-y: auto;
+        }
+        
+        .panel-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4ecdc4;
+            margin-bottom: 4px;
+        }
+        
+        .section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .shape-toggle {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .toggle-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .toggle-btn.active {
+            border-color: #4ecdc4;
+            background: #4ecdc4;
+            color: white;
+        }
+        
+        .dimension-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .dimension-input label {
+            width: 40px;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .dimension-input input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .dimension-input input:focus {
+            outline: none;
+            border-color: #4ecdc4;
+        }
+        
+        .axis-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .axis-btn {
+            flex: 1;
+            padding: 12px 8px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .axis-btn .icon {
+            font-size: 18px;
+        }
+        
+        .axis-btn.active {
+            border-color: #ff6b6b;
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .axis-btn:hover:not(.active) {
+            border-color: #ff6b6b;
+            color: #ff6b6b;
+        }
+        
+        .hint-text {
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9ff;
+            border-radius: 8px;
+        }
+        
+        .example-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .example-btn {
+            padding: 8px 12px;
+            border: 2px solid #ffeaa7;
+            background: #fff9e6;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        .example-btn:hover {
+            background: #ffeaa7;
+        }
+        
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: auto;
+        }
+        
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #4ecdc4;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #3dbdb5;
+        }
+        
+        .btn-secondary {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #ee5a5a;
+        }
+        
+        /* 中央3D区域 */
+        .center-panel {
+            flex: 1;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        
+        #canvas3d {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        .canvas-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            pointer-events: none;
+        }
+        
+        .reset-view-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #4ecdc4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(78, 205, 196, 0.4);
+        }
+        
+        .reset-view-btn:hover {
+            background: #3dbdb5;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(78, 205, 196, 0.5);
+        }
+        
+        /* 解体演示样式 */
+        .explode-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 16px;
+            color: white;
+        }
+        
+        .explode-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        
+        .explode-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        
+        .explode-tab {
+            flex: 1;
+            padding: 8px 4px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .explode-tab.active {
+            background: white;
+            color: #667eea;
+        }
+        
+        .explode-slider {
+            margin-bottom: 12px;
+        }
+        
+        .explode-slider label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 6px;
+            opacity: 0.9;
+        }
+        
+        .explode-range {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .explode-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .explode-btn {
+            width: 100%;
+            padding: 10px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .explode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        /* 右侧面板 */
+        .right-panel {
+            width: 320px;
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow-y: auto;
+        }
+        
+        .mode-tabs {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .mode-tab {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .mode-tab.active {
+            border-color: #4ecdc4;
+            background: #4ecdc4;
+            color: white;
+        }
+        
+        .mode-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .mode-section {
+            display: none;
+        }
+        
+        .mode-section.active {
+            display: block;
+        }
+        
+        /* 体积模式样式 */
+        .layer-slider {
+            margin-bottom: 16px;
+        }
+        
+        .layer-slider label {
+            display: block;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .slider {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4ecdc4;
+            cursor: pointer;
+        }
+        
+        .layer-value {
+            font-weight: 600;
+            color: #4ecdc4;
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        .slice-view {
+            background: #f8f9ff;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .slice-title {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        
+        .slice-grid {
+            display: grid;
+            gap: 4px;
+            justify-content: center;
+        }
+        
+        .slice-cell {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .slice-cell.present {
+            background: #ffeaa7;
+            color: #333;
+            border: 2px solid #fdcb6e;
+        }
+        
+        .slice-cell.removed {
+            background: #ff6b6b;
+            color: white;
+            border: 2px solid #ee5a5a;
+        }
+        
+        .layer-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .layer-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: #f8f9ff;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .layer-item:hover {
+            background: #e8f4f8;
+        }
+        
+        .layer-item.active {
+            background: #4ecdc4;
+            color: white;
+        }
+        
+        .layer-name {
+            font-size: 13px;
+        }
+        
+        .layer-count {
+            font-weight: 600;
+        }
+        
+        .volume-result {
+            background: #fff9e6;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+        
+        .volume-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        
+        .volume-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #4ecdc4;
+        }
+        
+        .volume-unit {
+            font-size: 14px;
+            color: #888;
+        }
+        
+        /* 表面积模式样式 */
+        .view-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
+        }
+        
+        .view-tab {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        .view-tab.active {
+            border-color: #ff6b6b;
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .surface-view {
+            background: #f8f9ff;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        
+        .surface-title {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        
+        .surface-grid {
+            display: grid;
+            gap: 2px;
+            justify-content: center;
+        }
+        
+        .surface-cell {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .surface-cell.zero {
+            background: #f0f0f0;
+            color: #999;
+        }
+        
+        .surface-cell.normal {
+            background: #ffeaa7;
+            color: #333;
+        }
+        
+        .surface-cell.hole {
+            background: #74b9ff;
+            color: white;
+        }
+        
+        .formula-box {
+            background: #fff9e6;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        
+        .formula-title {
+            font-weight: 600;
+            color: #d48806;
+            margin-bottom: 8px;
+        }
+        
+        .formula-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px dashed #e0e0e0;
+        }
+        
+        .formula-line:last-child {
+            border-bottom: none;
+            font-weight: 600;
+            color: #4ecdc4;
+            font-size: 14px;
+        }
+        
+        .surface-result {
+            background: #fff0f0;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            margin-top: 12px;
+        }
+        
+        .surface-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        
+        .surface-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #ff6b6b;
+        }
+        
+        /* 响应式 */
+        @media (max-width: 1200px) {
+            .app-container {
+                flex-direction: column;
+                overflow-y: auto;
+            }
+            .left-panel, .right-panel {
+                width: 100%;
+                max-height: 300px;
+            }
+            .center-panel {
+                min-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 左侧面板 -->
+        <div class="left-panel">
+            <div class="section">
+                <div class="panel-title">立方体设置</div>
+                <div class="shape-toggle">
+                    <button class="toggle-btn active" data-shape="cube">正方体</button>
+                    <button class="toggle-btn" data-shape="cuboid">长方体</button>
+                </div>
+                
+                <div class="dimension-input">
+                    <label id="lengthLabel">边长</label>
+                    <input type="number" id="lengthInput" min="1" max="10" value="4">
+                </div>
+                
+                <div class="dimension-input" id="widthInputGroup" style="display:none;">
+                    <label>宽</label>
+                    <input type="number" id="widthInput" min="1" max="10" value="4">
+                </div>
+                
+                <div class="dimension-input" id="heightInputGroup" style="display:none;">
+                    <label>高</label>
+                    <input type="number" id="heightInput" min="1" max="10" value="4">
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="panel-title">2D投影打洞</div>
+                <div class="view-tabs" style="margin-bottom: 12px;">
+                    <button class="view-tab active" data-view="front" id="leftViewTabFront">主视图</button>
+                    <button class="view-tab" data-view="top" id="leftViewTabTop">俯视图</button>
+                    <button class="view-tab" data-view="right" id="leftViewTabRight">右视图</button>
+                </div>
+                <div class="surface-view" style="padding: 12px;">
+                    <div class="surface-grid" id="leftDrillGrid" style="grid-template-columns: repeat(4, 32px); gap: 3px;"></div>
+                </div>
+                <div class="hint-text" style="margin-top: 10px;">
+                    点击上方网格打洞<br>
+                    主视图:前后穿 | 俯视图:上下穿 | 右视图:左右穿
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="panel-title">解体演示</div>
+                <div class="explode-section">
+                    <div class="explode-tabs">
+                        <button class="explode-tab active" data-explode="top">俯视</button>
+                        <button class="explode-tab" data-explode="front">主视</button>
+                        <button class="explode-tab" data-explode="side">侧视</button>
+                    </div>
+                    <div class="explode-slider">
+                        <label>分离距离</label>
+                        <input type="range" class="explode-range" id="explodeSlider" min="0" max="3" step="0.1" value="0">
+                    </div>
+                    <button class="explode-btn" id="resetExplodeBtn">复位</button>
+                </div>
+            </div>
+            
+            <div class="action-buttons" style="margin-top: 20px;">
+                <button class="btn btn-primary" id="resetHolesBtn">重置打洞</button>
+                <button class="btn btn-secondary" id="clearAllBtn">清除全部</button>
+            </div>
+        </div>
+        
+        <!-- 中央3D区域 -->
+        <div class="center-panel">
+            <canvas id="canvas3d"></canvas>
+            <div class="canvas-hint" id="canvasHint">拖动旋转 • 右键点击打洞</div>
+            <button class="reset-view-btn" id="resetViewBtn">复位视图</button>
+        </div>
+        
+        <!-- 右侧面板 -->
+        <div class="right-panel">
+            <div class="mode-tabs">
+                <button class="mode-tab active" data-mode="volume">体积</button>
+                <button class="mode-tab" data-mode="surface">表面积</button>
+            </div>
+            
+            <div class="mode-content">
+                <!-- 体积模式 -->
+                <div class="mode-section active" id="volumeMode">
+                    <div class="view-tabs" style="margin-bottom: 12px;">
+                        <button class="view-tab active" data-slice="top" id="sliceTabTop">俯视图（从上到下）</button>
+                        <button class="view-tab" data-slice="front" id="sliceTabFront">主视图（从前到后）</button>
+                    </div>
+                    
+                    <div class="layer-slider">
+                        <label id="layerSliderLabel">查看层数（从上往下）</label>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="layerSlider" min="0" max="3" value="0">
+                            <span class="layer-value" id="layerValue">第1层</span>
+                        </div>
+                    </div>
+                    
+                    <div class="slice-view">
+                        <div class="slice-title" id="sliceViewTitle">切片视图（俯视图）</div>
+                        <div class="slice-grid" id="sliceGrid"></div>
+                    </div>
+                    
+                    <div class="layer-list" id="layerList"></div>
+                    
+                    <div class="volume-result">
+                        <div class="volume-label">剩余体积</div>
+                        <div class="volume-value">
+                            <span id="volumeValue">64</span>
+                            <span class="volume-unit">个小立方体</span>
+                        </div>
+                    </div>
+                </div>
+                
+
+                
+                <!-- 表面积模式 -->
+                <div class="mode-section" id="surfaceMode">
+                    <div class="view-tabs">
+                        <button class="view-tab active" data-view="front">主视图</button>
+                        <button class="view-tab" data-view="top">俯视图</button>
+                        <button class="view-tab" data-view="side">侧视图</button>
+                    </div>
+                    
+                    <div class="surface-view">
+                        <div class="surface-title" id="surfaceViewTitle">主视图（从正面看）</div>
+                        <div class="surface-grid" id="surfaceGrid"></div>
+                    </div>
+                    
+                    <div class="formula-box">
+                        <div class="formula-title">标数法计算</div>
+                        <div id="formulaContent">
+                            <div class="formula-line">
+                                <span>主视图标数和</span>
+                                <span id="frontCount">16</span>
+                            </div>
+                            <div class="formula-line">
+                                <span>俯视图标数和</span>
+                                <span id="topCount">16</span>
+                            </div>
+                            <div class="formula-line">
+                                <span>侧视图标数和</span>
+                                <span id="sideCount">16</span>
+                            </div>
+                            <div class="formula-line">
+                                <span>标数和合计</span>
+                                <span id="sumCount">48</span>
+                            </div>
+                            <div class="formula-line">
+                                <span>总表面积 (×2)</span>
+                                <span id="totalSurface">96</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="surface-result">
+                        <div class="surface-label">总表面积</div>
+                        <div class="surface-value">
+                            <span id="surfaceValue">96</span>
+                            <span class="volume-unit">平方单位</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 数据结构与状态管理 ====================
+        
+        class CubeState {
+            constructor(length, width, height) {
+                this.length = length; // x方向
+                this.width = width;   // z方向  
+                this.height = height; // y方向
+                this.cells = this.initCells();
+                this.removedRows = new Set(); // 存储 "axis,x,z" 格式的已打洞行列
+            }
+            
+            initCells() {
+                const cells = [];
+                for (let y = 0; y < this.height; y++) {
+                    const layer = [];
+                    for (let z = 0; z < this.width; z++) {
+                        const row = [];
+                        for (let x = 0; x < this.length; x++) {
+                            row.push({ x, y, z, isRemoved: false });
+                        }
+                        layer.push(row);
+                    }
+                    cells.push(layer);
+                }
+                return cells;
+            }
+            
+            removeRow(axis, fixedCoord1, fixedCoord2) {
+                const key = `${axis},${fixedCoord1},${fixedCoord2}`;
+                if (this.removedRows.has(key)) {
+                    this.removedRows.delete(key);
+                } else {
+                    this.removedRows.add(key);
+                }
+                this.updateCells();
+            }
+            
+            updateCells() {
+                for (let y = 0; y < this.height; y++) {
+                    for (let z = 0; z < this.width; z++) {
+                        for (let x = 0; x < this.length; x++) {
+                            this.cells[y][z][x].isRemoved = false;
+                        }
+                    }
+                }
+                
+                this.removedRows.forEach(key => {
+                    const [axis, c1, c2] = key.split(',').map((v, i) => i === 0 ? v : parseInt(v));
+                    
+                    if (axis === 'y') {
+                        const x = c1, z = c2;
+                        for (let y = 0; y < this.height; y++) {
+                            if (x < this.length && z < this.width) {
+                                this.cells[y][z][x].isRemoved = true;
+                            }
+                        }
+                    } else if (axis === 'x') {
+                        const y = c1, z = c2;
+                        for (let x = 0; x < this.length; x++) {
+                            if (y < this.height && z < this.width) {
+                                this.cells[y][z][x].isRemoved = true;
+                            }
+                        }
+                    } else if (axis === 'z') {
+                        const x = c1, y = c2;
+                        for (let z = 0; z < this.width; z++) {
+                            if (x < this.length && y < this.height) {
+                                this.cells[y][z][x].isRemoved = true;
+                            }
+                        }
+                    }
+                });
+            }
+            
+            getLayerCount(layerY) {
+                let count = 0;
+                for (let z = 0; z < this.width; z++) {
+                    for (let x = 0; x < this.length; x++) {
+                        if (!this.cells[layerY][z][x].isRemoved) {
+                            count++;
+                        }
+                    }
+                }
+                return count;
+            }
+            
+            getVolume() {
+                let count = 0;
+                for (let y = 0; y < this.height; y++) {
+                    count += this.getLayerCount(y);
+                }
+                return count;
+            }
+            
+            getSurfaceArea() {
+                let total = 0;
+                
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.length; x++) {
+                        for (let z = this.width - 1; z >= 0; z--) {
+                            if (!this.cells[y][z][x].isRemoved) {
+                                total++;
+                                break;
+                            }
+                        }
+                        for (let z = 0; z < this.width; z++) {
+                            if (!this.cells[y][z][x].isRemoved) {
+                                total++;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                for (let z = 0; z < this.width; z++) {
+                    for (let x = 0; x < this.length; x++) {
+                        for (let y = this.height - 1; y >= 0; y--) {
+                            if (!this.cells[y][z][x].isRemoved) {
+                                total++;
+                                break;
+                            }
+                        }
+                        for (let y = 0; y < this.height; y++) {
+                            if (!this.cells[y][z][x].isRemoved) {
+                                total++;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                for (let y = 0; y < this.height; y++) {
+                    for (let z = 0; z < this.width; z++) {
+                        for (let x = this.length - 1; x >= 0; x--) {
+                            if (!this.cells[y][z][x].isRemoved) {
+                                total++;
+                                break;
+                            }
+                        }
+                        for (let x = 0; x < this.length; x++) {
+                            if (!this.cells[y][z][x].isRemoved) {
+                                total++;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                return total;
+            }
+            
+            getViewMatrix(view) {
+                const matrix = [];
+                
+                if (view === 'front') {
+                    // 主视图：从正面(Z轴正方向)看，看到X-Y平面
+                    // 标数法：每个(x,y)位置的数字 = 该列从Z方向能看到的立方体层数
+                    for (let y = this.height - 1; y >= 0; y--) {
+                        const row = [];
+                        for (let x = 0; x < this.length; x++) {
+                            // 从前往后遍历Z轴，统计可见的立方体层数
+                            let visibleLayers = 0;
+                            let foundFirstCube = false;
+                            let inHole = false;
+                            
+                            for (let z = this.width - 1; z >= 0; z--) {
+                                const isHole = this.cells[y][z][x].isRemoved;
+                                
+                                if (!isHole) {
+                                    // 当前是立方体
+                                    if (!foundFirstCube) {
+                                        // 第一个可见立方体
+                                        visibleLayers = 1;
+                                        foundFirstCube = true;
+                                    } else if (inHole) {
+                                        // 洞后面的立方体，增加可见层数
+                                        visibleLayers++;
+                                    }
+                                    inHole = false;
+                                } else {
+                                    // 当前是洞
+                                    inHole = true;
+                                }
+                            }
+                            
+                            row.push(visibleLayers);
+                        }
+                        matrix.push(row);
+                    }
+                } else if (view === 'top') {
+                    // 俯视图：从上方(Y轴正方向)看，看到X-Z平面
+                    for (let z = this.width - 1; z >= 0; z--) {
+                        const row = [];
+                        for (let x = 0; x < this.length; x++) {
+                            let visibleLayers = 0;
+                            let foundFirstCube = false;
+                            let inHole = false;
+                            
+                            for (let y = this.height - 1; y >= 0; y--) {
+                                const isHole = this.cells[y][z][x].isRemoved;
+                                
+                                if (!isHole) {
+                                    if (!foundFirstCube) {
+                                        visibleLayers = 1;
+                                        foundFirstCube = true;
+                                    } else if (inHole) {
+                                        visibleLayers++;
+                                    }
+                                    inHole = false;
+                                } else {
+                                    inHole = true;
+                                }
+                            }
+                            
+                            row.push(visibleLayers);
+                        }
+                        matrix.push(row);
+                    }
+                } else if (view === 'side') {
+                    // 侧视图：从右侧(X轴正方向)看，看到Z-Y平面
+                    for (let y = this.height - 1; y >= 0; y--) {
+                        const row = [];
+                        for (let z = 0; z < this.width; z++) {
+                            let visibleLayers = 0;
+                            let foundFirstCube = false;
+                            let inHole = false;
+                            
+                            for (let x = this.length - 1; x >= 0; x--) {
+                                const isHole = this.cells[y][z][x].isRemoved;
+                                
+                                if (!isHole) {
+                                    if (!foundFirstCube) {
+                                        visibleLayers = 1;
+                                        foundFirstCube = true;
+                                    } else if (inHole) {
+                                        visibleLayers++;
+                                    }
+                                    inHole = false;
+                                } else {
+                                    inHole = true;
+                                }
+                            }
+                            
+                            row.push(visibleLayers);
+                        }
+                        matrix.push(row);
+                    }
+                }
+                
+                return matrix;
+            }
+            
+            reset() {
+                this.removedRows.clear();
+                this.updateCells();
+            }
+        }
+        
+        const state = {
+            cube: new CubeState(4, 4, 4),
+            currentAxis: 'y',
+            currentMode: 'volume',
+            currentLayer: 0,
+            currentSurfaceView: 'front',
+            currentDrillView: 'front',
+            currentSliceView: 'top', // 'top' = 俯视图(从上到下), 'front' = 主视图(从前到后)
+            isCubeShape: true,
+            explodeDirection: 'top', // 'top', 'front', 'side'
+            explodeDistance: 0
+        };
+        
+        let scene, camera, renderer, cubeGroup, highlightMesh;
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let hoveredCell = null;
+        
+        const COLORS = {
+            normal: 0x5B8FF9,      // 柔和的蓝色 - 正常立方体
+            normalEmissive: 0x1a3a7a,  // 深蓝色自发光
+            removed: 0xFF6B6B,     // 珊瑚红 - 已打洞
+            removedEmissive: 0x8b3a3a, // 深红色自发光
+            highlight: 0x52C41A,   // 鲜绿色 - 高亮预览
+            edge: 0x1f2937,        // 深灰蓝色 - 边框
+            ambient: 0xffffff,     // 环境光
+            background: 0xf0f5ff   // 淡蓝背景
+        };
+        
+        function initThree() {
+            const canvas = document.getElementById('canvas3d');
+            const container = canvas.parentElement;
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(COLORS.background);
+            
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(12, 10, 12);
+            camera.lookAt(0, 0, 0);
+            
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            // 环境光
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            // 主光源
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 15, 10);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            // 补光
+            const fillLight = new THREE.DirectionalLight(0x5B8FF9, 0.3);
+            fillLight.position.set(-10, 5, -10);
+            scene.add(fillLight);
+            
+            // 网格线已隐藏
+            
+            cubeGroup = new THREE.Group();
+            scene.add(cubeGroup);
+            
+            const highlightGeo = new THREE.BoxGeometry(1, 1, 1);
+            const highlightMat = new THREE.MeshBasicMaterial({
+                color: COLORS.highlight,
+                transparent: true,
+                opacity: 0.35,
+                wireframe: true
+            });
+            highlightMesh = new THREE.Mesh(highlightGeo, highlightMat);
+            highlightMesh.visible = false;
+            scene.add(highlightMesh);
+            
+            // 添加内部实心高亮
+            const highlightGeo2 = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+            const highlightMat2 = new THREE.MeshBasicMaterial({
+                color: COLORS.highlight,
+                transparent: true,
+                opacity: 0.15
+            });
+            const highlightMesh2 = new THREE.Mesh(highlightGeo2, highlightMat2);
+            highlightMesh2.name = 'innerHighlight';
+            highlightMesh.add(highlightMesh2);
+            
+            buildCube();
+            setupInteraction();
+            animate();
+        }
+        
+        function buildCube() {
+            while (cubeGroup.children.length > 0) {
+                cubeGroup.remove(cubeGroup.children[0]);
+            }
+            
+            const { length, width, height } = state.cube;
+            const spacing = 1.05;
+            const explodeDist = state.explodeDistance;
+            
+            const offsetX = (length - 1) * spacing / 2;
+            const offsetY = (height - 1) * spacing / 2;
+            const offsetZ = (width - 1) * spacing / 2;
+            
+            for (let y = 0; y < height; y++) {
+                for (let z = 0; z < width; z++) {
+                    for (let x = 0; x < length; x++) {
+                        const cell = state.cube.cells[y][z][x];
+                        
+                        const geometry = new THREE.BoxGeometry(0.95, 0.95, 0.95);
+                        
+                        // 根据状态选择颜色
+                        const isRemoved = cell.isRemoved;
+                        const baseColor = isRemoved ? COLORS.removed : COLORS.normal;
+                        const emissiveColor = isRemoved ? COLORS.removedEmissive : COLORS.normalEmissive;
+                        
+                        const material = new THREE.MeshStandardMaterial({
+                            color: baseColor,
+                            metalness: 0.1,
+                            roughness: 0.3,
+                            emissive: emissiveColor,
+                            emissiveIntensity: isRemoved ? 0.2 : 0.1,
+                            transparent: true,
+                            opacity: isRemoved ? 0.4 : 0.95
+                        });
+                        
+                        const mesh = new THREE.Mesh(geometry, material);
+                        
+                        // 计算基础位置
+                        let posX = x * spacing - offsetX;
+                        let posY = y * spacing - offsetY;
+                        let posZ = z * spacing - offsetZ;
+                        
+                        // 应用解体效果
+                        if (explodeDist > 0) {
+                            if (state.explodeDirection === 'top') {
+                                // 俯视图：沿Y轴分离（从上到下）
+                                const layerIndex = y;
+                                const centerLayer = (height - 1) / 2;
+                                posY += (layerIndex - centerLayer) * explodeDist;
+                            } else if (state.explodeDirection === 'front') {
+                                // 主视图：沿Z轴分离（从前到后）
+                                const layerIndex = z;
+                                const centerLayer = (width - 1) / 2;
+                                posZ += (layerIndex - centerLayer) * explodeDist;
+                            } else if (state.explodeDirection === 'side') {
+                                // 侧视图：沿X轴分离（从左到右）
+                                const layerIndex = x;
+                                const centerLayer = (length - 1) / 2;
+                                posX += (layerIndex - centerLayer) * explodeDist;
+                            }
+                        }
+                        
+                        mesh.position.set(posX, posY, posZ);
+                        mesh.castShadow = true;
+                        mesh.receiveShadow = true;
+                        
+                        mesh.userData = { x, y, z };
+                        
+                        // 添加边框
+                        const edges = new THREE.EdgesGeometry(geometry);
+                        const lineMaterial = new THREE.LineBasicMaterial({ 
+                            color: isRemoved ? 0xff4444 : 0x3a6bc7,
+                            linewidth: 2,
+                            transparent: true,
+                            opacity: isRemoved ? 0.5 : 0.8
+                        });
+                        const line = new THREE.LineSegments(edges, lineMaterial);
+                        mesh.add(line);
+                        
+                        cubeGroup.add(mesh);
+                    }
+                }
+            }
+        }
+        
+        function setupInteraction() {
+            const canvas = document.getElementById('canvas3d');
+            
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                updateHighlight();
+            });
+            
+            let isDragging = false;
+            let dragStartTime = 0;
+            let previousMousePosition = { x: 0, y: 0 };
+            
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = false;
+                dragStartTime = Date.now();
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (Date.now() - dragStartTime > 100) {
+                    isDragging = true;
+                }
+                if (e.buttons === 1) {
+                    const deltaX = e.clientX - previousMousePosition.x;
+                    const deltaY = e.clientY - previousMousePosition.y;
+                    if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+                        isDragging = true;
+                    }
+                    cubeGroup.rotation.y += deltaX * 0.01;
+                    cubeGroup.rotation.x += deltaY * 0.01;
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                }
+            });
+            
+            canvas.addEventListener('mouseup', (e) => {
+                // 左键只用于旋转，不打洞
+                isDragging = false;
+            });
+            
+            canvas.addEventListener('contextmenu', (e) => {
+                e.preventDefault(); // 阻止默认右键菜单
+                
+                // 更新鼠标坐标
+                const rect = canvas.getBoundingClientRect();
+                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                
+                // 重新计算高亮
+                updateHighlight();
+                
+                console.log('右键点击', hoveredCell);
+                
+                if (hoveredCell) {
+                    const { x, y, z, axis } = hoveredCell;
+                    
+                    // 根据视图方向决定打洞轴向
+                    if (axis === 'y') {
+                        // 俯视图 - 打Y轴方向（上下穿透）
+                        console.log('打Y轴洞', x, z);
+                        state.cube.removeRow('y', x, z);
+                    } else if (axis === 'x') {
+                        // 右视图 - 打X轴方向（左右穿透）
+                        console.log('打X轴洞', y, z);
+                        state.cube.removeRow('x', y, z);
+                    } else if (axis === 'z') {
+                        // 主视图 - 打Z轴方向（前后穿透）
+                        console.log('打Z轴洞', x, y);
+                        state.cube.removeRow('z', x, y);
+                    }
+                    
+                    buildCube();
+                    updateUI();
+                } else {
+                    console.log('没有悬停的单元格');
+                }
+            });
+            
+            window.addEventListener('resize', () => {
+                const container = document.querySelector('.center-panel');
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+        }
+        
+        function getFaceNormal(intersect) {
+            // 根据相交面的法向量判断是哪个面
+            const normal = intersect.face.normal.clone();
+            // 考虑立方体的旋转
+            normal.transformDirection(intersect.object.matrixWorld);
+            
+            // 找到绝对值最大的分量
+            const absX = Math.abs(normal.x);
+            const absY = Math.abs(normal.y);
+            const absZ = Math.abs(normal.z);
+            
+            if (absX > absY && absX > absZ) {
+                return normal.x > 0 ? '+x' : '-x';
+            } else if (absY > absX && absY > absZ) {
+                return normal.y > 0 ? '+y' : '-y';
+            } else {
+                return normal.z > 0 ? '+z' : '-z';
+            }
+        }
+        
+        function updateHighlight() {
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(cubeGroup.children);
+            
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+                const mesh = intersect.object;
+                const { x, y, z } = mesh.userData;
+                const faceNormal = getFaceNormal(intersect);
+                
+                const { length, width, height } = state.cube;
+                const spacing = 1.05;
+                const offsetX = (length - 1) * spacing / 2;
+                const offsetY = (height - 1) * spacing / 2;
+                const offsetZ = (width - 1) * spacing / 2;
+                
+                // 根据点击的面决定打洞方向
+                if (faceNormal === '+y' || faceNormal === '-y') {
+                    // 点击上下面 - 打Y轴方向（上下穿透）
+                    highlightMesh.scale.set(1, height * spacing, 1);
+                    highlightMesh.position.set(
+                        x * spacing - offsetX, 0, z * spacing - offsetZ
+                    );
+                    hoveredCell = { x, y: null, z, axis: 'y', face: faceNormal };
+                } else if (faceNormal === '+x' || faceNormal === '-x') {
+                    // 点击左右面 - 打X轴方向（左右穿透）
+                    highlightMesh.scale.set(length * spacing, 1, 1);
+                    highlightMesh.position.set(
+                        0, y * spacing - offsetY, z * spacing - offsetZ
+                    );
+                    hoveredCell = { x: null, y, z, axis: 'x', face: faceNormal };
+                } else if (faceNormal === '+z' || faceNormal === '-z') {
+                    // 点击前后面 - 打Z轴方向（前后穿透）
+                    highlightMesh.scale.set(1, 1, width * spacing);
+                    highlightMesh.position.set(
+                        x * spacing - offsetX, y * spacing - offsetY, 0
+                    );
+                    hoveredCell = { x, y, z: null, axis: 'z', face: faceNormal };
+                }
+                
+                highlightMesh.visible = true;
+                const axisNames = { x: 'X轴（左右）', y: 'Y轴（上下）', z: 'Z轴（前后）' };
+                document.getElementById('canvasHint').textContent = `${axisNames[hoveredCell.axis]}: 右键点击打洞`;
+            } else {
+                hoveredCell = null;
+                highlightMesh.visible = false;
+                document.getElementById('canvasHint').textContent = '拖动旋转 • 右键点击打洞';
+            }
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        
+        function updateUI() {
+            updateVolumeMode();
+            updateLeftDrillGrid();
+            updateSurfaceMode();
+        }
+        
+        function updateLeftDrillGrid() {
+            const { cube } = state;
+            const grid = document.getElementById('leftDrillGrid');
+            const view = state.currentDrillView;
+            
+            if (!grid) return;
+            
+            grid.innerHTML = '';
+            
+            // 根据视图确定网格大小
+            let rows, cols;
+            if (view === 'front') {
+                rows = cube.height;
+                cols = cube.length;
+            } else if (view === 'top') {
+                rows = cube.width;
+                cols = cube.length;
+            } else if (view === 'right') {
+                rows = cube.height;
+                cols = cube.width;
+            }
+            
+            grid.style.gridTemplateColumns = `repeat(${cols}, 32px)`;
+            
+            // 创建网格单元格
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'surface-cell';
+                    cell.style.width = '30px';
+                    cell.style.height = '30px';
+                    cell.style.cursor = 'pointer';
+                    cell.style.borderRadius = '4px';
+                    cell.style.fontSize = '14px';
+                    
+                    // 确定坐标和是否已打洞
+                    let isDrilled = false;
+                    let coord1, coord2;
+                    
+                    if (view === 'front') {
+                        // 主视图: x横坐标, y纵坐标(从上到下), 打Z轴
+                        coord1 = c; // x
+                        coord2 = rows - 1 - r; // y (从上到下)
+                        isDrilled = state.cube.removedRows.has(`z,${coord1},${coord2}`);
+                    } else if (view === 'top') {
+                        // 俯视图: x横坐标, z纵坐标(从上到下), 打Y轴
+                        coord1 = c; // x
+                        coord2 = rows - 1 - r; // z
+                        isDrilled = state.cube.removedRows.has(`y,${coord1},${coord2}`);
+                    } else if (view === 'right') {
+                        // 右视图: z横坐标, y纵坐标(从上到下), 打X轴
+                        coord1 = rows - 1 - r; // y
+                        coord2 = c; // z
+                        isDrilled = state.cube.removedRows.has(`x,${coord1},${coord2}`);
+                    }
+                    
+                    if (isDrilled) {
+                        cell.style.background = '#ff6b6b';
+                        cell.style.color = 'white';
+                        cell.style.border = '2px solid #ee5a5a';
+                        cell.textContent = '✓';
+                    } else {
+                        cell.style.background = '#e8f4f8';
+                        cell.style.border = '2px solid #4ecdc4';
+                        cell.textContent = '';
+                    }
+                    
+                    // 点击事件
+                    cell.addEventListener('click', () => {
+                        if (view === 'front') {
+                            state.cube.removeRow('z', coord1, coord2);
+                        } else if (view === 'top') {
+                            state.cube.removeRow('y', coord1, coord2);
+                        } else if (view === 'right') {
+                            state.cube.removeRow('x', coord1, coord2);
+                        }
+                        buildCube();
+                        updateUI();
+                    });
+                    
+                    grid.appendChild(cell);
+                }
+            }
+        }
+        
+        function updateVolumeMode() {
+            const { cube } = state;
+            
+            // 根据切片方向更新滑块范围
+            const slider = document.getElementById('layerSlider');
+            const layerSliderLabel = document.getElementById('layerSliderLabel');
+            const sliceViewTitle = document.getElementById('sliceViewTitle');
+            
+            if (state.currentSliceView === 'top') {
+                // 俯视图：从上到下切片，层数 = height
+                slider.max = cube.height - 1;
+                layerSliderLabel.textContent = '查看层数（从上往下）';
+                sliceViewTitle.textContent = '切片视图（俯视图）';
+                if (state.currentLayer >= cube.height) {
+                    state.currentLayer = cube.height - 1;
+                }
+            } else {
+                // 主视图：从前到后切片，层数 = width
+                slider.max = cube.width - 1;
+                layerSliderLabel.textContent = '查看层数（从前到后）';
+                sliceViewTitle.textContent = '切片视图（主视图）';
+                if (state.currentLayer >= cube.width) {
+                    state.currentLayer = cube.width - 1;
+                }
+            }
+            
+            slider.value = state.currentLayer;
+            document.getElementById('layerValue').textContent = `第${state.currentLayer + 1}层`;
+            
+            updateSliceView();
+            
+            // 更新层列表
+            const layerList = document.getElementById('layerList');
+            layerList.innerHTML = '';
+            
+            if (state.currentSliceView === 'top') {
+                // 俯视图模式：显示Y轴各层
+                for (let y = cube.height - 1; y >= 0; y--) {
+                    const count = cube.getLayerCount(y);
+                    const item = document.createElement('div');
+                    item.className = 'layer-item' + (y === state.currentLayer ? ' active' : '');
+                    item.innerHTML = `<span class="layer-name">第${y + 1}层</span><span class="layer-count">${count}个</span>`;
+                    item.addEventListener('click', () => {
+                        state.currentLayer = y;
+                        document.getElementById('layerSlider').value = y;
+                        updateVolumeMode();
+                    });
+                    layerList.appendChild(item);
+                }
+            } else {
+                // 主视图模式：显示Z轴各层
+                for (let z = cube.width - 1; z >= 0; z--) {
+                    const count = getFrontLayerCount(z);
+                    const item = document.createElement('div');
+                    item.className = 'layer-item' + (z === state.currentLayer ? ' active' : '');
+                    item.innerHTML = `<span class="layer-name">第${z + 1}层</span><span class="layer-count">${count}个</span>`;
+                    item.addEventListener('click', () => {
+                        state.currentLayer = z;
+                        document.getElementById('layerSlider').value = z;
+                        updateVolumeMode();
+                    });
+                    layerList.appendChild(item);
+                }
+            }
+            
+            document.getElementById('volumeValue').textContent = cube.getVolume();
+        }
+        
+        // 获取主视图某层的立方体数量（从前到后的第z层）
+        function getFrontLayerCount(z) {
+            let count = 0;
+            for (let y = 0; y < state.cube.height; y++) {
+                for (let x = 0; x < state.cube.length; x++) {
+                    if (!state.cube.cells[y][z][x].isRemoved) {
+                        count++;
+                    }
+                }
+            }
+            return count;
+        }
+        
+        function updateSliceView() {
+            const { cube } = state;
+            const grid = document.getElementById('sliceGrid');
+            
+            grid.innerHTML = '';
+            
+            if (state.currentSliceView === 'top') {
+                // 俯视图切片：从上到下，显示X-Z平面（固定Y层）
+                const y = state.currentLayer;
+                grid.style.gridTemplateColumns = `repeat(${cube.length}, 32px)`;
+                
+                for (let z = cube.width - 1; z >= 0; z--) {
+                    for (let x = 0; x < cube.length; x++) {
+                        const cell = document.createElement('div');
+                        const isRemoved = cube.cells[y][z][x].isRemoved;
+                        cell.className = 'slice-cell ' + (isRemoved ? 'removed' : 'present');
+                        cell.textContent = isRemoved ? '' : '●';
+                        grid.appendChild(cell);
+                    }
+                }
+            } else {
+                // 主视图切片：从前到后，显示X-Y平面（固定Z层）
+                const z = state.currentLayer;
+                grid.style.gridTemplateColumns = `repeat(${cube.length}, 32px)`;
+                
+                for (let y = cube.height - 1; y >= 0; y--) {
+                    for (let x = 0; x < cube.length; x++) {
+                        const cell = document.createElement('div');
+                        const isRemoved = cube.cells[y][z][x].isRemoved;
+                        cell.className = 'slice-cell ' + (isRemoved ? 'removed' : 'present');
+                        cell.textContent = isRemoved ? '' : '●';
+                        grid.appendChild(cell);
+                    }
+                }
+            }
+        }
+        
+        function updateSurfaceMode() {
+            updateSurfaceGrid();
+            
+            const frontMatrix = state.cube.getViewMatrix('front');
+            const topMatrix = state.cube.getViewMatrix('top');
+            const sideMatrix = state.cube.getViewMatrix('side');
+            
+            // 标数法之和 = 每个视图可见的立方体层数之和
+            const frontCount = frontMatrix.flat().reduce((a, b) => a + b, 0);
+            const topCount = topMatrix.flat().reduce((a, b) => a + b, 0);
+            const sideCount = sideMatrix.flat().reduce((a, b) => a + b, 0);
+            
+            // 表面积 = (三个方向的标数之和) × 2
+            const sumCount = frontCount + topCount + sideCount;
+            const totalSurface = sumCount * 2;
+            
+            document.getElementById('frontCount').textContent = frontCount;
+            document.getElementById('topCount').textContent = topCount;
+            document.getElementById('sideCount').textContent = sideCount;
+            document.getElementById('sumCount').textContent = sumCount;
+            document.getElementById('totalSurface').textContent = totalSurface;
+            document.getElementById('surfaceValue').textContent = totalSurface;
+        }
+        
+        function updateSurfaceGrid() {
+            const { cube } = state;
+            const matrix = cube.getViewMatrix(state.currentSurfaceView);
+            const grid = document.getElementById('surfaceGrid');
+            
+            grid.innerHTML = '';
+            
+            let cols = state.currentSurfaceView === 'side' ? cube.width : cube.length;
+            grid.style.gridTemplateColumns = `repeat(${cols}, 28px)`;
+            
+            const titles = {
+                front: '主视图（从正面看）',
+                top: '俯视图（从上方看）',
+                side: '侧视图（从右侧看）'
+            };
+            document.getElementById('surfaceViewTitle').textContent = titles[state.currentSurfaceView];
+            
+            for (let row of matrix) {
+                for (let count of row) {
+                    const cell = document.createElement('div');
+                    cell.className = 'surface-cell ' + (count === 0 ? 'zero' : count > 1 ? 'hole' : 'normal');
+                    cell.textContent = count;
+                    grid.appendChild(cell);
+                }
+            }
+        }
+        
+        function setupUI() {
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    state.isCubeShape = btn.dataset.shape === 'cube';
+                    
+                    const widthGroup = document.getElementById('widthInputGroup');
+                    const heightGroup = document.getElementById('heightInputGroup');
+                    
+                    if (state.isCubeShape) {
+                        widthGroup.style.display = 'none';
+                        heightGroup.style.display = 'none';
+                        const length = parseInt(document.getElementById('lengthInput').value);
+                        document.getElementById('widthInput').value = length;
+                        document.getElementById('heightInput').value = length;
+                        document.getElementById('lengthLabel').textContent = '边长';
+                    } else {
+                        widthGroup.style.display = 'flex';
+                        heightGroup.style.display = 'flex';
+                        document.getElementById('lengthLabel').textContent = '长';
+                    }
+                    
+                    rebuildCube();
+                });
+            });
+            
+            ['length', 'width', 'height'].forEach(dim => {
+                const input = document.getElementById(dim + 'Input');
+                input.addEventListener('change', () => {
+                    let value = parseInt(input.value);
+                    if (value < 1) value = 1;
+                    if (value > 10) value = 10;
+                    input.value = value;
+                    
+                    if (state.isCubeShape && dim === 'length') {
+                        document.getElementById('widthInput').value = value;
+                        document.getElementById('heightInput').value = value;
+                    }
+                    
+                    rebuildCube();
+                });
+            });
+            
+            document.querySelectorAll('.mode-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    state.currentMode = tab.dataset.mode;
+                    
+                    document.querySelectorAll('.mode-section').forEach(s => s.classList.remove('active'));
+                    document.getElementById(state.currentMode + 'Mode').classList.add('active');
+                    
+                    updateUI();
+                });
+            });
+            
+            document.querySelectorAll('#surfaceMode .view-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('#surfaceMode .view-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    state.currentSurfaceView = tab.dataset.view;
+                    updateSurfaceMode();
+                });
+            });
+            
+            // 左侧打洞视图切换
+            document.querySelectorAll('#leftViewTabFront, #leftViewTabTop, #leftViewTabRight').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('#leftViewTabFront, #leftViewTabTop, #leftViewTabRight').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    state.currentDrillView = tab.dataset.view;
+                    updateLeftDrillGrid();
+                });
+            });
+            
+            // 切片视图方向切换
+            document.querySelectorAll('#sliceTabTop, #sliceTabFront').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('#sliceTabTop, #sliceTabFront').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    state.currentSliceView = tab.dataset.slice;
+                    state.currentLayer = 0; // 切换方向时重置到第一层
+                    updateVolumeMode();
+                });
+            });
+            
+            document.getElementById('layerSlider').addEventListener('input', (e) => {
+                state.currentLayer = parseInt(e.target.value);
+                document.getElementById('layerValue').textContent = `第${state.currentLayer + 1}层`;
+                updateSliceView();
+                
+                // 更新层列表的高亮状态
+                document.querySelectorAll('.layer-item').forEach((item, index) => {
+                    let layerIndex;
+                    if (state.currentSliceView === 'top') {
+                        layerIndex = state.cube.height - 1 - index;
+                    } else {
+                        layerIndex = state.cube.width - 1 - index;
+                    }
+                    item.classList.toggle('active', layerIndex === state.currentLayer);
+                });
+            });
+            
+
+            document.getElementById('resetHolesBtn').addEventListener('click', () => {
+                state.cube.reset();
+                buildCube();
+                updateUI();
+            });
+            
+            document.getElementById('clearAllBtn').addEventListener('click', () => {
+                document.getElementById('lengthInput').value = 4;
+                document.getElementById('widthInput').value = 4;
+                document.getElementById('heightInput').value = 4;
+                state.isCubeShape = true;
+                document.querySelector('.toggle-btn[data-shape="cube"]').click();
+                rebuildCube();
+            });
+            
+            // 复位视图按钮
+            document.getElementById('resetViewBtn').addEventListener('click', () => {
+                resetCameraView();
+            });
+            
+            // 解体演示功能
+            document.querySelectorAll('.explode-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.explode-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    state.explodeDirection = tab.dataset.explode;
+                    buildCube();
+                });
+            });
+            
+            document.getElementById('explodeSlider').addEventListener('input', (e) => {
+                state.explodeDistance = parseFloat(e.target.value);
+                buildCube();
+            });
+            
+            document.getElementById('resetExplodeBtn').addEventListener('click', () => {
+                state.explodeDistance = 0;
+                document.getElementById('explodeSlider').value = 0;
+                buildCube();
+            });
+        }
+        
+        function resetCameraView() {
+            // 复位相机到主视图位置（从Z轴正方向看向原点）
+            camera.position.set(0, 0, 12);
+            camera.lookAt(0, 0, 0);
+            
+            // 复位立方体旋转
+            if (cubeGroup) {
+                cubeGroup.rotation.set(0, 0, 0);
+            }
+            
+            // 更新相机
+            camera.updateProjectionMatrix();
+        }
+        
+        function rebuildCube() {
+            const length = parseInt(document.getElementById('lengthInput').value);
+            const width = parseInt(document.getElementById('widthInput').value);
+            const height = parseInt(document.getElementById('heightInput').value);
+            
+            state.cube = new CubeState(length, width, height);
+            buildCube();
+            updateUI();
+        }
+        
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initThree();
+            setupUI();
+            updateUI();
+        });
+    </script>
+</body>
+</html>

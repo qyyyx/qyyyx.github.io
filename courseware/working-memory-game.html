@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工作记忆训练游戏</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366F1;
+            --primary-dark: #4F46E5;
+            --success: #10B981;
+            --error: #EF4444;
+            --warning: #F59E0B;
+            --bg: #0F172A;
+            --card-bg: #1E293B;
+            --card-hover: #334155;
+            --text: #F8FAFC;
+            --text-muted: #94A3B8;
+            --border: #334155;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 8px;
+            background: var(--card-bg);
+            padding: 4px;
+            border-radius: 12px;
+        }
+
+        .mode-btn {
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .mode-btn:hover:not(.active) {
+            color: var(--text);
+        }
+
+        .info-btn {
+            padding: 10px 16px;
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .info-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .mode-badge {
+            background: var(--warning);
+            color: #1E293B;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            display: none;
+        }
+
+        .mode-badge.show {
+            display: inline-block;
+        }
+
+        .stats {
+            display: flex;
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: var(--card-bg);
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 70px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-value.success {
+            color: var(--success);
+        }
+
+        .stat-value.error {
+            color: var(--error);
+        }
+
+        .difficulty-selector {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            text-align: center;
+            display: none;
+        }
+
+        .difficulty-selector.show {
+            display: block;
+        }
+
+        .difficulty-label {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+
+        .difficulty-options {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .difficulty-btn {
+            width: 50px;
+            height: 50px;
+            border: 2px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .difficulty-btn:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .difficulty-btn.selected {
+            border-color: var(--primary);
+            background: var(--primary);
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            padding: 20px;
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .game-grid.hard-mode {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            padding: 15px;
+        }
+
+        .grid-cell {
+            width: 100px;
+            height: 100px;
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            position: relative;
+        }
+
+        .game-grid.hard-mode .grid-cell {
+            width: 75px;
+            height: 75px;
+            font-size: 32px;
+        }
+
+        .grid-cell.extra {
+            display: none;
+        }
+
+        .game-grid.hard-mode .grid-cell.extra {
+            display: flex;
+        }
+
+        .grid-cell:hover:not(.disabled) {
+            background: var(--card-hover);
+            transform: scale(1.02);
+        }
+
+        .grid-cell.disabled {
+            cursor: default;
+            opacity: 0.7;
+        }
+
+        .grid-cell.showing {
+            animation: cellAppear 0.3s ease-out;
+        }
+
+        .grid-cell.correct {
+            background: var(--success) !important;
+            border-color: var(--success) !important;
+            animation: correctPulse 0.5s ease;
+        }
+
+        .grid-cell.wrong {
+            background: var(--error) !important;
+            border-color: var(--error) !important;
+            animation: shake 0.5s ease;
+        }
+
+        .grid-cell.highlight {
+            background: var(--primary) !important;
+            border-color: var(--primary) !important;
+            animation: highlightPulse 0.8s ease;
+        }
+
+        @keyframes cellAppear {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes correctPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+
+        @keyframes highlightPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .message {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-align: center;
+            min-height: 27px;
+        }
+
+        .message.hint { color: var(--primary); }
+        .message.error { color: var(--error); }
+        .message.success { color: var(--success); }
+        .message.warning { color: var(--warning); }
+
+        .start-btn {
+            padding: 16px 48px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .start-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .start-btn.hidden { display: none; }
+
+        /* 通用弹窗 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 24px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            border: 1px solid var(--border);
+        }
+
+        .modal.show .modal-content {
+            transform: scale(1);
+        }
+
+        /* 困难模式确认弹窗 */
+        .hardmode-modal .modal-content {
+            background: linear-gradient(135deg, #1E293B 0%, #334155 100%);
+            border: 2px solid var(--warning);
+        }
+
+        .hardmode-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--warning);
+            margin-bottom: 15px;
+        }
+
+        .hardmode-emoji {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+
+        .hardmode-text {
+            font-size: 16px;
+            color: var(--text-muted);
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .hardmode-text strong {
+            color: var(--text);
+        }
+
+        .hardmode-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover { transform: translateY(-2px); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--warning), #D97706);
+            color: white;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--card-hover);
+            color: var(--text-muted);
+        }
+
+        /* 结果弹窗 */
+        .result-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .result-title.success { color: var(--success); }
+        .result-title.fail { color: var(--error); }
+
+        .result-subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .result-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .result-stat {
+            background: rgba(99, 102, 241, 0.1);
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        .result-stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .result-stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .result-memory-span {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 12px;
+        }
+
+        #result-memory-text {
+            font-size: 18px;
+            color: var(--text);
+        }
+
+        #result-memory-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .result-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .result-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .result-btn.primary { background: var(--primary); color: white; }
+        .result-btn.secondary { background: var(--card-hover); color: var(--text); }
+        .result-btn.info {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        .result-btn:hover { transform: translateY(-2px); }
+
+        /* 科普弹窗 */
+        .info-modal {
+            z-index: 2000;
+        }
+
+        .info-content {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            text-align: left;
+        }
+
+        .info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            position: sticky;
+            top: 0;
+            background: var(--card-bg);
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .info-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .info-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--card-hover);
+            border: none;
+            color: var(--text);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .info-close:hover { background: var(--error); }
+
+        .info-section {
+            margin-bottom: 25px;
+        }
+
+        .info-section:last-child { margin-bottom: 0; }
+
+        .info-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-section h3 .icon {
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .info-section p {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text-muted);
+            text-align: justify;
+        }
+
+        .info-highlight {
+            background: rgba(99, 102, 241, 0.1);
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 10px;
+        }
+
+        .info-highlight p { color: var(--text); margin: 0; }
+
+        .info-tip {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 12px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 10px;
+            border-left: 3px solid var(--success);
+        }
+
+        .info-tip .tip-icon { color: var(--success); font-size: 16px; }
+        .info-tip p { margin: 0; color: var(--success); }
+
+        .keyboard-hint {
+            margin-top: 20px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .keyboard-hint kbd {
+            background: var(--card-bg);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            font-family: inherit;
+        }
+
+        @media (max-width: 480px) {
+            .grid-cell { width: 80px; height: 80px; font-size: 36px; }
+            .game-grid.hard-mode .grid-cell { width: 65px; height: 65px; font-size: 28px; }
+            .header { justify-content: center; }
+            .stat-item { min-width: 60px; padding: 6px 12px; }
+            .result-stats { grid-template-columns: 1fr; }
+            .info-content { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <div class="mode-toggle">
+                <button class="mode-btn active" data-mode="train">训练模式</button>
+                <button class="mode-btn" data-mode="test">测试模式</button>
+            </div>
+            <button class="info-btn" id="info-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                科普
+            </button>
+        </div>
+        <span class="mode-badge" id="mode-badge">困难模式</span>
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-label">关卡</div>
+                <div class="stat-value" id="level-display">-</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">剩余尝试</div>
+                <div class="stat-value error" id="attempts-display">2</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="difficulty-selector" id="difficulty-selector">
+        <div class="difficulty-label">选择起始难度</div>
+        <div class="difficulty-options">
+            <button class="difficulty-btn" data-value="3">3</button>
+            <button class="difficulty-btn selected" data-value="4">4</button>
+            <button class="difficulty-btn" data-value="5">5</button>
+            <button class="difficulty-btn" data-value="6">6</button>
+            <button class="difficulty-btn" data-value="7">7</button>
+        </div>
+    </div>
+
+    <main class="game-container">
+        <div class="game-grid" id="game-grid">
+            <div class="grid-cell disabled" data-index="0"></div>
+            <div class="grid-cell disabled" data-index="1"></div>
+            <div class="grid-cell disabled" data-index="2"></div>
+            <div class="grid-cell disabled" data-index="3"></div>
+            <div class="grid-cell disabled" data-index="4"></div>
+            <div class="grid-cell disabled" data-index="5"></div>
+            <div class="grid-cell disabled" data-index="6"></div>
+            <div class="grid-cell disabled" data-index="7"></div>
+            <div class="grid-cell disabled" data-index="8"></div>
+            <div class="grid-cell extra disabled" data-index="9"></div>
+            <div class="grid-cell extra disabled" data-index="10"></div>
+            <div class="grid-cell extra disabled" data-index="11"></div>
+            <div class="grid-cell extra disabled" data-index="12"></div>
+            <div class="grid-cell extra disabled" data-index="13"></div>
+            <div class="grid-cell extra disabled" data-index="14"></div>
+            <div class="grid-cell extra disabled" data-index="15"></div>
+        </div>
+
+        <p class="message" id="message">选择模式开始游戏</p>
+        <button class="start-btn" id="start-btn">开始游戏</button>
+        <p class="keyboard-hint" id="keyboard-hint">
+            提示：可使用键盘数字键 <kbd>1</kbd>-<kbd>9</kbd> 快速操作
+        </p>
+    </main>
+
+    <!-- 困难模式确认弹窗 -->
+    <div class="modal hardmode-modal" id="hardmode-modal">
+        <div class="modal-content">
+            <div class="hardmode-emoji">🚀</div>
+            <h2 class="hardmode-title">你太强了！</h2>
+            <p class="hardmode-text">
+                这还是<strong>普通人类</strong>吗？<br><br>
+                你已成功通关第9关！<br>
+                现在是时候挑战<strong>困难模式</strong>了！<br>
+                4×4网格，最高16位，你能走到哪一步？
+            </p>
+            <div class="hardmode-buttons">
+                <button class="btn btn-primary" id="accept-hardmode">挑战困难模式</button>
+                <button class="btn btn-secondary" id="decline-hardmode">继续当前难度</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 结果弹窗 -->
+    <div class="modal result-modal" id="result-modal">
+        <div class="modal-content">
+            <h2 class="result-title" id="result-title">游戏结束</h2>
+            <p class="result-subtitle" id="result-subtitle">测试已完成</p>
+
+            <div class="result-stats">
+                <div class="result-stat">
+                    <div class="result-stat-label">达到关卡</div>
+                    <div class="result-stat-value" id="result-level">-</div>
+                </div>
+                <div class="result-stat">
+                    <div class="result-stat-label">通关数量</div>
+                    <div class="result-stat-value" id="result-passed">-</div>
+                </div>
+            </div>
+
+            <div class="result-memory-span">
+                <span id="result-memory-text">恭喜你，工作记忆广度为 <strong id="result-memory-value">-</strong></span>
+            </div>
+
+            <div class="result-buttons">
+                <button class="result-btn primary" id="restart-btn">再来一次</button>
+                <button class="result-btn info" id="result-info-btn">了解工作记忆广度</button>
+                <button class="result-btn secondary" id="home-btn">返回主页</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 科普弹窗 -->
+    <div class="modal info-modal" id="info-modal">
+        <div class="info-content">
+            <div class="info-header">
+                <h2 class="info-title">工作记忆广度</h2>
+                <button class="info-close" id="info-close">×</button>
+            </div>
+
+            <div class="info-section">
+                <h3><span class="icon">1</span>什么是工作记忆</h3>
+                <p>工作记忆是大脑临时存储和操作信息的能力，就像电脑的内存一样。它允许我们在短时间内保持信息活跃，以便进行复杂的认知任务，如理解文本、解决问题或做出决策。工作记忆是我们日常学习、工作和生活的基础认知能力之一。</p>
+            </div>
+
+            <div class="info-section">
+                <h3><span class="icon">2</span>什么是工作记忆广度</h3>
+                <p>工作记忆广度（Working Memory Span）是指大脑一次能够同时处理和存储的信息单元数量。1956年，心理学家乔治·米勒在论文《神奇的数字7±2》中提出，人类工作记忆的平均容量约为7个信息单元，这就是著名的"魔法数字"理论。</p>
+                <div class="info-highlight">
+                    <p><strong>简单来说：</strong>工作记忆广度就是你在脑海中同时"记住"和"操作"信息的最大数量。比如记住一串电话号码、在心算时保持中间结果等，都依赖工作记忆。</p>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3><span class="icon">3</span>工作记忆广度的意义</h3>
+                <p>工作记忆广度与许多重要能力密切相关：</p>
+                <p style="margin-top: 10px;"><strong>学习能力：</strong>工作记忆广度越大，学习新知识的速度越快，理解能力越强。</p>
+                <p style="margin-top: 10px;"><strong>阅读理解：</strong>阅读时需要同时记住已读内容、理解当前句子、预测后续内容。</p>
+                <p style="margin-top: 10px;"><strong>问题解决：</strong>复杂问题需要多步骤推理，每一步都需要在工作记忆中保持中间结果。</p>
+                <p style="margin-top: 10px;"><strong>决策能力：</strong>做决策时需要权衡多个选项和因素。</p>
+            </div>
+
+            <div class="info-section">
+                <h3><span class="icon">4</span>黑猩猩记忆实验</h3>
+                <p>2007年，日本京都大学灵长类研究所的松泽哲郎教授进行了一项著名的研究，研究发现，黑猩猩在记忆测试中的表现竟然优于人类！特别是名叫"步"的年轻黑猩猩，能够以90%的准确率记住9个数字的位置。</p>
+                <div class="info-highlight">
+                    <p>科学家认为，这可能与黑猩猩的"遗觉象"（eidetic memory）有关——它们能够保持异常清晰的视觉表象记忆。</p>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3><span class="icon">5</span>如何提升工作记忆</h3>
+                <div class="info-tip">
+                    <span class="tip-icon">💡</span>
+                    <p><strong>坚持训练：</strong>像这款游戏一样的认知训练可以有效提升工作记忆能力</p>
+                </div>
+                <div class="info-tip">
+                    <span class="tip-icon">🏃</span>
+                    <p><strong>体育锻炼：</strong>有氧运动被证实能促进大脑可塑性</p>
+                </div>
+                <div class="info-tip">
+                    <span class="tip-icon">😴</span>
+                    <p><strong>充足睡眠：</strong>睡眠对记忆巩固至关重要</p>
+                </div>
+                <div class="info-tip">
+                    <span class="tip-icon">🧘</span>
+                    <p><strong>冥想练习：</strong>冥想能增强注意力</p>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3><span class="icon">6</span>参考标准</h3>
+                <div class="info-highlight">
+                    <p><strong>3-5位：</strong>低于平均水平，建议加强训练</p>
+                    <p><strong>6-7位：</strong>属于正常成年人平均水平</p>
+                    <p><strong>8-10位：</strong>高于平均水平，表现优秀</p>
+                    <p><strong>11位以上：</strong>工作记忆能力非常出色</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            SHOW_TIME: 1500,
+            FEEDBACK_TIME: 600,
+            TEST_START_LEVEL: 5,
+            TRAIN_MIN_LEVEL: 3,
+            TRAIN_MAX_LEVEL: 7,
+            HARD_MODE_THRESHOLD: 10,
+            MAX_LEVEL: 16,
+        };
+
+        let gameState = {
+            mode: 'train',
+            level: 0,
+            startLevel: 4,
+            attemptCount: 2,
+            correctCount: 0,
+            totalClicks: 0,
+            correctClicks: 0,
+            totalPassed: 0,
+            maxLevel: 0,
+            sequence: [],
+            currentClick: 1,
+            isShowing: false,
+            isPlaying: false,
+            lastResult: null,
+            isHardMode: false,
+            pendingHardMode: false,
+        };
+
+        const elements = {
+            modeButtons: document.querySelectorAll('.mode-btn'),
+            infoBtn: document.getElementById('info-btn'),
+            difficultySelector: document.getElementById('difficulty-selector'),
+            difficultyButtons: document.querySelectorAll('.difficulty-btn'),
+            gameGrid: document.getElementById('game-grid'),
+            gridCells: document.querySelectorAll('.grid-cell'),
+            levelDisplay: document.getElementById('level-display'),
+            attemptsDisplay: document.getElementById('attempts-display'),
+            message: document.getElementById('message'),
+            startBtn: document.getElementById('start-btn'),
+            hardmodeModal: document.getElementById('hardmode-modal'),
+            acceptHardmodeBtn: document.getElementById('accept-hardmode'),
+            declineHardmodeBtn: document.getElementById('decline-hardmode'),
+            resultModal: document.getElementById('result-modal'),
+            resultTitle: document.getElementById('result-title'),
+            resultSubtitle: document.getElementById('result-subtitle'),
+            resultLevel: document.getElementById('result-level'),
+            resultPassed: document.getElementById('result-passed'),
+            resultMemoryValue: document.getElementById('result-memory-value'),
+            restartBtn: document.getElementById('restart-btn'),
+            homeBtn: document.getElementById('home-btn'),
+            resultInfoBtn: document.getElementById('result-info-btn'),
+            modeBadge: document.getElementById('mode-badge'),
+            keyboardHint: document.getElementById('keyboard-hint'),
+            infoModal: document.getElementById('info-modal'),
+            infoClose: document.getElementById('info-close'),
+        };
+
+        function init() {
+            setupEventListeners();
+            updateDisplay();
+        }
+
+        function setupEventListeners() {
+            elements.modeButtons.forEach(btn => {
+                btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+            });
+
+            elements.infoBtn.addEventListener('click', () => showModal('info-modal'));
+            elements.resultInfoBtn.addEventListener('click', () => showModal('info-modal'));
+            elements.infoClose.addEventListener('click', () => hideModal('info-modal'));
+            elements.infoModal.addEventListener('click', (e) => {
+                if (e.target === elements.infoModal) hideModal('info-modal');
+            });
+
+            elements.acceptHardmodeBtn.addEventListener('click', acceptHardMode);
+            elements.declineHardmodeBtn.addEventListener('click', declineHardMode);
+
+            elements.difficultyButtons.forEach(btn => {
+                btn.addEventListener('click', () => selectDifficulty(parseInt(btn.dataset.value)));
+            });
+
+            elements.startBtn.addEventListener('click', startGame);
+
+            elements.gridCells.forEach((cell, index) => {
+                cell.addEventListener('click', () => handleCellClick(index));
+            });
+
+            document.addEventListener('keydown', handleKeyPress);
+
+            elements.restartBtn.addEventListener('click', restartGame);
+            elements.homeBtn.addEventListener('click', goHome);
+        }
+
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        function switchMode(mode) {
+            gameState.mode = mode;
+            elements.modeButtons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            elements.difficultySelector.classList.toggle('show', mode === 'train');
+            resetGame();
+        }
+
+        function selectDifficulty(value) {
+            gameState.startLevel = value;
+            elements.difficultyButtons.forEach(btn => {
+                btn.classList.toggle('selected', parseInt(btn.dataset.value) === value);
+            });
+        }
+
+        function startGame() {
+            gameState.level = gameState.mode === 'test' ? CONFIG.TEST_START_LEVEL : gameState.startLevel;
+            gameState.attemptCount = 2;
+            gameState.totalPassed = 0;
+            gameState.maxLevel = 0;
+            gameState.totalClicks = 0;
+            gameState.correctClicks = 0;
+            gameState.isPlaying = true;
+            gameState.lastResult = null;
+            gameState.isHardMode = false;
+            gameState.pendingHardMode = false;
+
+            elements.modeBadge.classList.remove('show');
+            elements.gameGrid.classList.remove('hard-mode');
+            elements.keyboardHint.innerHTML = '提示：可使用键盘数字键 <kbd>1</kbd>-<kbd>9</kbd> 快速操作';
+
+            updateDisplay();
+            startRound();
+        }
+
+        function startRound() {
+            // 检查是否需要进入困难模式确认
+            if (gameState.level >= CONFIG.HARD_MODE_THRESHOLD && !gameState.isHardMode && !gameState.pendingHardMode) {
+                // 显示困难模式确认弹窗
+                showHardModeModal();
+                return;
+            }
+
+            // 困难模式下每次重试重置为2次机会
+            if (gameState.isHardMode) {
+                gameState.attemptCount = 2;
+                updateDisplay();
+            }
+
+            gameState.sequence = generateSequence(gameState.level);
+            gameState.currentClick = 1;
+            gameState.correctCount = 0;
+            showNumbers();
+        }
+
+        function showHardModeModal() {
+            gameState.pendingHardMode = true;
+            showModal('hardmode-modal');
+        }
+
+        function acceptHardMode() {
+            gameState.pendingHardMode = false;
+            gameState.isHardMode = true;
+            hideModal('hardmode-modal');
+
+            elements.gameGrid.classList.add('hard-mode');
+            elements.modeBadge.classList.add('show');
+            elements.keyboardHint.innerHTML = '困难模式：可使用键盘 <kbd>1</kbd>-<kbd>9</kbd> 和 <kbd>0</kbd> <kbd>-</kbd> <kbd>=</kbd>（第10-12位）快速操作';
+            elements.message.textContent = '困难模式开启！4×4网格，最高16位';
+            elements.message.className = 'message warning';
+
+            gameState.sequence = generateSequence(gameState.level);
+            gameState.currentClick = 1;
+            gameState.correctCount = 0;
+            showNumbers();
+        }
+
+        function declineHardMode() {
+            gameState.pendingHardMode = false;
+            hideModal('hardmode-modal');
+
+            // 继续在普通模式但限制最高到9关
+            gameState.sequence = generateSequence(9);
+            gameState.level = 9;
+            gameState.currentClick = 1;
+            gameState.correctCount = 0;
+            showNumbers();
+        }
+
+        function generateSequence(count) {
+            const positions = gameState.isHardMode
+                ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+                : [0, 1, 2, 3, 4, 5, 6, 7, 8];
+
+            for (let i = positions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [positions[i], positions[j]] = [positions[j], positions[i]];
+            }
+
+            return positions.slice(0, count).map((pos, idx) => ({
+                position: pos,
+                value: idx + 1
+            }));
+        }
+
+        function showNumbers() {
+            gameState.isShowing = true;
+            elements.startBtn.classList.add('hidden');
+            elements.message.textContent = '请记住数字位置...';
+            elements.message.className = 'message hint';
+
+            clearGrid();
+
+            gameState.sequence.forEach(item => {
+                const cell = elements.gridCells[item.position];
+                cell.textContent = item.value;
+                cell.classList.add('showing');
+                cell.classList.remove('disabled');
+            });
+
+            setTimeout(() => {
+                hideNumbers();
+            }, CONFIG.SHOW_TIME);
+        }
+
+        function hideNumbers() {
+            gameState.isShowing = false;
+            elements.gridCells.forEach(cell => {
+                cell.classList.remove('showing');
+                cell.textContent = '';
+            });
+            elements.message.textContent = `按从小到大顺序点击方块 (1/${gameState.level})`;
+            elements.message.className = 'message';
+        }
+
+        function handleCellClick(index) {
+            if (!gameState.isPlaying || gameState.isShowing) return;
+
+            const item = gameState.sequence.find(i => i.position === index);
+            if (!item) return;
+
+            gameState.totalClicks++;
+
+            if (item.value === gameState.currentClick) {
+                handleCorrectClick(index, item.value);
+            } else {
+                handleWrongClick(index, item.value);
+            }
+        }
+
+        function handleCorrectClick(index, value) {
+            const cell = elements.gridCells[index];
+            cell.textContent = value;
+            cell.classList.add('correct');
+
+            gameState.correctClicks++;
+            gameState.currentClick++;
+
+            if (gameState.currentClick > gameState.level) {
+                handleRoundWin();
+            } else {
+                elements.message.textContent = `继续！(${gameState.currentClick}/${gameState.level})`;
+                setTimeout(() => {
+                    cell.classList.remove('correct');
+                    cell.textContent = '';
+                }, CONFIG.FEEDBACK_TIME);
+            }
+        }
+
+        function handleWrongClick(index, clickedValue) {
+            const cell = elements.gridCells[index];
+            cell.classList.add('wrong');
+
+            const correctItem = gameState.sequence.find(i => i.value === gameState.currentClick);
+            const correctCell = elements.gridCells[correctItem.position];
+            correctCell.classList.add('highlight');
+            correctCell.textContent = correctItem.value;
+
+            gameState.attemptCount--;
+            gameState.lastResult = false;
+
+            updateDisplay();
+
+            setTimeout(() => {
+                if (gameState.attemptCount <= 0) {
+                    handleGameOver();
+                } else {
+                    elements.message.textContent = `错误！剩余 ${gameState.attemptCount} 次尝试机会`;
+                    elements.message.className = 'message error';
+                    setTimeout(() => {
+                        clearGrid();
+                        startRound();
+                    }, CONFIG.FEEDBACK_TIME * 2);
+                }
+            }, CONFIG.FEEDBACK_TIME);
+        }
+
+        function handleRoundWin() {
+            gameState.totalPassed++;
+            gameState.attemptCount = 2;
+            gameState.level++;
+            gameState.lastResult = true;
+
+            if (gameState.level > CONFIG.MAX_LEVEL) {
+                handleGameComplete();
+                return;
+            }
+
+            if (gameState.level > gameState.maxLevel) {
+                gameState.maxLevel = gameState.level;
+            }
+
+            updateDisplay();
+
+            elements.message.textContent = '太棒了！进入下一关...';
+            elements.message.className = 'message success';
+
+            setTimeout(() => {
+                startRound();
+            }, CONFIG.FEEDBACK_TIME * 2);
+        }
+
+        function handleGameComplete() {
+            gameState.isPlaying = false;
+            elements.message.textContent = '恭喜你完成了所有关卡！';
+            elements.message.className = 'message success';
+            showResult();
+        }
+
+        function handleGameOver() {
+            gameState.isPlaying = false;
+            showResult();
+        }
+
+        function showResult() {
+            const memorySpan = gameState.maxLevel;
+            const passed = gameState.totalPassed;
+            const isComplete = memorySpan >= CONFIG.MAX_LEVEL;
+            const isSuccess = gameState.lastResult;
+
+            if (isComplete) {
+                elements.resultTitle.textContent = '全部通关！';
+                elements.resultTitle.className = 'result-title success';
+            } else {
+                elements.resultTitle.textContent = isSuccess ? '恭喜过关！' : '游戏结束';
+                elements.resultTitle.className = 'result-title ' + (isSuccess ? 'success' : 'fail');
+            }
+
+            if (gameState.mode === 'test') {
+                elements.resultSubtitle.textContent = '测试已完成';
+            } else {
+                elements.resultSubtitle.textContent = isComplete ? '你完成了所有挑战！' : '训练结束';
+            }
+
+            elements.resultLevel.textContent = memorySpan;
+            elements.resultPassed.textContent = passed;
+            elements.resultMemoryValue.textContent = memorySpan;
+
+            showModal('result-modal');
+        }
+
+        function restartGame() {
+            hideModal('result-modal');
+            clearGrid();
+            startGame();
+        }
+
+        function goHome() {
+            hideModal('result-modal');
+            clearGrid();
+            resetGame();
+        }
+
+        function resetGame() {
+            gameState.isPlaying = false;
+            gameState.level = 0;
+            gameState.isHardMode = false;
+            gameState.pendingHardMode = false;
+            elements.levelDisplay.textContent = '-';
+            elements.attemptsDisplay.textContent = '2';
+            elements.modeBadge.classList.remove('show');
+            elements.gameGrid.classList.remove('hard-mode');
+            elements.keyboardHint.innerHTML = '提示：可使用键盘数字键 <kbd>1</kbd>-<kbd>9</kbd> 快速操作';
+            elements.message.textContent = gameState.mode === 'train'
+                ? '选择起始难度，然后开始游戏'
+                : '测试模式从5位开始，准备好了吗？';
+            elements.message.className = 'message';
+            elements.startBtn.textContent = '开始游戏';
+            elements.startBtn.classList.remove('hidden');
+            clearGrid();
+        }
+
+        function clearGrid() {
+            elements.gridCells.forEach(cell => {
+                cell.textContent = '';
+                cell.classList.remove('showing', 'correct', 'wrong', 'highlight');
+                cell.classList.add('disabled');
+            });
+        }
+
+        function updateDisplay() {
+            if (gameState.level > 0) {
+                elements.levelDisplay.textContent = gameState.level;
+            }
+            elements.attemptsDisplay.textContent = gameState.attemptCount;
+
+            if (gameState.attemptCount === 2) {
+                elements.attemptsDisplay.className = 'stat-value success';
+            } else if (gameState.attemptCount === 1) {
+                elements.attemptsDisplay.className = 'stat-value error';
+            }
+        }
+
+        function handleKeyPress(e) {
+            if (e.key >= '1' && e.key <= '9') {
+                const index = parseInt(e.key) - 1;
+                handleCellClick(index);
+            }
+            if (gameState.isHardMode) {
+                if (e.key === '0') handleCellClick(9);
+                else if (e.key === '-') handleCellClick(10);
+                else if (e.key === '=') handleCellClick(11);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

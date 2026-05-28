@@ -9,7 +9,7 @@
     --bg:#0f172a; --bg2:#1e293b;
     --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
     --brand:#4f46e5; --brand2:#7c3aed;
-    --geo:#0ea5e9; --alg:#10b981; --num:#f59e0b; --app:#ef4444;
+    --geo:#0ea5e9; --alg:#10b981; --num:#f59e0b; --app:#ef4444; --fun:#8b5cf6;
     --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.08);
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -101,6 +101,7 @@ const CATEGORIES = [
   {key:"alg", name:"代数与函数", color:"var(--alg)"},
   {key:"num", name:"数论与组合", color:"var(--num)"},
   {key:"app", name:"应用问题",   color:"var(--app)"},
+  {key:"fun", name:"趣味与思维", color:"var(--fun)"},
 ];
 
 const COURSEWARE = [
@@ -113,6 +114,8 @@ const COURSEWARE = [
    desc:"自学探究实验室，拖动顶点感受共角三角形的面积关系。", tags:["面积模型","共角","三角形"]},
   {title:"风筝与蝴蝶模型", cat:"geo", file:"kite-butterfly.html",
    desc:"梯形中的风筝模型与蝴蝶模型，可视化对应线段与面积的转化。", tags:["面积模型","梯形","相似"]},
+  {title:"立方体打洞", cat:"geo", file:"drilled-cube-volume.html",
+   desc:"在立方体上打洞，三维可视化求剩余体积与表面积的变化。", tags:["立体几何","体积","表面积"]},
 
   // 代数与函数
   {title:"二次函数", cat:"alg", file:"quadratic-function.html",
@@ -133,10 +136,16 @@ const COURSEWARE = [
    desc:"能不能刚好铺满？动手摆放多格骨牌，体会铺砖问题中的染色论证。", tags:["组合","铺砖","染色"]},
   {title:"骑士巡游问题", cat:"num", file:"knights-tour.html",
    desc:"在棋盘上让骑士走遍每一格，探索图论与回溯的奇妙路径。", tags:["图论","回溯","棋盘"]},
+  {title:"完全平方数", cat:"num", file:"perfect-squares.html",
+   desc:"探究完全平方数的规律与判定，感受平方数背后的数论结构。", tags:["数论","平方数","规律"]},
 
   // 应用问题
   {title:"经济问题", cat:"app", file:"economics.html",
    desc:"交互实验课件，用数学模型分析利润、成本与定价等经济情境。", tags:["应用","建模","利润"]},
+
+  // 趣味与思维
+  {title:"工作记忆训练游戏", cat:"fun", file:"working-memory-game.html",
+   desc:"通过记忆广度小游戏训练工作记忆，挑战你的专注与短时记忆容量。", tags:["思维","记忆","游戏"]},
 ];
 
 const main = document.getElementById("main");

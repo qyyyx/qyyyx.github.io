@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>完全平方数探究</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-light: #818CF8;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --bg: #F8FAFC;
+            --card-bg: #FFFFFF;
+            --text: #1E293B;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        /* Navigation Tabs */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .tab-btn {
+            padding: 0.75rem 1.25rem;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        
+        .tab-btn:hover {
+            background: var(--bg);
+            color: var(--primary);
+        }
+        
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        /* Main Content */
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-title {
+            font-size: 1.25rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+        
+        /* Control Bar */
+        .control-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #4338CA;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Range Input */
+        .range-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .range-group label {
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+        
+        input[type="range"] {
+            width: 200px;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--border);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+        }
+        
+        .range-value {
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 600;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        /* Progress Bar */
+        .progress-container {
+            margin-bottom: 1rem;
+        }
+        
+        .progress-bar {
+            height: 12px;
+            background: var(--bg);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 6px;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+        
+        /* Square Grid */
+        .square-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 0.5rem;
+        }
+        
+        .square-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .square-card.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .square-card .n {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+        
+        .square-card .nsup2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .square-card .result {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-top: 0.5rem;
+        }
+        
+        /* Hint Box */
+        .hint-box {
+            background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+            border-left: 4px solid var(--warning);
+            padding: 1rem 1.25rem;
+            border-radius: 0 12px 12px 0;
+            margin-top: 1.5rem;
+        }
+        
+        .hint-box h4 {
+            color: #92400E;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .hint-box p {
+            color: #78350F;
+            line-height: 1.6;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .tabs {
+                gap: 0.25rem;
+            }
+            
+            .tab-btn {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.85rem;
+            }
+            
+            .control-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .square-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>完全平方数探究</h1>
+        <p>通过观察与发现，探索完全平方数的奥秘</p>
+    </header>
+    
+    <nav class="tabs">
+        <button class="tab-btn active" data-tab="m1">M1 平方数生成</button>
+        <button class="tab-btn" data-tab="m2">M2 质因数指数</button>
+        <button class="tab-btn" data-tab="m3">M3 因数个数</button>
+        <button class="tab-btn" data-tab="m4">M4 余数规律</button>
+        <button class="tab-btn" data-tab="m5">M5 总结验证</button>
+    </nav>
+    
+    <main class="main">
+        <!-- M1: 平方数生成 + 末位特征 -->
+        <section id="m1" class="section active">
+            <div class="card">
+                <h2 class="card-title">平方数动态生成与末位特征</h2>
+                
+                <div class="control-bar">
+                    <button id="btnStartM1" class="btn btn-primary">开始生成</button>
+                    <button id="btnResetM1" class="btn btn-secondary">重置</button>
+                    
+                    <div class="range-group">
+                        <label>生成数量:</label>
+                        <input type="range" id="rangeCount" min="10" max="50" value="50">
+                        <span class="range-value" id="rangeCountValue">50</span>
+                    </div>
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">点击"开始生成"按钮，观察平方数的末位规律</div>
+                </div>
+                
+                <div class="square-grid" id="squareGrid"></div>
+                
+                <div class="hint-box">
+                    <h4>💡 探究任务</h4>
+                    <p>请仔细观察这些平方数的末位数字。你发现了什么规律？提示：末位只可能出现哪些数字？</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- M2: 质因数指数 -->
+        <section id="m2" class="section">
+            <div class="card">
+                <h2 class="card-title">质因数指数探究</h2>
+                
+                <div class="control-bar">
+                    <button id="btnStartM2" class="btn btn-primary">分解质因数</button>
+                    <button id="btnResetM2" class="btn btn-secondary">重置</button>
+                </div>
+                
+                <div id="primeGridM2" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;"></div>
+                
+                <div class="hint-box">
+                    <h4>💡 探究任务</h4>
+                    <p>观察每个完全平方数的质因数分解式，注意指数部分。你发现了什么规律？提示：每个质因数的指数是奇数还是偶数？</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- M3: 因数个数 -->
+        <section id="m3" class="section">
+            <div class="card">
+                <h2 class="card-title">因数个数探究</h2>
+                
+                <div class="control-bar">
+                    <button id="btnStartM3" class="btn btn-primary">分析因数</button>
+                    <button id="btnResetM3" class="btn btn-secondary">重置</button>
+                </div>
+                
+                <div id="primeGridM3" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;"></div>
+                
+                <div class="hint-box">
+                    <h4>💡 探究任务</h4>
+                    <p>观察每个完全平方数的因数个数，你发现了什么规律？提示：因数个数是奇数还是偶数？</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- M4: 余数规律 -->
+        <section id="m4" class="section">
+            <div class="card">
+                <h2 class="card-title">余数规律探究</h2>
+                
+                <div class="control-bar">
+                    <div class="range-group">
+                        <label>选择除数:</label>
+                        <input type="range" id="divisorRange" min="3" max="16" value="4">
+                        <span class="range-value" id="divisorValue">4</span>
+                    </div>
+                    <button id="btnStartM4" class="btn btn-primary">分析余数</button>
+                    <button id="btnResetM4" class="btn btn-secondary">重置</button>
+                </div>
+                
+                <div id="remainderGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;"></div>
+                
+                <div class="hint-box">
+                    <h4>💡 探究任务</h4>
+                    <p>观察完全平方数除以不同数的余数分布，你发现了什么规律？</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- M5: 总结验证 -->
+        <section id="m5" class="section">
+            <div class="card">
+                <h2 class="card-title">知识总结与验证</h2>
+                
+                <div style="background: var(--bg); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                    <h3 style="color: var(--primary); margin-bottom: 1rem;">完全平方数四大特征</h3>
+                    
+                    <div style="display: grid; gap: 1rem;">
+                        <div style="background: white; padding: 1rem; border-radius: 8px; border-left: 4px solid #4F46E5;">
+                            <strong style="color: var(--primary);">特征1：末位数字</strong>
+                            <p style="margin-top: 0.5rem; color: var(--text-muted);">完全平方数的末位只可能是 0, 1, 4, 5, 6, 9</p>
+                        </div>
+                        
+                        <div style="background: white; padding: 1rem; border-radius: 8px; border-left: 4px solid #10B981;">
+                            <strong style="color: var(--success);">特征2：因数个数</strong>
+                            <p style="margin-top: 0.5rem; color: var(--text-muted);">完全平方数的因数个数是奇数</p>
+                        </div>
+                        
+                        <div style="background: white; padding: 1rem; border-radius: 8px; border-left: 4px solid #F59E0B;">
+                            <strong style="color: var(--warning);">特征3：质因数指数</strong>
+                            <p style="margin-top: 0.5rem; color: var(--text-muted);">质因数分解中每个质因数的指数都是偶数</p>
+                        </div>
+                        
+                        <div style="background: white; padding: 1rem; border-radius: 8px; border-left: 4px solid #EF4444;">
+                            <strong style="color: var(--danger);">特征4：余数规律</strong>
+                            <p style="margin-top: 0.5rem; color: var(--text-muted);">除以3余0或1；除以4余0或1；除以8余0,1,4</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3 style="margin-bottom: 1rem;">验证小测验</h3>
+                
+                <div id="quizContainer"></div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="footer">
+        <p>完全平方数探究式学习平台</p>
+    </footer>
+    
+    <script>
+        // ==================== 全局工具函数 ====================
+        
+        // 计算因数个数
+        function getDivisorCount(n) {
+            const divisors = [];
+            for (let i = 1; i <= Math.sqrt(n); i++) {
+                if (n % i === 0) {
+                    divisors.push(i);
+                    if (i !== n / i) divisors.push(n / i);
+                }
+            }
+            return divisors.sort((a, b) => a - b);
+        }
+        
+        // 质因数分解
+        function primeFactorization(n) {
+            const factors = [];
+            let d = 2;
+            while (d * d <= n) {
+                let count = 0;
+                while (n % d === 0) {
+                    n /= d;
+                    count++;
+                }
+                if (count > 0) {
+                    factors.push({ prime: d, exponent: count });
+                }
+                d++;
+            }
+            if (n > 1) {
+                factors.push({ prime: n, exponent: 1 });
+            }
+            return factors;
+        }
+        
+        // ==================== Tab 切换 ====================
+        
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const sections = document.querySelectorAll('.section');
+        
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                tabBtns.forEach(b => b.classList.remove('active'));
+                sections.forEach(s => s.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+        
+        // ==================== M1: 平方数生成 + 末位特征 ====================
+        
+        const rangeCount = document.getElementById('rangeCount');
+        const rangeCountValue = document.getElementById('rangeCountValue');
+        const squareGrid = document.getElementById('squareGrid');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const btnStartM1 = document.getElementById('btnStartM1');
+        const btnResetM1 = document.getElementById('btnResetM1');
+        let m1Interval = null;
+        
+        const lastDigitColors = {
+            '0': '#EF4444',
+            '1': '#F59E0B',
+            '4': '#10B981',
+            '5': '#3B82F6',
+            '6': '#8B5CF6',
+            '9': '#EC4899'
+        };
+        
+        rangeCount.addEventListener('input', () => {
+            rangeCountValue.textContent = rangeCount.value;
+        });
+        
+        btnStartM1.addEventListener('click', () => {
+            if (m1Interval) clearInterval(m1Interval);
+            squareGrid.innerHTML = '';
+            const count = parseInt(rangeCount.value);
+            let current = 1;
+            
+            btnStartM1.disabled = true;
+            progressText.textContent = '正在生成...';
+            
+            m1Interval = setInterval(() => {
+                if (current > count) {
+                    clearInterval(m1Interval);
+                    m1Interval = null;
+                    btnStartM1.disabled = false;
+                    progressText.textContent = '生成完成！观察末位数字的分布';
+                    return;
+                }
+                
+                const square = current * current;
+                const lastDigit = square % 10;
+                const color = lastDigitColors[lastDigit] || '#64748B';
+                
+                const card = document.createElement('div');
+                card.className = 'square-card';
+                card.style.borderColor = color;
+                card.innerHTML = `
+                    <div class="n">${current}<sup>2</sup></div>
+                    <div class="result" style="color: ${color}">${square}</div>
+                `;
+                squareGrid.appendChild(card);
+                
+                // 触发动画
+                requestAnimationFrame(() => {
+                    card.classList.add('show');
+                });
+                
+                progressFill.style.width = `${(current / count) * 100}%`;
+                progressText.textContent = `末位: ${lastDigit}`;
+                
+                current++;
+            }, 80);
+        });
+        
+        btnResetM1.addEventListener('click', () => {
+            if (m1Interval) clearInterval(m1Interval);
+            squareGrid.innerHTML = '';
+            progressFill.style.width = '0%';
+            progressText.textContent = '点击"开始生成"按钮，观察平方数的末位规律';
+            btnStartM1.disabled = false;
+        });
+        
+        // ==================== M2: 质因数指数 ====================
+        
+        const primeGridM2 = document.getElementById('primeGridM2');
+        const btnStartM2 = document.getElementById('btnStartM2');
+        const btnResetM2 = document.getElementById('btnResetM2');
+        let m2Interval = null;
+        
+        btnStartM2.addEventListener('click', () => {
+            if (m2Interval) clearInterval(m2Interval);
+            primeGridM2.innerHTML = '';
+            let current = 1;
+            
+            btnStartM2.disabled = true;
+            
+            m2Interval = setInterval(() => {
+                if (current > 30) {
+                    clearInterval(m2Interval);
+                    m2Interval = null;
+                    btnStartM2.disabled = false;
+                    return;
+                }
+                
+                const square = current * current;
+                const factors = primeFactorization(square);
+                
+                const factorStr = factors.map(f => 
+                    f.exponent > 1 ? `${f.prime}<sup>${f.exponent}</sup>` : f.prime
+                ).join(' × ');
+                
+                const allEven = factors.every(f => f.exponent % 2 === 0);
+                const color = allEven ? '#10B981' : '#EF4444';
+                
+                const card = document.createElement('div');
+                card.className = 'square-card';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.8)';
+                card.style.borderColor = color;
+                card.innerHTML = `
+                    <div class="n" style="font-size: 1rem; margin-bottom: 0.5rem;">${current}<sup>2</sup> = ${square}</div>
+                    <div style="font-size: 1.1rem; font-weight: 600; color: ${color};">${factorStr}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">
+                        指数: ${factors.map(f => f.exponent).join(', ')} ${allEven ? '✓全为偶数' : ''}
+                    </div>
+                `;
+                primeGridM2.appendChild(card);
+                
+                requestAnimationFrame(() => {
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'scale(1)';
+                });
+                
+                current++;
+            }, 100);
+        });
+        
+        btnResetM2.addEventListener('click', () => {
+            if (m2Interval) clearInterval(m2Interval);
+            primeGridM2.innerHTML = '';
+            btnStartM2.disabled = false;
+        });
+        
+        // ==================== M3: 因数个数 ====================
+        
+        const primeGridM3 = document.getElementById('primeGridM3');
+        const btnStartM3 = document.getElementById('btnStartM3');
+        const btnResetM3 = document.getElementById('btnResetM3');
+        let m3Interval = null;
+        
+        btnStartM3.addEventListener('click', () => {
+            if (m3Interval) clearInterval(m3Interval);
+            primeGridM3.innerHTML = '';
+            let current = 1;
+            
+            btnStartM3.disabled = true;
+            
+            m3Interval = setInterval(() => {
+                if (current > 30) {
+                    clearInterval(m3Interval);
+                    m3Interval = null;
+                    btnStartM3.disabled = false;
+                    return;
+                }
+                
+                const square = current * current;
+                const factors = primeFactorization(square);
+                const divisors = getDivisorCount(square);
+                const count = divisors.length;
+                const isOdd = count % 2 === 1;
+                
+                const factorStr = factors.map(f => 
+                    f.exponent > 1 ? `${f.prime}<sup>${f.exponent}</sup>` : f.prime
+                ).join(' × ');
+                
+                const color = isOdd ? '#10B981' : '#EF4444';
+                
+                const card = document.createElement('div');
+                card.className = 'square-card';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.8)';
+                card.style.borderColor = color;
+                card.innerHTML = `
+                    <div class="n" style="font-size: 1rem; margin-bottom: 0.5rem;">${current}<sup>2</sup> = ${square}</div>
+                    <div style="font-size: 0.95rem; font-weight: 600; color: var(--primary);">${factorStr}</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: ${color}; margin-top: 0.5rem;">因数个数: ${count}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">${isOdd ? '奇数 ✓' : '偶数'}</div>
+                `;
+                primeGridM3.appendChild(card);
+                
+                requestAnimationFrame(() => {
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'scale(1)';
+                });
+                
+                current++;
+            }, 100);
+        });
+        
+        btnResetM3.addEventListener('click', () => {
+            if (m3Interval) clearInterval(m3Interval);
+            primeGridM3.innerHTML = '';
+            btnStartM3.disabled = false;
+        });
+        
+        // ==================== M4: 余数规律 ====================
+        
+        const divisorRange = document.getElementById('divisorRange');
+        const divisorValue = document.getElementById('divisorValue');
+        const remainderGrid = document.getElementById('remainderGrid');
+        const btnStartM4 = document.getElementById('btnStartM4');
+        const btnResetM4 = document.getElementById('btnResetM4');
+        
+        divisorRange.addEventListener('input', () => {
+            divisorValue.textContent = divisorRange.value;
+        });
+        
+        btnStartM4.addEventListener('click', () => {
+            remainderGrid.innerHTML = '';
+            const divisor = parseInt(divisorRange.value);
+            
+            const remainderColors = {
+                0: '#10B981',
+                1: '#3B82F6',
+                2: '#F59E0B',
+                3: '#EF4444',
+                4: '#8B5CF6',
+                5: '#EC4899',
+                6: '#06B6D4',
+                7: '#84CC16'
+            };
+            
+            for (let n = 1; n <= 25; n++) {
+                const square = n * n;
+                const remainder = square % divisor;
+                const color = remainderColors[remainder] || '#64748B';
+                
+                const card = document.createElement('div');
+                card.className = 'square-card';
+                card.style.borderColor = color;
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.8)';
+                card.innerHTML = `
+                    <div class="n">${n}<sup>2</sup> = ${square}</div>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: ${color};">${remainder}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">${square} ÷ ${divisor} 的余数</div>
+                `;
+                remainderGrid.appendChild(card);
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'scale(1)';
+                }, n * 50);
+            }
+        });
+        
+        btnResetM4.addEventListener('click', () => {
+            remainderGrid.innerHTML = '';
+        });
+        
+        // ==================== M6: 总结验证 ====================
+        
+        const quizContainer = document.getElementById('quizContainer');
+        
+        const quizzes = [
+            {
+                question: '下列哪个数字可能是完全平方数的末位？',
+                options: ['2', '3', '7', '9'],
+                answer: '9',
+                explanation: '完全平方数的末位只可能是 0, 1, 4, 5, 6, 9'
+            },
+            {
+                question: '36 有多少个因数？',
+                options: ['6', '7', '8', '9'],
+                answer: '9',
+                explanation: '36 = 6²，所以因数个数是奇数(9个)：1,2,3,4,6,9,12,18,36'
+            },
+            {
+                question: '在质因数分解中，完全平方数的特点是？',
+                options: ['所有指数都是奇数', '所有指数都是偶数', '质因数都是2', '只有一个质因数'],
+                answer: '所有指数都是偶数',
+                explanation: '因为 N² = (p₁^a₁ × p₂^a₂ × ...)² = p₁^(2a₁) × p₂^(2a₂) × ...'
+            },
+            {
+                question: '完全平方数除以4的余数可能是？',
+                options: ['0, 1', '0, 1, 2', '0, 1, 2, 3', '只有0'],
+                answer: '0, 1',
+                explanation: '无论奇数平方(1 mod 4)还是偶数平方(0 mod 4)，余数只能是0或1'
+            }
+        ];
+        
+        function renderQuizzes() {
+            quizContainer.innerHTML = quizzes.map((q, i) => `
+                <div style="background: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <p style="font-weight: 600; margin-bottom: 1rem; font-size: 1.1rem;">${i + 1}. ${q.question}</p>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
+                        ${q.options.map(opt => `
+                            <button class="quiz-btn" data-index="${i}" data-option="${opt}"
+                                style="padding: 0.75rem; border: 2px solid var(--border); border-radius: 8px; background: var(--bg); cursor: pointer; font-size: 1rem; transition: all 0.2s;">
+                                ${opt}
+                            </button>
+                        `).join('')}
+                    </div>
+                    <div class="quiz-result" id="quizResult${i}" style="margin-top: 1rem; display: none;"></div>
+                </div>
+            `).join('');
+            
+            document.querySelectorAll('.quiz-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = parseInt(btn.dataset.index);
+                    const opt = btn.dataset.option;
+                    const q = quizzes[idx];
+                    const resultDiv = document.getElementById(`quizResult${idx}`);
+                    
+                    if (opt === q.answer) {
+                        resultDiv.innerHTML = `<span style="color: #10B981; font-weight: 600;">✓ 回答正确！</span><p style="margin-top: 0.5rem; color: var(--text-muted);">${q.explanation}</p>`;
+                        resultDiv.style.color = '#10B981';
+                        btn.style.background = '#10B981';
+                        btn.style.color = 'white';
+                        btn.style.borderColor = '#10B981';
+                    } else {
+                        resultDiv.innerHTML = `<span style="color: #EF4444; font-weight: 600;">✗ 再想想</span><p style="margin-top: 0.5rem; color: var(--text-muted);">提示：${q.explanation}</p>`;
+                        btn.style.background = '#EF4444';
+                        btn.style.color = 'white';
+                        btn.style.borderColor = '#EF4444';
+                    }
+                    resultDiv.style.display = 'block';
+                });
+            });
+        }
+        
+        renderQuizzes();
+        
+        // 触发 MathJax 渲染
+        MathJax.startup.promise.then(() => {
+            MathJax.typesetPromise();
+        });
+    </script>
+</body>
+</html>

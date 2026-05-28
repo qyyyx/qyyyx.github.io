@@ -81,20 +81,12 @@
   }
   .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,var(--brand))}
   .card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(15,23,42,.14)}
-  /* 缩略图封面 */
-  .card .thumb{margin:-22px -22px 16px;aspect-ratio:16/10;overflow:hidden;background:#f1f5f9;border-bottom:1px solid var(--line)}
-  .card .thumb img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;transition:transform .25s}
-  .card:hover .thumb img{transform:scale(1.04)}
-  .card .meta-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
-  .card .tag{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;color:#fff;background:var(--accent,var(--brand))}
-  .card .level{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;color:var(--muted);background:#f1f5f9;border:1px solid var(--line)}
+  .card .tag{align-self:flex-start;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;color:#fff;background:var(--accent,var(--brand));margin-bottom:12px}
   .card .new-badge{position:absolute;top:12px;right:12px;z-index:1;background:#ef4444;color:#fff;font-size:11px;font-weight:700;
     padding:3px 9px;border-radius:999px;letter-spacing:.5px;box-shadow:0 2px 8px rgba(239,68,68,.4)}
   .card h3{font-size:18px;font-weight:700;margin-bottom:8px}
   .card p{font-size:14px;color:var(--muted);flex:1}
-  .card .diff{margin-top:12px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
-  .card .diff .dots{letter-spacing:2px;color:var(--accent,var(--brand));font-size:13px}
-  .card .go{margin-top:14px;font-size:14px;font-weight:600;color:var(--accent,var(--brand));display:inline-flex;align-items:center;gap:6px}
+  .card .go{margin-top:16px;font-size:14px;font-weight:600;color:var(--accent,var(--brand));display:inline-flex;align-items:center;gap:6px}
   .card .go svg{transition:transform .18s}
   .card:hover .go svg{transform:translateX(4px)}
   .empty{display:none;text-align:center;color:var(--muted);padding:60px 0;font-size:16px}
@@ -146,52 +138,50 @@ const CATEGORIES = [
   {key:"fun", name:"趣味与思维", color:"var(--fun)"},
 ];
 
-// 字段说明：title 标题 / cat 分类 / file 文件 / desc 简介 / tags 关键词
-//          level 适合年级(可选) / diff 难度1-3(可选) / isNew 新课件(可选) / thumb 缩略图(可选)
-// level 与 diff 为初值，杨老师可按教学经验自行调整。
+// 字段说明：title 标题 / cat 分类 / file 文件 / desc 简介 / tags 关键词 / isNew 新课件(可选)
 const COURSEWARE = [
   // 几何与图形
-  {title:"圆柱与圆锥", cat:"geo", file:"cylinder-cone.html", level:"六年级", diff:2,
+  {title:"圆柱与圆锥", cat:"geo", file:"cylinder-cone.html",
    desc:"动态展开与切割圆柱、圆锥，直观理解体积与表面积公式的来历。", tags:["立体几何","体积","表面积"]},
-  {title:"燕尾模型", cat:"geo", file:"swallowtail-model.html", level:"五～六年级", diff:3,
+  {title:"燕尾模型", cat:"geo", file:"swallowtail-model.html",
    desc:"经典面积模型：通过燕尾定理探究三角形内线段与面积之比。", tags:["面积模型","三角形","比例"]},
-  {title:"鸟头模型", cat:"geo", file:"birdhead-model.html", level:"五～六年级", diff:3,
+  {title:"鸟头模型", cat:"geo", file:"birdhead-model.html",
    desc:"自学探究实验室，拖动顶点感受共角三角形的面积关系。", tags:["面积模型","共角","三角形"]},
-  {title:"风筝与蝴蝶模型", cat:"geo", file:"kite-butterfly.html", level:"五～六年级", diff:3,
+  {title:"风筝与蝴蝶模型", cat:"geo", file:"kite-butterfly.html",
    desc:"梯形中的风筝模型与蝴蝶模型，可视化对应线段与面积的转化。", tags:["面积模型","梯形","相似"]},
-  {title:"立方体打洞", cat:"geo", file:"drilled-cube-volume.html", level:"五～六年级", diff:2, isNew:true,
+  {title:"立方体打洞", cat:"geo", file:"drilled-cube-volume.html", isNew:true,
    desc:"在立方体上打洞，三维可视化求剩余体积与表面积的变化。", tags:["立体几何","体积","表面积"]},
-  {title:"等高模型", cat:"geo", file:"equal-height-model.html", level:"四～五年级", diff:2, isNew:true,
+  {title:"等高模型", cat:"geo", file:"equal-height-model.html", isNew:true,
    desc:"等高的三角形面积之比等于底之比，交互演示这一经典面积模型。", tags:["面积模型","三角形","等高"]},
 
   // 代数与函数
-  {title:"二次函数", cat:"alg", file:"quadratic-function.html", level:"初中", diff:2,
+  {title:"二次函数", cat:"alg", file:"quadratic-function.html",
    desc:"数学实验室：调节系数实时观察抛物线开口、顶点与对称轴的变化。", tags:["函数","抛物线","参数"]},
-  {title:"正反比例图像", cat:"alg", file:"proportion-graphs.html", level:"六年级～初一", diff:2,
+  {title:"正反比例图像", cat:"alg", file:"proportion-graphs.html",
    desc:"探究正比例与反比例函数的图像特征及其在生活中的对应关系。", tags:["函数","比例","图像"]},
-  {title:"最值原理", cat:"alg", file:"extremum-principle.html", level:"初中", diff:3,
+  {title:"最值原理", cat:"alg", file:"extremum-principle.html",
    desc:"通过交互模型理解最大值与最小值的几何与代数求解思路。", tags:["最值","优化","几何"]},
-  {title:"运动图像（S-T 与 V-T 图）", cat:"alg", file:"motion-graphs.html", level:"初中", diff:2,
+  {title:"运动图像（S-T 与 V-T 图）", cat:"alg", file:"motion-graphs.html",
    desc:"拖动小车实时生成位移—时间、速度—时间图像，建立图像与运动的联系。", tags:["函数图像","运动","物理"]},
 
   // 数论与组合
-  {title:"费马小定理", cat:"num", file:"fermat-little.html", level:"初中以上", diff:3,
+  {title:"费马小定理", cat:"num", file:"fermat-little.html",
    desc:"用项链着色的组合证明，直观感受费马小定理背后的对称之美。", tags:["数论","组合证明","同余"]},
-  {title:"关灯游戏", cat:"num", file:"lights-out.html", level:"初中以上", diff:3,
+  {title:"关灯游戏", cat:"num", file:"lights-out.html",
    desc:"灯阵里的奇偶与方程：用线性代数破解经典 Lights Out 谜题。", tags:["线性代数","奇偶","谜题"]},
-  {title:"多格骨牌铺砖", cat:"num", file:"polyomino-tiling.html", level:"四～六年级", diff:2, thumb:"assets/thumbs/polyomino-tiling.png",
+  {title:"多格骨牌铺砖", cat:"num", file:"polyomino-tiling.html",
    desc:"能不能刚好铺满？动手摆放多格骨牌，体会铺砖问题中的染色论证。", tags:["组合","铺砖","染色"]},
-  {title:"骑士巡游问题", cat:"num", file:"knights-tour.html", level:"五年级以上", diff:3, thumb:"assets/thumbs/knights-tour.png",
+  {title:"骑士巡游问题", cat:"num", file:"knights-tour.html",
    desc:"在棋盘上让骑士走遍每一格，探索图论与回溯的奇妙路径。", tags:["图论","回溯","棋盘"]},
-  {title:"完全平方数", cat:"num", file:"perfect-squares.html", level:"五～六年级", diff:2, isNew:true,
+  {title:"完全平方数", cat:"num", file:"perfect-squares.html", isNew:true,
    desc:"探究完全平方数的规律与判定，感受平方数背后的数论结构。", tags:["数论","平方数","规律"]},
 
   // 应用问题
-  {title:"经济问题", cat:"app", file:"economics.html", level:"六年级～初中", diff:2,
+  {title:"经济问题", cat:"app", file:"economics.html",
    desc:"交互实验课件，用数学模型分析利润、成本与定价等经济情境。", tags:["应用","建模","利润"]},
 
   // 趣味与思维
-  {title:"工作记忆训练游戏", cat:"fun", file:"working-memory-game.html", level:"全年龄", diff:1, isNew:true,
+  {title:"工作记忆训练游戏", cat:"fun", file:"working-memory-game.html", isNew:true,
    desc:"通过记忆广度小游戏训练工作记忆，挑战你的专注与短时记忆容量。", tags:["思维","记忆","游戏"]},
 ];
 
@@ -271,7 +261,7 @@ function render(){
 
 function matches(c, q){
   if (!q) return true;
-  return (c.title + " " + c.desc + " " + c.tags.join(" ") + " " + (c.level||"")).toLowerCase().includes(q);
+  return (c.title + " " + c.desc + " " + c.tags.join(" ")).toLowerCase().includes(q);
 }
 
 function card(c, cat){
@@ -282,19 +272,13 @@ function card(c, cat){
   a.rel = "noopener";
   a.style.setProperty("--accent", cat.color);
 
-  const thumbHtml = c.thumb
-    ? `<div class="thumb"><img src="${c.thumb}" alt="${escapeHtml(c.title)} 预览" loading="lazy"></div>` : "";
   const newHtml = c.isNew ? `<span class="new-badge">NEW</span>` : "";
-  const levelHtml = c.level ? `<span class="level">${escapeHtml(c.level)}</span>` : "";
-  const diffHtml = c.diff
-    ? `<div class="diff">难度 <span class="dots">${"●".repeat(c.diff)}${"○".repeat(3 - c.diff)}</span></div>` : "";
 
   a.innerHTML =
-    `${newHtml}${thumbHtml}
-     <div class="meta-row"><span class="tag">${cat.name}</span>${levelHtml}</div>
+    `${newHtml}
+     <span class="tag">${cat.name}</span>
      <h3>${escapeHtml(c.title)}</h3>
      <p>${escapeHtml(c.desc)}</p>
-     ${diffHtml}
      <span class="go">打开课件
        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
      </span>`;

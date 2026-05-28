@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>数学交互课件库</title>
+<title>杨老师的 mathlab</title>
 <style>
   :root{
     --bg:#0f172a; --bg2:#1e293b;
@@ -26,6 +26,7 @@
   }
   header h1{font-size:clamp(28px,5vw,44px);font-weight:800;letter-spacing:.5px}
   header p{margin-top:12px;font-size:clamp(14px,2.5vw,18px);color:#c7d2fe;max-width:680px;margin-left:auto;margin-right:auto}
+  header p.motto-en{margin-top:16px;font-style:italic;font-weight:500;color:#a5b4fc;font-size:clamp(13px,2.2vw,17px);letter-spacing:.3px}
   .stat{margin-top:18px;font-size:13px;color:#a5b4fc;letter-spacing:.5px}
   /* 搜索 + 筛选 */
   .toolbar{
@@ -74,8 +75,9 @@
 </head>
 <body>
 <header>
-  <h1>数学交互课件库</h1>
-  <p>把抽象的数学变成可以动手探究的实验。点击任意课件，即可在浏览器中直接交互学习。</p>
+  <h1>杨老师的 mathlab</h1>
+  <p class="motto-en">Math for big questions, math for real questions, math for funny questions.</p>
+  <p>希望在这里，你能够感受到数学不仅仅是解题，更有着无数"大问题"、"真实的问题"与"有趣的问题"。数学是一门语言，我们用它绘出星辰大海~</p>
   <div class="stat" id="stat"></div>
 </header>
 
@@ -91,7 +93,7 @@
 <div class="empty" id="empty">没有匹配的课件，换个关键词试试～</div>
 
 <footer>
-  © <span id="year"></span> 数学交互课件库 · 由单文件 HTML 课件构建 ·
+  © <span id="year"></span> 杨老师的 mathlab · 由单文件 HTML 课件构建 ·
   <a href="https://github.com/qyyyx/qyyyx.github.io" target="_blank" rel="noopener">GitHub</a>
 </footer>
 

@@ -1,0 +1,1189 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>骑士巡游问题 AI 交互课件</title>
+  <style>
+    :root {
+      --ink: #17202a;
+      --muted: #5f6d7a;
+      --paper: #fbfaf6;
+      --panel: #ffffff;
+      --line: #d9dee5;
+      --blue: #1769aa;
+      --teal: #0f766e;
+      --amber: #b7791f;
+      --red: #b42318;
+      --green: #2f855a;
+      --dark-cell: #74947e;
+      --light-cell: #f3e8cf;
+      --plain-cell: #eef2f6;
+      --plain-alt: #dfe7ee;
+      --visited: #f6c85f;
+      --legal: #56c4a8;
+      --current: #1f4e79;
+      --shadow: 0 16px 38px rgba(24, 34, 45, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        linear-gradient(180deg, rgba(23, 105, 170, 0.08), rgba(15, 118, 110, 0.05) 42%, transparent),
+        var(--paper);
+      overflow-x: hidden;
+    }
+
+    button, select {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      min-height: 40px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+    }
+
+    input {
+      width: 64px;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 8px;
+      font: inherit;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    label.compact {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    button:hover { transform: translateY(-1px); border-color: var(--blue); }
+    button:active { transform: translateY(0); }
+    button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+    button.ghost { background: #f7f9fb; }
+    button.active { background: #e5f1fb; border-color: var(--blue); color: #0b4f84; font-weight: 700; }
+    button:disabled { opacity: 0.48; cursor: not-allowed; transform: none; }
+
+    .shell {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: clamp(26px, 4vw, 44px);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .title p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .progress {
+      min-width: 270px;
+      padding: 12px 14px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .progress strong { display: block; font-size: 15px; }
+    .progress span { display: block; color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .progressbar { height: 8px; border-radius: 999px; background: #e8edf2; overflow: hidden; margin-top: 10px; }
+    .progressbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--teal), var(--blue)); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(420px, 1fr) 380px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .layout > *, .topbar > * {
+      min-width: 0;
+    }
+
+    .stage, .side, .toolbar, .lesson-nav {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .stage {
+      padding: 14px;
+    }
+
+    .stage-head {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      min-height: 64px;
+      background: #f9fbfc;
+    }
+
+    .metric span { display: block; color: var(--muted); font-size: 12px; }
+    .metric strong { display: block; font-size: 21px; margin-top: 2px; letter-spacing: 0; }
+
+    .visual-wrap {
+      display: grid;
+      place-items: center;
+      min-height: 470px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: linear-gradient(135deg, #f7fafc, #fffaf0);
+      padding: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .board-wrap {
+      width: min(74vh, 100%);
+      max-width: 680px;
+      aspect-ratio: 1;
+      position: relative;
+    }
+
+    .board {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      border: 2px solid #213547;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .cell {
+      position: relative;
+      border: 0;
+      border-radius: 0;
+      min-height: 0;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      color: #132331;
+      font-weight: 700;
+      font-size: clamp(11px, 1.4vw, 16px);
+    }
+
+    .cell:hover { transform: none; outline: 3px solid rgba(23, 105, 170, 0.32); z-index: 2; }
+    .cell.light { background: var(--light-cell); }
+    .cell.dark { background: var(--dark-cell); color: #fff; }
+    .cell.plain-light { background: var(--plain-cell); }
+    .cell.plain-dark { background: var(--plain-alt); }
+    .cell.visited::after {
+      content: "";
+      position: absolute;
+      inset: 14%;
+      border-radius: 50%;
+      background: rgba(246, 200, 95, 0.82);
+      box-shadow: inset 0 0 0 2px rgba(95, 67, 12, 0.14);
+    }
+    .cell.legal::before {
+      content: "";
+      position: absolute;
+      width: 34%;
+      height: 34%;
+      border-radius: 50%;
+      background: var(--legal);
+      box-shadow: 0 0 0 5px rgba(86, 196, 168, 0.18);
+    }
+    .cell.current::before {
+      content: "♞";
+      position: absolute;
+      z-index: 4;
+      width: 68%;
+      height: 68%;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--current);
+      color: #fff;
+      font-size: clamp(18px, 4vw, 34px);
+      box-shadow: 0 8px 18px rgba(20, 51, 82, 0.28);
+    }
+    .cell .step {
+      position: relative;
+      z-index: 3;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 4px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.8);
+      color: #17202a;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .path-svg, .graph-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .path-line {
+      fill: none;
+      stroke: #d83f31;
+      stroke-width: 1.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .graph-svg {
+      background: #fbfdff;
+      border-radius: 8px;
+      border: 2px solid #213547;
+      display: none;
+    }
+    .graph-svg.active { display: block; }
+    .board-wrap.graph-mode .board,
+    .board-wrap.graph-mode .path-svg { display: none; }
+    .graph-edge { stroke: rgba(95, 109, 122, 0.38); stroke-width: 0.45; }
+    .graph-edge.path { stroke: #d83f31; stroke-width: 1.2; }
+    .graph-node { fill: #fff; stroke: #1769aa; stroke-width: 0.8; }
+    .graph-node.visited { fill: #f6c85f; stroke: #8a5a00; }
+    .graph-node.current { fill: #1f4e79; stroke: #102f4d; }
+
+    .message {
+      margin-top: 12px;
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #cfe3f5;
+      background: #eef7ff;
+      color: #173b5f;
+      line-height: 1.45;
+    }
+    .message.warn { background: #fff8e6; border-color: #f4d28a; color: #63430f; }
+    .message.good { background: #edf8f1; border-color: #bfe4cc; color: #1f5b37; }
+
+    .toolbar {
+      margin-top: 14px;
+      padding: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .toolbar .group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-right: 8px;
+      border-right: 1px solid var(--line);
+    }
+    .toolbar .group:last-child { border-right: 0; }
+
+    .side {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .card h2, .card h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .card p, .card li {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+    .card p { margin: 0; }
+    .card ul { margin: 0; padding-left: 18px; }
+    .card li + li { margin-top: 4px; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-pill {
+      background: #f7f9fb;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+    }
+    .stat-pill span { display: block; color: var(--muted); font-size: 12px; }
+    .stat-pill strong { display: block; margin-top: 2px; }
+
+    .lesson-nav {
+      margin-top: 14px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .lesson-dots {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .dot {
+      width: 14px;
+      height: 14px;
+      min-height: 14px;
+      padding: 0;
+      border-radius: 50%;
+      background: #dfe7ee;
+      border-color: #c8d2dc;
+    }
+    .dot.active { background: var(--blue); border-color: var(--blue); }
+
+    .tests {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    @media (max-width: 980px) {
+      .topbar, .layout { grid-template-columns: 1fr; }
+      .progress { min-width: 0; }
+      .visual-wrap { min-height: auto; }
+      .board-wrap { width: min(92vw, 680px); }
+      .stage-head { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 560px) {
+      .shell {
+        width: min(100%, 390px);
+        margin: 0;
+        padding: 10px;
+      }
+      .title h1 { font-size: 28px; }
+      .title p { font-size: 14px; }
+      .stage, .side, .toolbar, .lesson-nav { border-radius: 8px; }
+      .stage-head { grid-template-columns: 1fr; gap: 8px; }
+      .metric { min-height: 56px; padding: 8px; }
+      .metric strong { font-size: 18px; }
+      .visual-wrap { padding: 8px; }
+      .board-wrap { width: 100%; }
+      .toolbar .group { border-right: 0; padding-right: 0; }
+      button { min-height: 38px; padding: 7px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="title">
+        <h1>骑士巡游问题 AI 交互课件</h1>
+        <p>从一枚骑士棋子的跳跃开始，探索图论、染色法、哈密顿路径和归纳构造。</p>
+      </div>
+      <section class="progress" aria-live="polite">
+        <strong id="lessonTitle">8x8 问题引入</strong>
+        <span id="lessonSubtitle">第 1 / 6 站</span>
+        <div class="progressbar" aria-hidden="true"><i id="progressFill"></i></div>
+      </section>
+    </header>
+
+    <main class="layout">
+      <section>
+        <div class="stage">
+          <div class="stage-head">
+            <div class="metric"><span>棋盘</span><strong id="metricBoard">8 x 8</strong></div>
+            <div class="metric"><span>路径长度</span><strong id="metricPath">0 / 64</strong></div>
+            <div class="metric"><span>当前度数</span><strong id="metricDegree">-</strong></div>
+            <div class="metric"><span>巡游状态</span><strong id="metricStatus">待开始</strong></div>
+          </div>
+
+          <div class="visual-wrap">
+            <div class="board-wrap" id="boardWrap">
+              <div class="board" id="board" aria-label="骑士巡游棋盘"></div>
+              <svg class="path-svg" id="pathSvg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+              <svg class="graph-svg" id="graphSvg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-label="骑士图视图"></svg>
+            </div>
+          </div>
+
+          <div class="message" id="message">选择一个格子作为起点。系统会高亮骑士下一步可以跳到的位置。</div>
+        </div>
+
+        <div class="toolbar" aria-label="课件工具栏">
+          <div class="group" aria-label="棋盘尺寸">
+            <button data-rows="4" data-cols="4">4x4</button>
+            <button data-rows="5" data-cols="5">5x5</button>
+            <button data-rows="6" data-cols="6">6x6</button>
+            <button data-rows="8" data-cols="8" class="active">8x8</button>
+            <button data-rows="6" data-cols="8">6x8</button>
+            <button data-rows="8" data-cols="10">8x10</button>
+            <button data-rows="10" data-cols="12">10x12</button>
+          </div>
+          <div class="group" aria-label="自定义棋盘">
+            <label class="compact">行 <input id="customRows" type="number" min="1" max="16" value="8" inputmode="numeric"></label>
+            <label class="compact">列 <input id="customCols" type="number" min="1" max="16" value="8" inputmode="numeric"></label>
+            <button id="customBtn">自由探索</button>
+          </div>
+          <div class="group">
+            <button id="undoBtn">撤销</button>
+            <button id="resetBtn">重置</button>
+            <button id="hintBtn" class="primary">给我提示</button>
+            <button id="demoBtn">演示/分析</button>
+          </div>
+          <div class="group">
+            <button id="colorBtn" class="active">黑白染色</button>
+            <button id="graphBtn">骑士图视图</button>
+          </div>
+        </div>
+
+        <nav class="lesson-nav" aria-label="课件章节">
+          <button id="prevLesson">上一站</button>
+          <div class="lesson-dots" id="lessonDots"></div>
+          <button id="nextLesson">下一站</button>
+        </nav>
+      </section>
+
+      <aside class="side">
+        <section class="card">
+          <h2 id="promptTitle">探究问题</h2>
+          <p id="promptText"></p>
+        </section>
+
+        <section class="card">
+          <h3>黑白染色统计</h3>
+          <div class="stats-grid">
+            <div class="stat-pill"><span>黑格总数</span><strong id="blackTotal">32</strong></div>
+            <div class="stat-pill"><span>白格总数</span><strong id="whiteTotal">32</strong></div>
+            <div class="stat-pill"><span>已走黑格</span><strong id="blackVisited">0</strong></div>
+            <div class="stat-pill"><span>已走白格</span><strong id="whiteVisited">0</strong></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3>图论翻译器</h3>
+          <ul id="conceptList"></ul>
+        </section>
+
+        <section class="card">
+          <h3>AI 探究助手</h3>
+          <p id="hintText">我会根据你的棋盘状态给提示。先选一个起点吧。</p>
+          <div class="tests" id="testStatus">规则自检：等待页面加载</div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const PRESET_TOURS = {
+      "5x5": {
+        closed: false,
+        path: [[0,0],[1,2],[0,4],[2,3],[4,4],[3,2],[4,0],[2,1],[0,2],[1,0],[3,1],[4,3],[2,4],[0,3],[1,1],[3,0],[4,2],[3,4],[1,3],[0,1],[2,0],[4,1],[2,2],[1,4],[3,3]]
+      },
+      "6x6": {
+        closed: true,
+        path: [[0,1],[2,0],[4,1],[5,3],[4,5],[2,4],[0,5],[1,3],[2,5],[0,4],[1,2],[0,0],[2,1],[4,0],[3,2],[4,4],[5,2],[3,3],[5,4],[3,5],[1,4],[0,2],[1,0],[3,1],[5,0],[4,2],[2,3],[1,1],[0,3],[1,5],[3,4],[5,5],[4,3],[5,1],[3,0],[2,2]]
+      },
+      "8x8": {
+        closed: true,
+        path: [[1,0],[0,2],[1,4],[0,6],[2,7],[1,5],[0,7],[2,6],[0,5],[1,7],[3,6],[5,7],[7,6],[6,4],[7,2],[6,0],[4,1],[2,0],[0,1],[1,3],[2,1],[0,0],[1,2],[0,4],[1,6],[3,7],[2,5],[3,3],[4,5],[2,4],[0,3],[1,1],[3,0],[2,2],[3,4],[4,6],[6,7],[7,5],[5,6],[7,7],[6,5],[5,3],[3,2],[4,0],[6,1],[7,3],[5,2],[4,4],[2,3],[3,5],[4,7],[6,6],[5,4],[4,2],[5,0],[7,1],[6,3],[5,1],[7,0],[6,2],[7,4],[5,5],[4,3],[3,1]]
+      }
+    };
+
+    const LESSONS = [
+      {
+        title: "8x8 问题引入",
+        rows: 8,
+        cols: 8,
+        prompt: "在经典 8x8 棋盘上，骑士能不能每个格子恰好走一次？先别急着求答案，试着走 10 步，观察哪里最容易被堵住。",
+        reveal: "8x8 的完整巡游存在，甚至存在闭合巡游。关键是把局部选择放进整体结构中思考。"
+      },
+      {
+        title: "4x4 小棋盘实验",
+        rows: 4,
+        cols: 4,
+        prompt: "把棋盘缩小到 4x4。它看起来更简单，但完整巡游反而不存在。试试看为什么总会卡住。",
+        reveal: "4x4 的骑士图太稀疏，角落和边缘限制很强，无法形成经过 16 个顶点的哈密顿路径。"
+      },
+      {
+        title: "5x5 开放巡游",
+        rows: 5,
+        cols: 5,
+        prompt: "5x5 有 25 个格子。开放巡游可以存在，但闭合巡游会遇到奇偶性障碍。",
+        reveal: "骑士每步都换颜色。25 个格子黑白数量不同，闭合路径不可能黑白完全配对。"
+      },
+      {
+        title: "6x6 闭合巡游",
+        rows: 6,
+        cols: 6,
+        prompt: "6x6 是理解构造的好起点。观察演示路径：它不只走完，还能回到起点。",
+        reveal: "6x6 可以作为更大偶数棋盘递推构造的基础块。"
+      },
+      {
+        title: "黑白染色证明",
+        rows: 5,
+        cols: 5,
+        prompt: "打开黑白染色，盯住每一步的颜色变化。为什么骑士不可能连续落在同色格上？",
+        reveal: "骑士步改变一个坐标 1、另一个坐标 2，所以行列和奇偶性必定改变。"
+      },
+      {
+        title: "递推与归纳构造",
+        rows: 6,
+        cols: 6,
+        prompt: "把一个大棋盘想成多个已经会巡游的小块。断开几条边、换成跨块连接，就能把小巡游拼成大巡游。",
+        reveal: "归纳法的力量在于：基础情形成立，并且有一个可重复的扩大构造。"
+      }
+    ];
+
+    const OFFSETS = [[2,1],[1,2],[-1,2],[-2,1],[-2,-1],[-1,-2],[1,-2],[2,-1]];
+
+    const BoardModel = {
+      key(square) { return square.row + "," + square.col; },
+      squareFromKey(key) {
+        const parts = key.split(",").map(Number);
+        return { row: parts[0], col: parts[1] };
+      },
+      create(rows, cols) {
+        const squares = [];
+        for (let row = 0; row < rows; row += 1) {
+          for (let col = 0; col < cols; col += 1) {
+            squares.push({ row, col });
+          }
+        }
+        return { rows, cols, squares, total: rows * cols };
+      },
+      inBounds(square, board) {
+        return square.row >= 0 && square.col >= 0 && square.row < board.rows && square.col < board.cols;
+      },
+      isKnightMove(a, b) {
+        const dr = Math.abs(a.row - b.row);
+        const dc = Math.abs(a.col - b.col);
+        return dr * dc === 2;
+      },
+      movesFrom(square, board) {
+        return OFFSETS
+          .map(([dr, dc]) => ({ row: square.row + dr, col: square.col + dc }))
+          .filter(next => BoardModel.inBounds(next, board));
+      },
+      color(square) {
+        return (square.row + square.col) % 2 === 0 ? "white" : "black";
+      },
+      graph(board) {
+        const map = new Map();
+        board.squares.forEach(square => {
+          map.set(BoardModel.key(square), BoardModel.movesFrom(square, board).map(BoardModel.key));
+        });
+        return map;
+      }
+    };
+
+    const HintEngine = {
+      next(state) {
+        const board = state.board;
+        const path = state.path;
+        if (board.rows === 4 && board.cols === 4) {
+          return "4x4 是反例实验室：精确搜索显示最多只能连续走 15 格，所以最少会剩 1 格。试着切到骑士图视图，看哪些顶点出口很少。";
+        }
+        if (board.rows !== board.cols && path.length === 0) {
+          return board.rows + "x" + board.cols + " 是矩形基元探索。先观察角落、短边和长边附近的度数差异，再尝试找能拼接的入口和出口。";
+        }
+        if (path.length === 0) {
+          return "先选一个起点。角落格的度数通常更小，早处理这些格子会让后面更自由。";
+        }
+        const current = path[path.length - 1];
+        const legal = getLegalMoves();
+        if (TourState.isComplete(state)) {
+          if (TourState.isClosed(state)) return "漂亮，已经形成闭合巡游：走完所有格子后，还能一跳回到起点。";
+          return "已经走完所有格子，这是开放巡游。现在检查最后一个格子能不能跳回起点。";
+        }
+        if (legal.length === 0) {
+          return "现在没有合法下一步了。试着撤销几步，优先处理度数小的格子，也就是出口更少的格子。";
+        }
+        if (state.showColor) {
+          const nextColor = BoardModel.color(legal[0]) === "black" ? "黑" : "白";
+          return "注意颜色交替：骑士每一步都会换颜色。下一步所有合法落点都应该是" + nextColor + "格。";
+        }
+        const degree = BoardModel.movesFrom(current, board).length;
+        if (degree <= 3) {
+          return "你站在出口很少的位置。接下来可以优先选择会让未来出口最少的格子，这是 Warnsdorff 启发式的影子。";
+        }
+        if (board.rows === 5 && board.cols === 5) {
+          return "5x5 有奇数个格子，所以闭合巡游不可能。但开放巡游可以存在，演示按钮会给你一个样例。";
+        }
+        if (board.rows !== board.cols) {
+          return "矩形棋盘适合寻找构造基元：记录起点、终点和靠近边界的连接口，后面可以尝试把多个基元拼接。";
+        }
+        return "看绿色落点。一个好策略是比较每个候选格后面还剩多少出口，先走出口少的地方。";
+      }
+    };
+
+    const TourState = {
+      create(rows, cols) {
+        return {
+          board: BoardModel.create(rows, cols),
+          path: [],
+          visited: new Set(),
+          showColor: true,
+          showGraph: false,
+          demoTimer: null,
+          messageType: ""
+        };
+      },
+      reset(state, rows, cols) {
+        stopDemo();
+        state.board = BoardModel.create(rows, cols);
+        state.path = [];
+        state.visited = new Set();
+        state.messageType = "";
+      },
+      canVisit(state, square) {
+        if (state.visited.has(BoardModel.key(square))) return false;
+        if (state.path.length === 0) return true;
+        return BoardModel.isKnightMove(state.path[state.path.length - 1], square);
+      },
+      visit(state, square) {
+        if (!TourState.canVisit(state, square)) return false;
+        state.path.push(square);
+        state.visited.add(BoardModel.key(square));
+        return true;
+      },
+      undo(state) {
+        const removed = state.path.pop();
+        if (removed) state.visited.delete(BoardModel.key(removed));
+      },
+      isComplete(state) {
+        return state.path.length === state.board.total;
+      },
+      isClosed(state) {
+        if (!TourState.isComplete(state) || state.path.length < 2) return false;
+        return BoardModel.isKnightMove(state.path[0], state.path[state.path.length - 1]);
+      }
+    };
+
+    const Solver = {
+      key(rows, cols) {
+        return rows + "x" + cols;
+      },
+      verifyPath(rows, cols, path, closed) {
+        const board = BoardModel.create(rows, cols);
+        const seen = new Set();
+        for (let i = 0; i < path.length; i += 1) {
+          const square = { row: path[i][0], col: path[i][1] };
+          if (!BoardModel.inBounds(square, board)) return false;
+          const key = BoardModel.key(square);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          if (i > 0) {
+            const prev = { row: path[i - 1][0], col: path[i - 1][1] };
+            if (!BoardModel.isKnightMove(prev, square)) return false;
+          }
+        }
+        if (path.length !== board.total) return false;
+        if (closed) {
+          const first = { row: path[0][0], col: path[0][1] };
+          const last = { row: path[path.length - 1][0], col: path[path.length - 1][1] };
+          return BoardModel.isKnightMove(first, last);
+        }
+        return true;
+      },
+      demo(rows, cols) {
+        return PRESET_TOURS[Solver.key(rows, cols)] || null;
+      },
+      analyzeTraversal(rows, cols) {
+        const known = {
+          "4x4": { exact: true, maxVisited: 15, path: [[0,0],[2,1],[3,3],[1,2],[2,0],[3,2],[1,3],[0,1],[2,2],[0,3],[1,1],[2,3],[0,2],[1,0],[3,1]] }
+        };
+        const knownResult = known[Solver.key(rows, cols)];
+        if (knownResult) {
+          return {
+            exact: knownResult.exact,
+            maxVisited: knownResult.maxVisited,
+            minLeft: rows * cols - knownResult.maxVisited,
+            path: knownResult.path
+          };
+        }
+
+        const preset = Solver.demo(rows, cols);
+        if (preset) {
+          return { exact: true, maxVisited: rows * cols, minLeft: 0, path: preset.path };
+        }
+
+        const board = BoardModel.create(rows, cols);
+        const total = board.total;
+        const graph = board.squares.map(square =>
+          BoardModel.movesFrom(square, board).map(next => next.row * cols + next.col)
+        );
+        let bestPath = [];
+        let exact = total <= 20;
+        const deadline = performance.now() + (exact ? 650 : 140);
+
+        function remember(path) {
+          if (path.length > bestPath.length) bestPath = path.slice();
+        }
+
+        if (exact) {
+          const path = [];
+          function dfs(index, mask) {
+            if (performance.now() > deadline) {
+              exact = false;
+              return;
+            }
+            path.push(index);
+            remember(path);
+            const candidates = graph[index]
+              .filter(next => (mask & (1 << next)) === 0)
+              .sort((a, b) => graph[a].length - graph[b].length);
+            for (const next of candidates) {
+              dfs(next, mask | (1 << next));
+              if (!exact) break;
+            }
+            path.pop();
+          }
+          for (let start = 0; start < total && exact; start += 1) {
+            dfs(start, 1 << start);
+          }
+        } else {
+          for (let start = 0; start < total && performance.now() <= deadline; start += 1) {
+            const used = new Set([start]);
+            const path = [start];
+            let current = start;
+            while (performance.now() <= deadline) {
+              const candidates = graph[current]
+                .filter(next => !used.has(next))
+                .sort((a, b) => {
+                  const da = graph[a].filter(next => !used.has(next)).length;
+                  const db = graph[b].filter(next => !used.has(next)).length;
+                  return da - db;
+                });
+              if (!candidates.length) break;
+              current = candidates[0];
+              used.add(current);
+              path.push(current);
+            }
+            remember(path);
+            if (bestPath.length === total) break;
+          }
+        }
+
+        return {
+          exact,
+          maxVisited: bestPath.length,
+          minLeft: total - bestPath.length,
+          path: bestPath.map(index => [Math.floor(index / cols), index % cols])
+        };
+      }
+    };
+
+    let state = TourState.create(8, 8);
+    let lessonIndex = 0;
+    let freeLesson = null;
+    let lastHint = HintEngine.next(state);
+
+    const els = {
+      board: document.getElementById("board"),
+      boardWrap: document.getElementById("boardWrap"),
+      pathSvg: document.getElementById("pathSvg"),
+      graphSvg: document.getElementById("graphSvg"),
+      metricBoard: document.getElementById("metricBoard"),
+      metricPath: document.getElementById("metricPath"),
+      metricDegree: document.getElementById("metricDegree"),
+      metricStatus: document.getElementById("metricStatus"),
+      message: document.getElementById("message"),
+      blackTotal: document.getElementById("blackTotal"),
+      whiteTotal: document.getElementById("whiteTotal"),
+      blackVisited: document.getElementById("blackVisited"),
+      whiteVisited: document.getElementById("whiteVisited"),
+      promptTitle: document.getElementById("promptTitle"),
+      promptText: document.getElementById("promptText"),
+      conceptList: document.getElementById("conceptList"),
+      hintText: document.getElementById("hintText"),
+      lessonTitle: document.getElementById("lessonTitle"),
+      lessonSubtitle: document.getElementById("lessonSubtitle"),
+      progressFill: document.getElementById("progressFill"),
+      lessonDots: document.getElementById("lessonDots"),
+      testStatus: document.getElementById("testStatus"),
+      undoBtn: document.getElementById("undoBtn"),
+      demoBtn: document.getElementById("demoBtn"),
+      colorBtn: document.getElementById("colorBtn"),
+      graphBtn: document.getElementById("graphBtn"),
+      customRows: document.getElementById("customRows"),
+      customCols: document.getElementById("customCols")
+    };
+
+    function getLegalMoves() {
+      if (state.path.length === 0) return state.board.squares;
+      const current = state.path[state.path.length - 1];
+      return BoardModel.movesFrom(current, state.board).filter(square => !state.visited.has(BoardModel.key(square)));
+    }
+
+    function setMessage(text, type) {
+      els.message.textContent = text;
+      els.message.className = "message" + (type ? " " + type : "");
+    }
+
+    function stopDemo() {
+      if (state.demoTimer) {
+        clearInterval(state.demoTimer);
+        state.demoTimer = null;
+      }
+      els.demoBtn.textContent = "演示/分析";
+    }
+
+    function boardLabel(board) {
+      return board.rows + " x " + board.cols;
+    }
+
+    function switchBoard(rows, cols, keepLesson) {
+      rows = Math.max(1, Math.min(16, Number(rows) || 8));
+      cols = Math.max(1, Math.min(16, Number(cols) || rows));
+      TourState.reset(state, rows, cols);
+      els.customRows.value = rows;
+      els.customCols.value = cols;
+      if (!keepLesson) {
+        const idx = LESSONS.findIndex(lesson => lesson.rows === rows && lesson.cols === cols);
+        if (idx >= 0) {
+          lessonIndex = idx;
+          freeLesson = null;
+        } else {
+          freeLesson = {
+            title: "自由探索：" + rows + "x" + cols + " 基元",
+            prompt: "这个模式用于寻找可复用的巡游基元。建议记录起点、终点、边界附近的低度数格，以及哪些边可能作为拼接入口。"
+          };
+        }
+      }
+      lastHint = HintEngine.next(state);
+      const label = rows + "x" + cols;
+      const text = rows === 4 && cols === 4
+        ? "4x4 可以自由探索，但演示会告诉你它没有完整巡游。"
+        : rows !== cols
+          ? "已进入 " + label + " 自由探索。观察边界度数，寻找适合作为构造基元的入口和出口。"
+          : "已切换棋盘。选择一个起点开始探索。";
+      setMessage(text, rows === 4 && cols === 4 ? "warn" : "");
+      render();
+    }
+
+    function renderBoard() {
+      const rows = state.board.rows;
+      const cols = state.board.cols;
+      const legalKeys = state.path.length === 0 ? new Set() : new Set(getLegalMoves().map(BoardModel.key));
+      const indexMap = new Map(state.path.map((square, index) => [BoardModel.key(square), index + 1]));
+      const currentKey = state.path.length ? BoardModel.key(state.path[state.path.length - 1]) : "";
+      els.boardWrap.style.aspectRatio = cols + " / " + rows;
+      els.board.style.gridTemplateColumns = "repeat(" + cols + ", 1fr)";
+      els.board.style.gridTemplateRows = "repeat(" + rows + ", 1fr)";
+      els.board.innerHTML = "";
+      state.board.squares.forEach(square => {
+        const key = BoardModel.key(square);
+        const cell = document.createElement("button");
+        const colorClass = state.showColor
+          ? (BoardModel.color(square) === "black" ? "dark" : "light")
+          : ((square.row + square.col) % 2 === 0 ? "plain-light" : "plain-dark");
+        cell.className = "cell " + colorClass;
+        if (indexMap.has(key)) cell.classList.add("visited");
+        if (legalKeys.has(key) && !indexMap.has(key)) cell.classList.add("legal");
+        if (key === currentKey) cell.classList.add("current");
+        cell.setAttribute("aria-label", "第 " + (square.row + 1) + " 行，第 " + (square.col + 1) + " 列");
+        cell.addEventListener("click", () => handleCellClick(square));
+        if (indexMap.has(key) && key !== currentKey) {
+          const step = document.createElement("span");
+          step.className = "step";
+          step.textContent = indexMap.get(key);
+          cell.appendChild(step);
+        }
+        els.board.appendChild(cell);
+      });
+    }
+
+    function point(square) {
+      return {
+        x: ((square.col + 0.5) / state.board.cols) * 100,
+        y: ((square.row + 0.5) / state.board.rows) * 100
+      };
+    }
+
+    function renderPath() {
+      els.pathSvg.innerHTML = "";
+      if (state.path.length < 2) return;
+      const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+      polyline.setAttribute("class", "path-line");
+      polyline.setAttribute("points", state.path.map(square => {
+        const p = point(square);
+        return p.x + "," + p.y;
+      }).join(" "));
+      els.pathSvg.appendChild(polyline);
+    }
+
+    function renderGraph() {
+      const graph = BoardModel.graph(state.board);
+      const visited = state.visited;
+      const pathEdges = new Set();
+      for (let i = 1; i < state.path.length; i += 1) {
+        const a = BoardModel.key(state.path[i - 1]);
+        const b = BoardModel.key(state.path[i]);
+        pathEdges.add([a, b].sort().join("|"));
+      }
+      const currentKey = state.path.length ? BoardModel.key(state.path[state.path.length - 1]) : "";
+      els.graphSvg.innerHTML = "";
+      graph.forEach((neighbors, key) => {
+        const a = BoardModel.squareFromKey(key);
+        const pa = point(a);
+        neighbors.forEach(neighbor => {
+          if (key > neighbor) return;
+          const b = BoardModel.squareFromKey(neighbor);
+          const pb = point(b);
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          const edgeKey = [key, neighbor].sort().join("|");
+          line.setAttribute("class", "graph-edge" + (pathEdges.has(edgeKey) ? " path" : ""));
+          line.setAttribute("x1", pa.x);
+          line.setAttribute("y1", pa.y);
+          line.setAttribute("x2", pb.x);
+          line.setAttribute("y2", pb.y);
+          els.graphSvg.appendChild(line);
+        });
+      });
+      state.board.squares.forEach(square => {
+        const key = BoardModel.key(square);
+        const p = point(square);
+        const node = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        node.setAttribute("class", "graph-node" + (visited.has(key) ? " visited" : "") + (key === currentKey ? " current" : ""));
+        node.setAttribute("cx", p.x);
+        node.setAttribute("cy", p.y);
+        node.setAttribute("r", Math.max(1.4, 4.2 - Math.max(state.board.rows, state.board.cols) * 0.18));
+        els.graphSvg.appendChild(node);
+      });
+    }
+
+    function renderStats() {
+      const total = state.board.total;
+      const current = state.path[state.path.length - 1];
+      const degree = current ? BoardModel.movesFrom(current, state.board).length : "-";
+      const blackTotal = state.board.squares.filter(square => BoardModel.color(square) === "black").length;
+      const whiteTotal = total - blackTotal;
+      const blackVisited = state.path.filter(square => BoardModel.color(square) === "black").length;
+      const whiteVisited = state.path.length - blackVisited;
+      els.metricBoard.textContent = boardLabel(state.board);
+      els.metricPath.textContent = state.path.length + " / " + total;
+      els.metricDegree.textContent = degree;
+      els.metricStatus.textContent = TourState.isClosed(state) ? "闭合巡游" : TourState.isComplete(state) ? "开放巡游" : state.path.length ? "探索中" : "待开始";
+      els.blackTotal.textContent = blackTotal;
+      els.whiteTotal.textContent = whiteTotal;
+      els.blackVisited.textContent = blackVisited;
+      els.whiteVisited.textContent = whiteVisited;
+      els.undoBtn.disabled = state.path.length === 0;
+      els.colorBtn.classList.toggle("active", state.showColor);
+      els.graphBtn.classList.toggle("active", state.showGraph);
+      els.boardWrap.classList.toggle("graph-mode", state.showGraph);
+      els.graphSvg.classList.toggle("active", state.showGraph);
+      document.querySelectorAll("[data-rows][data-cols]").forEach(btn => {
+        btn.classList.toggle("active", Number(btn.dataset.rows) === state.board.rows && Number(btn.dataset.cols) === state.board.cols);
+      });
+    }
+
+    function renderLesson() {
+      const lesson = freeLesson || LESSONS[lessonIndex];
+      els.lessonTitle.textContent = lesson.title;
+      els.lessonSubtitle.textContent = freeLesson ? "自由探索模式" : "第 " + (lessonIndex + 1) + " / " + LESSONS.length + " 站";
+      els.progressFill.style.width = freeLesson ? "100%" : ((lessonIndex + 1) / LESSONS.length * 100) + "%";
+      els.promptTitle.textContent = lesson.title;
+      els.promptText.textContent = lesson.prompt;
+      els.conceptList.innerHTML = "";
+      [
+        "顶点：棋盘上的每一个格子。",
+        "边：两个格子之间存在一次合法骑士步。",
+        "度：一个格子可以跳向多少个邻居。",
+        "哈密顿路径：每个顶点恰好经过一次。",
+        "哈密顿回路：走完后还能回到起点。"
+      ].forEach(text => {
+        const li = document.createElement("li");
+        li.textContent = text;
+        els.conceptList.appendChild(li);
+      });
+      els.lessonDots.innerHTML = "";
+      LESSONS.forEach((item, index) => {
+        const dot = document.createElement("button");
+        dot.className = "dot" + (!freeLesson && index === lessonIndex ? " active" : "");
+        dot.setAttribute("aria-label", item.title);
+        dot.addEventListener("click", () => goLesson(index));
+        els.lessonDots.appendChild(dot);
+      });
+    }
+
+    function render() {
+      renderBoard();
+      renderPath();
+      renderGraph();
+      renderStats();
+      renderLesson();
+      els.hintText.textContent = lastHint;
+    }
+
+    function handleCellClick(square) {
+      stopDemo();
+      if (TourState.visit(state, square)) {
+        if (TourState.isClosed(state)) {
+          setMessage("完成闭合巡游：所有格子都走过，最后还能跳回起点。", "good");
+        } else if (TourState.isComplete(state)) {
+          setMessage("完成开放巡游：所有格子都走过，但最后没有回到起点。", "good");
+        } else {
+          setMessage("已记录第 " + state.path.length + " 步。继续观察合法落点。", "");
+        }
+      } else {
+        setMessage("这一步不合法：骑士只能走一个方向 1 格、另一个方向 2 格，并且不能重复访问。", "warn");
+      }
+      lastHint = HintEngine.next(state);
+      render();
+    }
+
+    function goLesson(index) {
+      lessonIndex = Math.max(0, Math.min(LESSONS.length - 1, index));
+      freeLesson = null;
+      switchBoard(LESSONS[lessonIndex].rows, LESSONS[lessonIndex].cols, true);
+      setMessage(LESSONS[lessonIndex].prompt, "");
+    }
+
+    function playDemo() {
+      stopDemo();
+      const rows = state.board.rows;
+      const cols = state.board.cols;
+      const demo = Solver.demo(rows, cols);
+      if (!demo) {
+        const analysis = Solver.analyzeTraversal(rows, cols);
+        TourState.reset(state, rows, cols);
+        analysis.path.forEach(point => {
+          TourState.visit(state, { row: point[0], col: point[1] });
+        });
+        const label = rows + "x" + cols;
+        const prefix = analysis.exact ? "精确搜索结论：" : "限时搜索提示：";
+        const reason = analysis.minLeft === 0
+          ? prefix + label + " 找到一条覆盖全部 " + analysis.maxVisited + " 格的开放路径。"
+          : prefix + label + " 最多能连续走 " + analysis.maxVisited + " 格，最少还会剩 " + analysis.minLeft + " 格不能被这条路径覆盖。";
+        setMessage(reason + (analysis.exact ? "" : " 这不是严格证明，但能作为继续探索的下界。"), analysis.minLeft === 0 ? "good" : "warn");
+        lastHint = HintEngine.next(state);
+        render();
+        return;
+      }
+      TourState.reset(state, rows, cols);
+      let index = 0;
+      els.demoBtn.textContent = "演示中";
+      state.demoTimer = setInterval(() => {
+        const next = demo.path[index];
+        if (!next) {
+          stopDemo();
+          const kind = demo.closed ? "闭合巡游" : "开放巡游";
+          setMessage(rows + "x" + cols + " 演示完成：" + kind + "。", "good");
+          lastHint = HintEngine.next(state);
+          render();
+          return;
+        }
+        TourState.visit(state, { row: next[0], col: next[1] });
+        index += 1;
+        lastHint = HintEngine.next(state);
+        render();
+      }, rows * cols >= 64 ? 80 : 130);
+    }
+
+    function runSelfTests() {
+      const tests = [];
+      tests.push(BoardModel.isKnightMove({ row: 0, col: 0 }, { row: 1, col: 2 }));
+      tests.push(!BoardModel.isKnightMove({ row: 0, col: 0 }, { row: 1, col: 1 }));
+      tests.push(BoardModel.color({ row: 0, col: 0 }) !== BoardModel.color({ row: 1, col: 2 }));
+      tests.push(BoardModel.create(6, 8).total === 48);
+      tests.push(BoardModel.movesFrom({ row: 0, col: 0 }, BoardModel.create(6, 8)).length === 2);
+      const analysis4 = Solver.analyzeTraversal(4, 4);
+      tests.push(analysis4.exact && analysis4.maxVisited === 15 && analysis4.minLeft === 1);
+      tests.push(Solver.verifyPath(5, 5, PRESET_TOURS["5x5"].path, false));
+      tests.push(Solver.verifyPath(6, 6, PRESET_TOURS["6x6"].path, true));
+      tests.push(Solver.verifyPath(8, 8, PRESET_TOURS["8x8"].path, true));
+      const passed = tests.every(Boolean);
+      els.testStatus.textContent = passed ? "规则自检：通过" : "规则自检：有失败项，请检查控制台";
+      if (!passed) console.warn("Self tests failed", tests);
+    }
+
+    document.querySelectorAll("[data-rows][data-cols]").forEach(btn => {
+      btn.addEventListener("click", () => switchBoard(Number(btn.dataset.rows), Number(btn.dataset.cols), false));
+    });
+    document.getElementById("undoBtn").addEventListener("click", () => {
+      stopDemo();
+      TourState.undo(state);
+      setMessage("已撤销一步。", "");
+      lastHint = HintEngine.next(state);
+      render();
+    });
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      switchBoard(state.board.rows, state.board.cols, true);
+      setMessage("棋盘已重置。", "");
+    });
+    document.getElementById("customBtn").addEventListener("click", () => {
+      switchBoard(els.customRows.value, els.customCols.value, false);
+    });
+    document.getElementById("hintBtn").addEventListener("click", () => {
+      lastHint = HintEngine.next(state);
+      els.hintText.textContent = lastHint;
+      setMessage("提示已更新。", "");
+    });
+    document.getElementById("demoBtn").addEventListener("click", playDemo);
+    document.getElementById("colorBtn").addEventListener("click", () => {
+      state.showColor = !state.showColor;
+      lastHint = HintEngine.next(state);
+      render();
+    });
+    document.getElementById("graphBtn").addEventListener("click", () => {
+      state.showGraph = !state.showGraph;
+      render();
+    });
+    document.getElementById("prevLesson").addEventListener("click", () => goLesson(lessonIndex - 1));
+    document.getElementById("nextLesson").addEventListener("click", () => goLesson(lessonIndex + 1));
+
+    render();
+    runSelfTests();
+  </script>
+</body>
+</html>

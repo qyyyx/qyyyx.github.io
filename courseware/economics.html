@@ -1,0 +1,1190 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>经济问题交互实验课件</title>
+<style>
+:root{
+  --bg:#f5f7f4;
+  --paper:#fffdf8;
+  --panel:#ffffff;
+  --ink:#15211f;
+  --muted:#66736f;
+  --line:#d8e1dc;
+  --brand:#0b7a75;
+  --brand2:#b45f1b;
+  --soft:#e7f4f1;
+  --soft2:#fff1df;
+  --green:#2f8c58;
+  --red:#c7433a;
+  --blue:#306ca8;
+  --yellow:#f3c969;
+  --shadow:0 16px 40px rgba(28,45,42,.12);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  color:var(--ink);
+  background:
+    linear-gradient(90deg,rgba(11,122,117,.05) 1px,transparent 1px),
+    linear-gradient(rgba(11,122,117,.04) 1px,transparent 1px),
+    var(--bg);
+  background-size:28px 28px;
+  font-family:"Microsoft YaHei","PingFang SC","Segoe UI",Arial,sans-serif;
+}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.app{
+  display:grid;
+  grid-template-columns:260px minmax(0,1fr);
+  gap:18px;
+  min-height:100vh;
+  padding:18px;
+}
+.side{
+  position:sticky;
+  top:18px;
+  align-self:start;
+  height:calc(100vh - 36px);
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:rgba(255,253,248,.92);
+  box-shadow:var(--shadow);
+  overflow:auto;
+}
+.brand small{
+  display:block;
+  color:var(--brand);
+  font-weight:800;
+  letter-spacing:.08em;
+  font-size:12px;
+}
+.brand h1{
+  margin:6px 0 8px;
+  font-size:24px;
+  line-height:1.16;
+}
+.brand p{
+  margin:0;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.55;
+}
+.mode{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  padding:5px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#f7faf8;
+}
+.mode button,.nav button,.mini-btn,.primary,.ghost{
+  min-height:38px;
+  border-radius:7px;
+  border:1px solid var(--line);
+  background:#fff;
+  color:var(--ink);
+}
+.mode button.active,.nav button.active{
+  color:#fff;
+  border-color:var(--brand);
+  background:var(--brand);
+}
+.nav{
+  display:grid;
+  gap:8px;
+}
+.nav button{
+  display:grid;
+  grid-template-columns:32px 1fr;
+  gap:10px;
+  align-items:center;
+  padding:9px 10px;
+  text-align:left;
+}
+.nav b{display:block;font-size:14px}
+.nav span:last-child{color:var(--muted);font-size:12px}
+.nav button.active span:last-child{color:#dcefed}
+.badge{
+  display:grid;
+  place-items:center;
+  width:32px;
+  height:32px;
+  border-radius:7px;
+  color:var(--brand);
+  background:var(--soft);
+  font-weight:900;
+}
+.nav button.active .badge{background:#fff;color:var(--brand)}
+.progress{
+  margin-top:auto;
+  padding:12px;
+  border-radius:8px;
+  background:var(--soft);
+  border:1px solid #cce3df;
+  font-size:13px;
+  line-height:1.55;
+}
+.bar{
+  height:9px;
+  border-radius:999px;
+  background:#d3e4df;
+  overflow:hidden;
+  margin:9px 0;
+}
+.bar i{display:block;height:100%;width:0;background:var(--brand);transition:.25s}
+.main{
+  display:grid;
+  gap:18px;
+  min-width:0;
+}
+.hero{
+  min-height:250px;
+  display:grid;
+  grid-template-columns:1.1fr .9fr;
+  gap:20px;
+  align-items:center;
+  padding:32px;
+  border-radius:8px;
+  color:#fff;
+  background:
+    radial-gradient(circle at 78% 20%,rgba(255,216,135,.42),transparent 30%),
+    linear-gradient(135deg,#084b50,#0d8178 52%,#b45f1b);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.hero h2{
+  margin:0;
+  font-size:38px;
+  line-height:1.12;
+  letter-spacing:0;
+}
+.hero p{
+  max-width:720px;
+  margin:14px 0 0;
+  color:#eaf7f4;
+  line-height:1.8;
+}
+.hero-visual{
+  min-height:190px;
+  display:grid;
+  gap:10px;
+  align-content:center;
+}
+.money-line{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+}
+.money-line div{
+  min-height:70px;
+  display:grid;
+  place-items:center;
+  padding:8px;
+  border:1px solid rgba(255,255,255,.38);
+  border-radius:8px;
+  background:rgba(255,255,255,.13);
+  text-align:center;
+  font-weight:800;
+}
+.hero-note{
+  padding:12px 14px;
+  border-radius:8px;
+  background:rgba(255,255,255,.14);
+  line-height:1.55;
+}
+.module{
+  display:none;
+  padding:20px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--paper);
+  box-shadow:var(--shadow);
+}
+.module.active{display:block}
+.module-head{
+  display:flex;
+  gap:14px;
+  justify-content:space-between;
+  align-items:flex-start;
+  margin-bottom:14px;
+}
+.module h2{
+  margin:0;
+  font-size:26px;
+  line-height:1.22;
+}
+.module .lead{
+  margin:8px 0 0;
+  color:var(--muted);
+  line-height:1.7;
+}
+.tag{
+  flex:none;
+  padding:7px 10px;
+  border-radius:999px;
+  color:var(--brand);
+  background:var(--soft);
+  font-size:12px;
+  font-weight:800;
+}
+.grid{
+  display:grid;
+  grid-template-columns:360px minmax(0,1fr);
+  gap:16px;
+}
+.panel{
+  padding:15px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#fff;
+}
+.panel h3{
+  margin:0 0 12px;
+  font-size:18px;
+}
+.controls{display:grid;gap:13px}
+.field{display:grid;gap:6px}
+.field label{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  color:#263634;
+  font-size:13px;
+  font-weight:700;
+}
+.field output{color:var(--brand);font-weight:900}
+input[type=range]{width:100%;accent-color:var(--brand)}
+input[type=number],select{
+  width:100%;
+  min-height:38px;
+  padding:7px 9px;
+  border:1px solid var(--line);
+  border-radius:7px;
+  background:#fff;
+  color:var(--ink);
+}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin-bottom:12px;
+}
+.stat{
+  min-height:80px;
+  padding:11px;
+  border-radius:8px;
+  background:#f8fbfa;
+  border:1px solid var(--line);
+}
+.stat small{display:block;color:var(--muted);font-size:12px}
+.stat b{display:block;margin-top:6px;font-size:22px;color:var(--brand)}
+.canvas-wrap{
+  width:100%;
+  min-height:260px;
+  padding:10px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#fbfdfb;
+}
+canvas{display:block;width:100%;height:260px}
+.hint{
+  margin-top:12px;
+  padding:12px;
+  border-left:4px solid var(--brand);
+  background:var(--soft);
+  border-radius:0 8px 8px 0;
+  color:#24433f;
+  line-height:1.65;
+}
+.result{
+  min-height:42px;
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:8px;
+  background:#f8fbfa;
+  border:1px solid var(--line);
+  line-height:1.6;
+}
+.result.good{border-color:#9bd4b5;background:#ecf9f1;color:#1f6b40}
+.result.bad{border-color:#efb0aa;background:#fff0ee;color:#9b2e27}
+.primary{
+  color:#fff;
+  border-color:var(--brand);
+  background:var(--brand);
+  font-weight:800;
+  padding:0 14px;
+}
+.ghost,.mini-btn{
+  padding:0 12px;
+  font-weight:700;
+}
+.quiz{
+  display:grid;
+  gap:10px;
+  margin-top:14px;
+  padding:14px;
+  border:1px dashed #b7c9c3;
+  border-radius:8px;
+  background:#fbfdfb;
+}
+.quiz p{margin:0;line-height:1.7}
+.quiz-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;
+  gap:8px;
+}
+.cards{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+.compare-card{
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#fff;
+}
+.compare-card.best{
+  border-color:var(--brand);
+  background:var(--soft);
+}
+.compare-card small{color:var(--muted)}
+.compare-card b{display:block;margin-top:8px;font-size:23px;color:var(--brand)}
+.table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+.table th,.table td{
+  padding:8px;
+  border-bottom:1px solid var(--line);
+  text-align:right;
+}
+.table th:first-child,.table td:first-child{text-align:left}
+.formula-map{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+  margin-top:10px;
+}
+.formula-map div{
+  padding:10px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:#fff;
+  text-align:center;
+  line-height:1.5;
+}
+.formula-map b{display:block;color:var(--brand)}
+.formula-map small{color:var(--muted)}
+.teacher .teacher-only{display:block}
+.teacher-only{display:none}
+.self .self-only{display:block}
+.self-only{display:none}
+.practice-bank{
+  display:none;
+  gap:12px;
+}
+.self .hero{display:none}
+.self .module .lead,.self .module .tag,.self .grid{display:none}
+.self .progress{display:none}
+.self .practice-bank{display:grid}
+.practice-title{
+  margin:4px 0 2px;
+  font-size:18px;
+}
+.practice-card{
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#fff;
+  line-height:1.7;
+}
+.practice-card b{
+  color:var(--brand);
+}
+.practice-card p{
+  margin:6px 0 0;
+}
+.practice-card details{
+  margin-top:8px;
+  color:var(--muted);
+}
+.practice-card summary{
+  cursor:pointer;
+  color:var(--brand);
+  font-weight:800;
+}
+.practice-answer{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+  margin-top:10px;
+}
+.practice-feedback{
+  min-height:34px;
+  margin-top:8px;
+  padding:7px 9px;
+  border-radius:7px;
+  background:#f8fbfa;
+  border:1px solid var(--line);
+  color:var(--muted);
+  font-size:13px;
+}
+.practice-feedback.good{
+  color:#1f6b40;
+  border-color:#9bd4b5;
+  background:#ecf9f1;
+}
+.practice-feedback.bad{
+  color:#9b2e27;
+  border-color:#efb0aa;
+  background:#fff0ee;
+}
+.sr{position:absolute;left:-9999px}
+@media (max-width:1080px){
+  .app{grid-template-columns:1fr}
+  .side{position:relative;height:auto;top:auto}
+  .nav{grid-template-columns:repeat(2,1fr)}
+  .hero,.grid{grid-template-columns:1fr}
+}
+@media (max-width:680px){
+  .app{padding:10px}
+  .hero{padding:22px;min-height:300px}
+  .hero h2{font-size:30px}
+  .money-line,.stats,.cards,.formula-map,.three,.two{grid-template-columns:1fr}
+  .nav{grid-template-columns:1fr}
+  .module{padding:14px}
+  .module-head{display:grid}
+  .quiz-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body class="teacher">
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <small>ECONOMY MATH LAB</small>
+      <h1>经济问题<br>交互实验课</h1>
+      <p>面向课堂投屏与课后自学。先观察，再验证，最后用练习确认自己真的会算。</p>
+    </div>
+    <div class="mode" aria-label="使用模式">
+      <button id="teacherMode" class="active" type="button">课堂</button>
+      <button id="selfMode" type="button">课后</button>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="active" type="button" data-target="m1"><span class="badge">1</span><span><b>五量关系</b><span>成本、定价、售价、利润</span></span></button>
+      <button type="button" data-target="m2"><span class="badge">2</span><span><b>折扣与利润率</b><span>正向、反向、连涨连降</span></span></button>
+      <button type="button" data-target="m3"><span class="badge">3</span><span><b>单利 vs 复利</b><span>时间带来的差距</span></span></button>
+      <button type="button" data-target="m4"><span class="badge">4</span><span><b>分段计费</b><span>个税、医保、电费</span></span></button>
+      <button type="button" data-target="m5"><span class="badge">5</span><span><b>损耗问题</b><span>成本被剩余商品分摊</span></span></button>
+      <button type="button" data-target="m6"><span class="badge">6</span><span><b>优惠方案</b><span>买赠、打折、满减</span></span></button>
+      <button type="button" data-target="m7"><span class="badge">7</span><span><b>混合利润率</b><span>加权平均与十字交叉</span></span></button>
+    </nav>
+    <div class="progress">
+      <b>练习完成度</b>
+      <div class="bar"><i id="progressBar"></i></div>
+      <span id="progressText">0 / 7 个模块已通过</span>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="hero">
+      <div>
+        <h2>把“价格变化”变成看得见的实验</h2>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="money-line">
+          <div>成本<br>买入</div><div>定价<br>标出</div><div>折扣<br>变化</div><div>售价<br>卖出</div><div>利润<br>差额</div>
+        </div>
+        <div class="hero-note">关键追问：变化后的“新单位 1”是谁？每一段费用是否都独立计算？</div>
+      </div>
+    </section>
+
+    <section class="module active" id="m1">
+      <div class="module-head">
+        <div>
+          <h2>五量关系实验台</h2>
+          <p class="lead">拖动成本、期望利润率和折扣，观察成本、定价、售价、利润、利润率五个量怎样联动。</p>
+        </div>
+        <span class="tag">公式核心</span>
+      </div>
+      <div class="grid">
+        <div class="panel controls">
+          <h3>参数</h3>
+          <div class="field"><label>成本 <output id="fCostOut"></output></label><input id="fCost" type="range" min="20" max="800" value="200"></div>
+          <div class="field"><label>按成本加价定价 <output id="fMarkupOut"></output></label><input id="fMarkup" type="range" min="-20" max="120" value="40"></div>
+          <div class="field"><label>实际折扣 <output id="fDiscountOut"></output></label><input id="fDiscount" type="range" min="50" max="120" value="85"></div>
+          <div class="hint teacher-only">课堂追问：折扣不变时，提高成本会让利润率变吗？提高“定价利润率”一定能保证最后盈利吗？</div>
+          <div class="hint self-only">自学提示：先把折扣拉低，再观察售价低于成本时，利润和利润率怎样变化。</div>
+        </div>
+        <div class="panel">
+          <div class="stats">
+            <div class="stat"><small>成本</small><b id="fCostVal"></b></div>
+            <div class="stat"><small>定价</small><b id="fListVal"></b></div>
+            <div class="stat"><small>售价</small><b id="fSaleVal"></b></div>
+            <div class="stat"><small>实际利润率</small><b id="fRateVal"></b></div>
+          </div>
+          <div class="canvas-wrap"><canvas id="formulaCanvas"></canvas></div>
+          <div class="formula-map">
+            <div><b>利润</b><small>售价 - 成本</small></div>
+            <div><b>利润率</b><small>利润 ÷ 成本</small></div>
+            <div><b>定价</b><small>成本 × (1 + 加价率)</small></div>
+            <div><b>售价</b><small>定价 × 折扣</small></div>
+            <div><b>成本</b><small>售价 ÷ (1 + 利润率)</small></div>
+          </div>
+          <div class="quiz" data-quiz="m1">
+            <p id="q1Text"></p>
+            <div class="quiz-row"><input id="q1Answer" type="number" placeholder="输入利润率百分数"><button class="primary" id="q1Check" type="button">检查</button><button class="ghost" id="q1New" type="button">换一题</button></div>
+            <div class="result" id="q1Result"></div>
+          </div>
+        </div>
+      </div>
+      <div class="practice-bank">
+        <h3 class="practice-title">课后练习：五量关系</h3>
+        <div class="practice-card"><b>正求 1</b><p>一件商品成本 160 元，按 25% 的利润率出售，售价是多少元？利润是多少元？</p><details><summary>查看答案</summary>售价 160×(1+25%)=200 元，利润 40 元。</details></div>
+        <div class="practice-card"><b>正求 2</b><p>一件商品成本 240 元，售价 300 元，利润率是多少？</p><details><summary>查看答案</summary>利润 60 元，利润率 60÷240=25%。</details></div>
+        <div class="practice-card"><b>反求 1</b><p>一件商品售价 360 元，利润率 20%，成本是多少元？</p><details><summary>查看答案</summary>成本 360÷(1+20%)=300 元。</details></div>
+        <div class="practice-card"><b>反求 2</b><p>某商品利润 45 元，利润率 15%，成本和售价分别是多少？</p><details><summary>查看答案</summary>成本 45÷15%=300 元，售价 345 元。</details></div>
+      </div>
+    </section>
+
+    <section class="module" id="m2">
+      <div class="module-head">
+        <div>
+          <h2>折扣与利润率双向计算</h2>
+          <p class="lead">折扣是“售价占定价的比例”，利润率是“利润占成本的比例”。它们常常同时出现，但单位 1 不同。</p>
+        </div>
+        <span class="tag">正反向计算</span>
+      </div>
+      <div class="grid">
+        <div class="panel controls">
+          <h3>计算器</h3>
+          <div class="two">
+            <button class="mini-btn active" id="dForward" type="button">求利润率</button>
+            <button class="mini-btn" id="dReverse" type="button">求最低折扣</button>
+          </div>
+          <div class="field"><label>成本</label><input id="dCost" type="number" value="120"></div>
+          <div class="field"><label>定价</label><input id="dList" type="number" value="200"></div>
+          <div class="field" id="dDiscountBox"><label>实际折扣</label><input id="dDiscount" type="number" value="80"></div>
+          <div class="field" id="dTargetBox" style="display:none"><label>目标利润率(%)</label><input id="dTarget" type="number" value="20"></div>
+          <div class="result" id="dResult"></div>
+          <h3>连降连涨</h3>
+          <div class="two">
+            <div class="field"><label>先下降(%)</label><input id="fallPct" type="number" value="20"></div>
+            <div class="field"><label>再上涨(%)</label><input id="risePct" type="number" value="20"></div>
+          </div>
+          <div class="result" id="changeResult"></div>
+        </div>
+        <div class="panel">
+          <div class="canvas-wrap"><canvas id="discountCanvas"></canvas></div>
+          <div class="hint">观察：先降 20% 再涨 20%，第二次上涨是在“降价后的价格”上计算，所以涨回来的钱更少。</div>
+          <div class="quiz" data-quiz="m2">
+            <p id="q2Text"></p>
+            <div class="quiz-row"><input id="q2Answer" type="number" placeholder="输入答案"><button class="primary" id="q2Check" type="button">检查</button><button class="ghost" id="q2New" type="button">换一题</button></div>
+            <div class="result" id="q2Result"></div>
+          </div>
+        </div>
+      </div>
+      <div class="practice-bank">
+        <h3 class="practice-title">课后练习：折扣与利润率</h3>
+        <div class="practice-card"><b>正求 1</b><p>某商品成本 120 元，定价 200 元，打八折卖出。实际利润率是多少？</p><details><summary>查看答案</summary>售价 200×80%=160 元，利润 40 元，利润率 40÷120=33.3%。</details></div>
+        <div class="practice-card"><b>反求 1</b><p>某商品成本 180 元，定价 300 元，至少保持 20% 利润率，最低可以打几折？</p><details><summary>查看答案</summary>最低售价 180×(1+20%)=216 元，216÷300=72%，即七二折。</details></div>
+        <div class="practice-card"><b>反求 2</b><p>一件商品打八五折后售价 255 元，原定价是多少元？</p><details><summary>查看答案</summary>原定价 255÷85%=300 元。</details></div>
+        <div class="practice-card"><b>判断</b><p>原价 100 元，先降价 20%，再涨价 20%，最后价格是否回到 100 元？</p><details><summary>查看答案</summary>不是。先变 80 元，再变 80×120%=96 元。</details></div>
+      </div>
+    </section>
+
+    <section class="module" id="m3">
+      <div class="module-head">
+        <div>
+          <h2>单利 vs 复利可视化</h2>
+          <p class="lead">单利每年只用原本金计息；复利把上一年的本息和当作下一年的本金。短期差距小，长期差距明显。</p>
+        </div>
+        <span class="tag">利息问题</span>
+      </div>
+      <div class="grid">
+        <div class="panel controls">
+          <h3>参数</h3>
+          <div class="field"><label>本金 <output id="iPOut"></output></label><input id="iP" type="range" min="1000" max="50000" step="1000" value="10000"></div>
+          <div class="field"><label>年利率 <output id="iROut"></output></label><input id="iR" type="range" min="1" max="15" step=".5" value="5"></div>
+          <div class="field"><label>年数 <output id="iYOut"></output></label><input id="iY" type="range" min="1" max="30" value="10"></div>
+          <div class="result" id="interestResult"></div>
+        </div>
+        <div class="panel">
+          <div class="canvas-wrap"><canvas id="interestCanvas"></canvas></div>
+          <table class="table" id="interestTable"></table>
+          <div class="quiz" data-quiz="m3">
+            <p>本金 10000 元，年利率 5%，存 2 年。复利比单利多多少元？</p>
+            <div class="quiz-row"><input id="q3Answer" type="number" placeholder="输入差额"><button class="primary" id="q3Check" type="button">检查</button><button class="ghost" id="q3Show" type="button">提示</button></div>
+            <div class="result" id="q3Result"></div>
+          </div>
+        </div>
+      </div>
+      <div class="practice-bank">
+        <h3 class="practice-title">课后练习：单利与复利</h3>
+        <div class="practice-card"><b>正求 1</b><p>本金 8000 元，年利率 4%，单利存 3 年，到期本息和是多少？</p><details><summary>查看答案</summary>8000×(1+4%×3)=8960 元。</details></div>
+        <div class="practice-card"><b>正求 2</b><p>本金 10000 元，年利率 5%，复利存 2 年，到期本息和是多少？</p><details><summary>查看答案</summary>10000×1.05×1.05=11025 元。</details></div>
+        <div class="practice-card"><b>反求 1</b><p>本金按单利存 2 年，年利率 6%，利息共 720 元，本金是多少？</p><details><summary>查看答案</summary>本金 720÷(6%×2)=6000 元。</details></div>
+        <div class="practice-card"><b>比较</b><p>本金 10000 元，年利率 5%，存 2 年，复利比单利多多少元？</p><details><summary>查看答案</summary>单利 11000 元，复利 11025 元，多 25 元。</details></div>
+      </div>
+    </section>
+
+    <section class="module" id="m4">
+      <div class="module-head">
+        <div>
+          <h2>分段计费正反向计算</h2>
+          <p class="lead">个税、医保报销、电费都不是“一口价”。每一段只对落在本段的数量计费，再把各段结果相加。</p>
+        </div>
+        <span class="tag">阶梯模型</span>
+      </div>
+      <div class="grid">
+        <div class="panel controls">
+          <h3>场景</h3>
+          <div class="field"><label>类型</label><select id="tierScenario"><option value="tax">年综合所得个税</option><option value="medical">医保分段报销</option><option value="electric">阶梯电费</option></select></div>
+          <div class="two">
+            <button class="mini-btn active" id="tierForward" type="button">正向：金额求费用</button>
+            <button class="mini-btn" id="tierReverse" type="button">反向：费用求金额</button>
+          </div>
+          <div class="field"><label id="tierInputLabel">输入总金额</label><input id="tierInput" type="number" value="220000"></div>
+          <div class="result" id="tierResult"></div>
+          <div class="hint">倒推时先扣掉已经填满的低段，再在当前段里除以本段税率或费率。</div>
+        </div>
+        <div class="panel">
+          <div class="canvas-wrap"><canvas id="tierCanvas"></canvas></div>
+          <table class="table" id="tierTable"></table>
+          <div class="quiz" data-quiz="m4">
+            <p id="q4Text"></p>
+            <div class="quiz-row"><input id="q4Answer" type="number" placeholder="输入答案"><button class="primary" id="q4Check" type="button">检查</button><button class="ghost" id="q4New" type="button">换一题</button></div>
+            <div class="result" id="q4Result"></div>
+          </div>
+        </div>
+      </div>
+      <div class="practice-bank">
+        <h3 class="practice-title">课后练习：分段计费</h3>
+        <div class="practice-card"><b>正求 1</b><p>电费：前 180 度每度 0.55 元，超过 180 度到 400 度部分每度 0.60 元。用电 260 度，应交多少元？</p><details><summary>查看答案</summary>180×0.55+(260-180)×0.60=147 元。</details></div>
+        <div class="practice-card"><b>反求 1</b><p>沿用上题电费规则，某户电费 129 元，用电多少度？</p><details><summary>查看答案</summary>前 180 度费用 99 元，剩余 30 元在第二段，30÷0.60=50 度，共 230 度。</details></div>
+        <div class="practice-card"><b>正求 2</b><p>医保：前 1000 元报销 50%，1000 到 10000 元部分报销 60%。医疗费 5000 元，报销多少？</p><details><summary>查看答案</summary>1000×50%+(5000-1000)×60%=2900 元。</details></div>
+        <div class="practice-card"><b>反求 2</b><p>医保规则同上，报销 3500 元，医疗费是多少？</p><details><summary>查看答案</summary>前 1000 元报 500 元，剩余报销 3000 元在第二段，对应 3000÷60%=5000 元，总医疗费 6000 元。</details></div>
+      </div>
+    </section>
+
+    <section class="module" id="m5">
+      <div class="module-head">
+        <div>
+          <h2>损耗问题：成本如何分摊</h2>
+          <p class="lead">讲义中的水果损耗题提醒我们：成本包含进价、运费、人工等，而损耗会让能卖出的数量变少，每件商品分摊到的成本变高。</p>
+        </div>
+        <span class="tag">讲义拓展</span>
+      </div>
+      <div class="grid">
+        <div class="panel controls">
+          <h3>进货与损耗</h3>
+          <div class="field"><label>进货重量(千克) <output id="lKgOut"></output></label><input id="lKg" type="range" min="50" max="1000" step="10" value="300"></div>
+          <div class="field"><label>进价(元/千克) <output id="lCostOut"></output></label><input id="lCost" type="range" min="2" max="30" step=".5" value="8"></div>
+          <div class="field"><label>总杂费(元) <output id="lFeeOut"></output></label><input id="lFee" type="range" min="0" max="5000" step="50" value="600"></div>
+          <div class="field"><label>损耗率 <output id="lLossOut"></output></label><input id="lLoss" type="range" min="0" max="40" value="12"></div>
+          <div class="field"><label>目标利润率 <output id="lRateOut"></output></label><input id="lRate" type="range" min="0" max="80" value="25"></div>
+        </div>
+        <div class="panel">
+          <div class="stats">
+            <div class="stat"><small>总成本</small><b id="lTotal"></b></div>
+            <div class="stat"><small>可售重量</small><b id="lSellable"></b></div>
+            <div class="stat"><small>保本单价</small><b id="lBreak"></b></div>
+            <div class="stat"><small>目标售价</small><b id="lPrice"></b></div>
+          </div>
+          <div class="canvas-wrap"><canvas id="lossCanvas"></canvas></div>
+          <div class="quiz" data-quiz="m5">
+            <p>进货 100 千克，每千克成本 5 元，杂费 100 元，损耗 20%。保本单价是多少元/千克？</p>
+            <div class="quiz-row"><input id="q5Answer" type="number" placeholder="输入单价"><button class="primary" id="q5Check" type="button">检查</button><button class="ghost" id="q5Hint" type="button">提示</button></div>
+            <div class="result" id="q5Result"></div>
+          </div>
+        </div>
+      </div>
+      <div class="practice-bank">
+        <h3 class="practice-title">课后练习：损耗问题</h3>
+        <div class="practice-card"><b>正求 1</b><p>进货 100 千克，每千克成本 5 元，杂费 100 元，损耗 20%。保本单价是多少元/千克？</p><details><summary>查看答案</summary>总成本 600 元，可售 80 千克，保本单价 600÷80=7.5 元/千克。</details></div>
+        <div class="practice-card"><b>正求 2</b><p>总成本 1200 元，可售 150 千克，若想获得 25% 利润率，每千克应卖多少元？</p><details><summary>查看答案</summary>总售价 1200×(1+25%)=1500 元，单价 1500÷150=10 元。</details></div>
+        <div class="practice-card"><b>反求 1</b><p>一批水果总成本 900 元，按每千克 10 元卖完后刚好保本，实际卖出多少千克？</p><details><summary>查看答案</summary>卖出重量 900÷10=90 千克。</details></div>
+        <div class="practice-card"><b>反求 2</b><p>进货 200 千克，最后可售 170 千克，损耗率是多少？</p><details><summary>查看答案</summary>损耗 30 千克，损耗率 30÷200=15%。</details></div>
+      </div>
+    </section>
+
+    <section class="module" id="m6">
+      <div class="module-head">
+        <div>
+          <h2>优惠方案比较器</h2>
+          <p class="lead">买赠、打折、满减、团购本质上都在改变“实际总价”或“实际单价”。先统一成实际花费，再比较。</p>
+        </div>
+        <span class="tag">购物决策</span>
+      </div>
+      <div class="grid">
+        <div class="panel controls">
+          <h3>购买任务</h3>
+          <div class="field"><label>数量 <output id="pQtyOut"></output></label><input id="pQty" type="range" min="1" max="80" value="24"></div>
+          <div class="field"><label>标价(元/件) <output id="pUnitOut"></output></label><input id="pUnit" type="range" min="5" max="300" value="50"></div>
+          <div class="two">
+            <div class="field"><label>买几</label><input id="buyN" type="number" value="4"></div>
+            <div class="field"><label>送几</label><input id="freeN" type="number" value="1"></div>
+          </div>
+          <div class="two">
+            <div class="field"><label>折扣(%)</label><input id="promoDiscount" type="number" value="80"></div>
+            <div class="field"><label>满减：满多少</label><input id="fullN" type="number" value="300"></div>
+          </div>
+          <div class="field"><label>满减：减多少</label><input id="minusN" type="number" value="50"></div>
+        </div>
+        <div class="panel">
+          <div class="cards" id="promoCards"></div>
+          <div class="canvas-wrap"><canvas id="promoCanvas"></canvas></div>
+          <div class="quiz" data-quiz="m6">
+            <p>每件 30 元，买 10 件。方案 A：买四送一；方案 B：八折。哪种更便宜？若一样便宜，填“相同”。</p>
+            <div class="quiz-row"><input id="q6Answer" placeholder="输入“相同”"><button class="primary" id="q6Check" type="button">检查</button><button class="ghost" id="q6Hint" type="button">提示</button></div>
+            <div class="result" id="q6Result"></div>
+          </div>
+        </div>
+      </div>
+      <div class="practice-bank">
+        <h3 class="practice-title">课后练习：优惠方案</h3>
+        <div class="practice-card"><b>正求 1</b><p>每件 30 元，买 10 件。买四送一需要实际付款多少元？</p><details><summary>查看答案</summary>10 件中每 5 件付 4 件，共付 8 件，8×30=240 元。</details></div>
+        <div class="practice-card"><b>正求 2</b><p>每件 50 元，买 24 件。满 300 减 50，共需付款多少元？</p><details><summary>查看答案</summary>原价 1200 元，可减 4×50=200 元，付款 1000 元。</details></div>
+        <div class="practice-card"><b>反求 1</b><p>某商品打八折后付款 240 元，原价是多少元？</p><details><summary>查看答案</summary>原价 240÷80%=300 元。</details></div>
+        <div class="practice-card"><b>比较</b><p>每件 40 元，买 12 件。方案 A：买五送一；方案 B：七五折。哪个更便宜？</p><details><summary>查看答案</summary>A 付 10 件，共 400 元；B 为 12×40×75%=360 元，B 更便宜。</details></div>
+      </div>
+    </section>
+
+    <section class="module" id="m7">
+      <div class="module-head">
+        <div>
+          <h2>混合利润率与十字交叉</h2>
+          <p class="lead">两类商品混在一起时，总利润率不是简单平均，而是按成本占比加权。成本越多的一类，对总利润率影响越大。</p>
+        </div>
+        <span class="tag">讲义拓展</span>
+      </div>
+      <div class="grid">
+        <div class="panel controls">
+          <h3>两类商品</h3>
+          <div class="field"><label>甲利润率 <output id="mARateOut"></output></label><input id="mARate" type="range" min="-30" max="100" value="30"></div>
+          <div class="field"><label>乙利润率 <output id="mBRateOut"></output></label><input id="mBRate" type="range" min="-30" max="100" value="10"></div>
+          <div class="field"><label>甲成本占比 <output id="mShareOut"></output></label><input id="mShare" type="range" min="0" max="100" value="60"></div>
+          <div class="result" id="mixResult"></div>
+        </div>
+        <div class="panel">
+          <div class="canvas-wrap"><canvas id="mixCanvas"></canvas></div>
+          <div class="hint">如果总利润率靠近甲，说明甲的成本占比更大；如果刚好在中间，才可能是等成本混合。</div>
+          <div class="quiz" data-quiz="m7">
+            <p>甲利润率 30%，乙利润率 10%，两者成本相同，混合后的利润率是多少？</p>
+            <div class="quiz-row"><input id="q7Answer" type="number" placeholder="输入百分数"><button class="primary" id="q7Check" type="button">检查</button><button class="ghost" id="q7Hint" type="button">提示</button></div>
+            <div class="result" id="q7Result"></div>
+          </div>
+        </div>
+      </div>
+      <div class="practice-bank">
+        <h3 class="practice-title">课后练习：混合利润率</h3>
+        <div class="practice-card"><b>正求 1</b><p>甲商品成本 300 元，利润率 30%；乙商品成本 200 元，利润率 10%。总利润率是多少？</p><details><summary>查看答案</summary>总利润 300×30%+200×10%=110 元，总成本 500 元，总利润率 110÷500=22%。</details></div>
+        <div class="practice-card"><b>正求 2</b><p>甲、乙成本相同，甲利润率 40%，乙利润率 10%，混合利润率是多少？</p><details><summary>查看答案</summary>成本相同，取平均：(40%+10%)÷2=25%。</details></div>
+        <div class="practice-card"><b>反求 1</b><p>甲利润率 30%，乙利润率 10%，总利润率 25%。甲成本占总成本的百分之几？</p><details><summary>查看答案</summary>设甲占 x：30%x+10%(1-x)=25%，解得 x=75%。</details></div>
+        <div class="practice-card"><b>判断</b><p>两种商品混合后的利润率一定等于两个利润率的普通平均数吗？</p><details><summary>查看答案</summary>不一定。只有两类商品成本相同时才是普通平均数，一般要按成本占比加权。</details></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const yuan = n => Number(n).toLocaleString('zh-CN',{maximumFractionDigits:2}) + ' 元';
+const pct = n => Number(n).toFixed(1).replace(/\.0$/,'') + '%';
+const closeTo = (a,b,t=.05) => Math.abs(Number(a)-b) <= t;
+const done = new Set(JSON.parse(localStorage.getItem('econLabDone') || '[]'));
+let discountMode = 'forward';
+let tierMode = 'forward';
+let q1 = {}, q2 = {}, q4 = {};
+
+function canvasSize(c){
+  const r = c.getBoundingClientRect();
+  const d = window.devicePixelRatio || 1;
+  c.width = Math.max(320, Math.floor(r.width*d));
+  c.height = Math.max(220, Math.floor(r.height*d));
+  const ctx = c.getContext('2d');
+  ctx.setTransform(d,0,0,d,0,0);
+  return {ctx,w:r.width,h:r.height};
+}
+function clear(ctx,w,h){ctx.clearRect(0,0,w,h)}
+function markDone(id){
+  done.add(id);
+  localStorage.setItem('econLabDone', JSON.stringify([...done]));
+  updateProgress();
+}
+function updateProgress(){
+  $('progressBar').style.width = (done.size/7*100) + '%';
+  $('progressText').textContent = `${done.size} / 7 个模块已通过`;
+}
+function setResult(el, msg, cls=''){
+  el.className = 'result ' + cls;
+  el.textContent = msg;
+}
+function normalizeAnswer(v){
+  return String(v).trim().toLowerCase().replace(/\s+/g,'').replace(/，/g,',').replace(/。/g,'');
+}
+function answerMatches(input, spec){
+  const raw = normalizeAnswer(input);
+  if(!raw) return false;
+  if(spec.kind === 'text'){
+    return spec.accept.some(v => raw.includes(normalizeAnswer(v)));
+  }
+  const nums = (raw.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+  if(spec.values.length === 1){
+    const target = spec.values[0];
+    return nums.some(n => Math.abs(n - target) <= (spec.tol || .05));
+  }
+  return spec.values.every(target => nums.some(n => Math.abs(n - target) <= (spec.tol || .05)));
+}
+function initPracticeBank(){
+  const specs = [
+    {values:[200,40], msg:'正确。售价 200 元，利润 40 元。'},
+    {values:[25], msg:'正确。利润率是 25%。'},
+    {values:[300], msg:'正确。成本是 300 元。'},
+    {values:[300,345], msg:'正确。成本 300 元，售价 345 元。'},
+    {values:[33.3], tol:.2, msg:'正确。实际利润率约 33.3%。'},
+    {values:[72], msg:'正确。最低折扣是 72%，也就是七二折。'},
+    {values:[300], msg:'正确。原定价 300 元。'},
+    {kind:'text', accept:['不是','否','没有','96'], msg:'正确。最后是 96 元，没有回到 100 元。'},
+    {values:[8960], msg:'正确。单利本息和 8960 元。'},
+    {values:[11025], msg:'正确。复利本息和 11025 元。'},
+    {values:[6000], msg:'正确。本金 6000 元。'},
+    {values:[25], msg:'正确。复利比单利多 25 元。'},
+    {values:[147], msg:'正确。电费 147 元。'},
+    {values:[230], msg:'正确。用电 230 度。'},
+    {values:[2900], msg:'正确。报销 2900 元。'},
+    {values:[6000], msg:'正确。医疗费 6000 元。'},
+    {values:[7.5], msg:'正确。保本单价 7.5 元/千克。'},
+    {values:[10], msg:'正确。每千克应卖 10 元。'},
+    {values:[90], msg:'正确。实际卖出 90 千克。'},
+    {values:[15], msg:'正确。损耗率 15%。'},
+    {values:[240], msg:'正确。买四送一付款 240 元。'},
+    {values:[1000], msg:'正确。满减后付款 1000 元。'},
+    {values:[300], msg:'正确。原价 300 元。'},
+    {kind:'text', accept:['b','B','方案b','七五折','75','360'], msg:'正确。方案 B 更便宜。'},
+    {values:[22], msg:'正确。总利润率 22%。'},
+    {values:[25], msg:'正确。混合利润率 25%。'},
+    {values:[75], msg:'正确。甲成本占 75%。'},
+    {kind:'text', accept:['不一定','不是','否','成本相同'], msg:'正确。一般要按成本占比加权。'}
+  ];
+  document.querySelectorAll('.practice-card').forEach((card, i) => {
+    const spec = specs[i];
+    if(!spec || card.querySelector('.practice-answer')) return;
+    const row = document.createElement('div');
+    row.className = 'practice-answer';
+    const input = document.createElement('input');
+    input.placeholder = spec.kind === 'text' ? '输入判断或方案' : '输入答案，可带单位';
+    const btn = document.createElement('button');
+    btn.className = 'primary';
+    btn.type = 'button';
+    btn.textContent = '检查';
+    const feedback = document.createElement('div');
+    feedback.className = 'practice-feedback';
+    feedback.textContent = '输入答案后检查。';
+    btn.addEventListener('click', () => {
+      if(answerMatches(input.value, spec)){
+        feedback.className = 'practice-feedback good';
+        feedback.textContent = spec.msg;
+      }else{
+        feedback.className = 'practice-feedback bad';
+        feedback.textContent = '再检查一下单位 1、分段或反推步骤。';
+      }
+    });
+    input.addEventListener('keydown', e => {
+      if(e.key === 'Enter') btn.click();
+    });
+    row.append(input, btn);
+    const details = card.querySelector('details');
+    card.insertBefore(row, details);
+    card.insertBefore(feedback, details);
+  });
+}
+
+document.querySelectorAll('#nav button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('#nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
+    btn.classList.add('active');
+    $(btn.dataset.target).classList.add('active');
+    drawAll();
+  });
+});
+$('teacherMode').onclick=()=>{document.body.className='teacher';$('teacherMode').classList.add('active');$('selfMode').classList.remove('active')};
+$('selfMode').onclick=()=>{document.body.className='self';$('selfMode').classList.add('active');$('teacherMode').classList.remove('active')};
+
+function updateFormula(){
+  const cost=+$('fCost').value, markup=+$('fMarkup').value/100, disc=+$('fDiscount').value/100;
+  const list=cost*(1+markup), sale=list*disc, profit=sale-cost, rate=profit/cost*100;
+  $('fCostOut').textContent=yuan(cost);
+  $('fMarkupOut').textContent=pct(markup*100);
+  $('fDiscountOut').textContent=pct(disc*100);
+  $('fCostVal').textContent=yuan(cost);
+  $('fListVal').textContent=yuan(list);
+  $('fSaleVal').textContent=yuan(sale);
+  $('fRateVal').textContent=pct(rate);
+  drawFormula(cost,list,sale,profit);
+}
+function drawFormula(cost,list,sale,profit){
+  const {ctx,w,h}=canvasSize($('formulaCanvas')); clear(ctx,w,h);
+  const max=Math.max(cost,list,sale,Math.abs(profit),1)*1.18;
+  const names=['成本','定价','售价','利润'];
+  const vals=[cost,list,sale,profit];
+  const colors=['#306ca8','#0b7a75','#b45f1b',profit>=0?'#2f8c58':'#c7433a'];
+  ctx.font='13px Microsoft YaHei'; ctx.textAlign='center';
+  vals.forEach((v,i)=>{
+    const x=(i+.65)*w/4.25, base=h-38, bh=Math.abs(v)/max*(h-78);
+    ctx.fillStyle=colors[i];
+    if(v>=0) ctx.fillRect(x-28,base-bh,56,bh); else ctx.fillRect(x-28,base,56,bh);
+    ctx.fillStyle='#15211f'; ctx.fillText(names[i],x,h-14);
+    ctx.fillText((i===3&&v<0?'-':'')+yuan(Math.abs(v)).replace(' 元',''),x,base-bh-8);
+  });
+  ctx.strokeStyle='#d8e1dc'; ctx.beginPath(); ctx.moveTo(20,h-38); ctx.lineTo(w-10,h-38); ctx.stroke();
+}
+
+function newQ1(){
+  const cost=[80,120,150,240,300][Math.floor(Math.random()*5)];
+  const sale=[96,150,180,288,360][Math.floor(Math.random()*5)];
+  q1={ans:(sale-cost)/cost*100};
+  $('q1Text').textContent=`成本 ${cost} 元，售价 ${sale} 元，利润率是多少？`;
+  setResult($('q1Result'),'');
+  $('q1Answer').value='';
+}
+
+function updateDiscount(){
+  const cost=+$('dCost').value, list=+$('dList').value;
+  if(discountMode==='forward'){
+    const dis=+$('dDiscount').value/100, sale=list*dis, rate=(sale-cost)/cost*100;
+    setResult($('dResult'),`售价 ${yuan(sale)}，利润 ${yuan(sale-cost)}，利润率 ${pct(rate)}。`);
+  }else{
+    const target=+$('dTarget').value/100, minSale=cost*(1+target), dis=minSale/list*100;
+    setResult($('dResult'),`至少要卖 ${yuan(minSale)}，也就是最低约 ${pct(dis)} 折扣。`);
+  }
+  const fall=+$('fallPct').value/100, rise=+$('risePct').value/100;
+  const after=100*(1-fall), final=after*(1+rise);
+  setResult($('changeResult'),`以 100 元为起点，先变为 ${after.toFixed(2)} 元，再变为 ${final.toFixed(2)} 元，最终是原来的 ${pct(final)}。`);
+  drawDiscount();
+}
+function drawDiscount(){
+  const {ctx,w,h}=canvasSize($('discountCanvas')); clear(ctx,w,h);
+  const fall=+$('fallPct').value/100, rise=+$('risePct').value/100;
+  const vals=[100,100*(1-fall),100*(1-fall)*(1+rise)];
+  const labels=['原价','下降后','再上涨后'];
+  const colors=['#306ca8','#b45f1b','#0b7a75'];
+  const max=Math.max(...vals)*1.18;
+  ctx.font='13px Microsoft YaHei'; ctx.textAlign='center';
+  vals.forEach((v,i)=>{
+    const x=(i+.75)*w/3.45, bh=v/max*(h-78), base=h-38;
+    ctx.fillStyle=colors[i]; ctx.fillRect(x-34,base-bh,68,bh);
+    ctx.fillStyle='#15211f'; ctx.fillText(labels[i],x,h-14); ctx.fillText(v.toFixed(2),x,base-bh-8);
+  });
+}
+function newQ2(){
+  const cost=100, list=[150,180,200][Math.floor(Math.random()*3)], dis=[70,80,85,90][Math.floor(Math.random()*4)];
+  const sale=list*dis/100;
+  q2={ans:(sale-cost)/cost*100};
+  $('q2Text').textContent=`成本 100 元，定价 ${list} 元，打 ${dis/10} 折卖出，利润率是多少？`;
+  $('q2Answer').value=''; setResult($('q2Result'),'');
+}
+
+function updateInterest(){
+  const p=+$('iP').value, r=+$('iR').value/100, y=+$('iY').value;
+  $('iPOut').textContent=yuan(p); $('iROut').textContent=pct(r*100); $('iYOut').textContent=y+' 年';
+  const simple=p*(1+r*y), compound=p*Math.pow(1+r,y);
+  setResult($('interestResult'),`${y} 年后：单利 ${yuan(simple)}，复利 ${yuan(compound)}，差额 ${yuan(compound-simple)}。`);
+  drawInterest(p,r,y);
+  let html='<tr><th>年份</th><th>单利本息</th><th>复利本息</th><th>差额</th></tr>';
+  for(let i=0;i<=y;i+=Math.max(1,Math.ceil(y/5))){
+    const s=p*(1+r*i), c=p*Math.pow(1+r,i);
+    html+=`<tr><td>第 ${i} 年</td><td>${yuan(s)}</td><td>${yuan(c)}</td><td>${yuan(c-s)}</td></tr>`;
+  }
+  $('interestTable').innerHTML=html;
+}
+function drawInterest(p,r,y){
+  const {ctx,w,h}=canvasSize($('interestCanvas')); clear(ctx,w,h);
+  const pad=34, max=p*Math.pow(1+r,y)*1.08;
+  ctx.strokeStyle='#d8e1dc'; ctx.beginPath(); ctx.moveTo(pad,12); ctx.lineTo(pad,h-pad); ctx.lineTo(w-12,h-pad); ctx.stroke();
+  function plot(color,compound){
+    ctx.strokeStyle=color; ctx.lineWidth=3; ctx.beginPath();
+    for(let i=0;i<=y;i++){
+      const val=compound?p*Math.pow(1+r,i):p*(1+r*i);
+      const x=pad+(w-pad-18)*(i/y||0), yy=h-pad-(h-pad-20)*(val/max);
+      if(i===0)ctx.moveTo(x,yy); else ctx.lineTo(x,yy);
+    }
+    ctx.stroke();
+  }
+  plot('#306ca8',false); plot('#b45f1b',true);
+  ctx.fillStyle='#306ca8'; ctx.fillText('单利',pad+10,24);
+  ctx.fillStyle='#b45f1b'; ctx.fillText('复利',pad+65,24);
+}
+
+const tiers={
+  tax:{name:'年综合所得个税', unit:'元收入', fee:'税额', base:60000, steps:[[36000,.03],[144000,.10],[300000,.20],[Infinity,.25]], input:220000},
+  medical:{name:'医保分段报销', unit:'元医疗费', fee:'报销额', base:0, steps:[[1000,.50],[9000,.60],[20000,.70],[Infinity,.80]], input:18000},
+  electric:{name:'阶梯电费', unit:'度用电', fee:'电费', base:0, steps:[[180,.55],[220,.60],[Infinity,.85]], input:350}
+};
+function calcTier(amount,cfg){
+  let rest=Math.max(0,amount-cfg.base), total=0, rows=[];
+  cfg.steps.forEach((s,i)=>{
+    const used=Math.max(0,Math.min(rest,s[0]));
+    const fee=used*s[1];
+    rows.push({i:i+1,used,rate:s[1],fee});
+    total+=fee; rest-=used;
+  });
+  return {total,rows};
+}
+function reverseTier(fee,cfg){
+  let rest=Math.max(0,fee), amount=cfg.base, rows=[];
+  for(let i=0;i<cfg.steps.length;i++){
+    const [width,rate]=cfg.steps[i], full=width*rate;
+    const useFee=Math.min(rest,full);
+    const used=useFee/rate;
+    rows.push({i:i+1,used,rate,fee:useFee});
+    amount+=used; rest-=useFee;
+    if(rest<=.00001)break;
+  }
+  return {amount,rows,total:fee};
+}
+function updateTier(){
+  const cfg=tiers[$('tierScenario').value];
+  const val=+$('tierInput').value;
+  $('tierInputLabel').textContent=tierMode==='forward'?'输入总金额或数量':`输入${cfg.fee}`;
+  const data=tierMode==='forward'?calcTier(val,cfg):reverseTier(val,cfg);
+  if(tierMode==='forward') setResult($('tierResult'),`${cfg.name}：${val} ${cfg.unit} 对应${cfg.fee} ${yuan(data.total)}。`);
+  else setResult($('tierResult'),`${cfg.fee} ${yuan(val)} 大约对应 ${data.amount.toFixed(2)} ${cfg.unit}。`);
+  let html='<tr><th>段数</th><th>本段数量</th><th>费率</th><th>本段结果</th></tr>';
+  data.rows.forEach(r=>html+=`<tr><td>第 ${r.i} 段</td><td>${r.used.toFixed(2)}</td><td>${pct(r.rate*100)}</td><td>${yuan(r.fee)}</td></tr>`);
+  $('tierTable').innerHTML=html;
+  drawTier(data.rows);
+}
+function drawTier(rows){
+  const {ctx,w,h}=canvasSize($('tierCanvas')); clear(ctx,w,h);
+  const max=Math.max(...rows.map(r=>r.used),1);
+  ctx.font='13px Microsoft YaHei'; ctx.textAlign='center';
+  rows.forEach((r,i)=>{
+    const x=(i+.65)*w/(rows.length+.25), bh=r.used/max*(h-78), base=h-38;
+    ctx.fillStyle=['#306ca8','#0b7a75','#b45f1b','#2f8c58'][i%4];
+    ctx.fillRect(x-34,base-bh,68,bh);
+    ctx.fillStyle='#15211f'; ctx.fillText(`第${r.i}段`,x,h-14); ctx.fillText(r.used.toFixed(1),x,base-bh-8);
+  });
+}
+function newQ4(){
+  const k=Math.random()<.5?'electric':'medical';
+  if(k==='electric'){q4={ans:180*.55+(260-180)*.6};$('q4Text').textContent='阶梯电费：前 180 度每度 0.55 元，之后每度 0.60 元。用电 260 度，电费是多少元？'}
+  else{q4={ans:1000*.5+(5000-1000)*.6};$('q4Text').textContent='医保报销：前 1000 元报 50%，1000 到 10000 元部分报 60%。医疗费 5000 元，报销多少元？'}
+  $('q4Answer').value=''; setResult($('q4Result'),'');
+}
+
+function updateLoss(){
+  const kg=+$('lKg').value, cost=+$('lCost').value, fee=+$('lFee').value, loss=+$('lLoss').value/100, rate=+$('lRate').value/100;
+  $('lKgOut').textContent=kg+' 千克'; $('lCostOut').textContent=yuan(cost); $('lFeeOut').textContent=yuan(fee); $('lLossOut').textContent=pct(loss*100); $('lRateOut').textContent=pct(rate*100);
+  const total=kg*cost+fee, sell=kg*(1-loss), breakeven=total/sell, price=breakeven*(1+rate);
+  $('lTotal').textContent=yuan(total); $('lSellable').textContent=sell.toFixed(1)+' kg'; $('lBreak').textContent=yuan(breakeven); $('lPrice').textContent=yuan(price);
+  drawLoss(kg,sell,total,price);
+}
+function drawLoss(kg,sell,total,price){
+  const {ctx,w,h}=canvasSize($('lossCanvas')); clear(ctx,w,h);
+  const lost=kg-sell, left=30, top=42, bw=w-60, bh=42;
+  ctx.fillStyle='#0b7a75'; ctx.fillRect(left,top,bw*(sell/kg),bh);
+  ctx.fillStyle='#c7433a'; ctx.fillRect(left+bw*(sell/kg),top,bw*(lost/kg),bh);
+  ctx.fillStyle='#15211f'; ctx.font='14px Microsoft YaHei';
+  ctx.fillText(`可售 ${sell.toFixed(1)} kg`,left+8,top+27);
+  ctx.fillText(`损耗 ${lost.toFixed(1)} kg`,left+bw*(sell/kg)+8,top+27);
+  const unit=total/sell;
+  ctx.fillText(`成本被 ${sell.toFixed(1)} kg 分摊：保本单价 ${yuan(unit)}`,left,top+92);
+  ctx.fillText(`若按目标售价 ${yuan(price)} 卖出，每千克利润 ${yuan(price-unit)}`,left,top+122);
+}
+
+function updatePromo(){
+  const qty=+$('pQty').value, unit=+$('pUnit').value, buy=Math.max(1,+$('buyN').value), free=Math.max(0,+$('freeN').value), dis=+$('promoDiscount').value/100, full=Math.max(1,+$('fullN').value), minus=Math.max(0,+$('minusN').value);
+  $('pQtyOut').textContent=qty+' 件'; $('pUnitOut').textContent=yuan(unit);
+  const normal=qty*unit;
+  const group=buy+free;
+  const paid=Math.floor(qty/group)*buy + Math.min(qty%group,buy);
+  const schemes=[
+    {name:`买${buy}送${free}`, cost:paid*unit, note:`实际付 ${paid} 件`},
+    {name:`${pct(dis*100)} 折`, cost:normal*dis, note:'直接按总价打折'},
+    {name:`满 ${full} 减 ${minus}`, cost:normal-Math.floor(normal/full)*minus, note:`共减 ${yuan(Math.floor(normal/full)*minus)}`}
+  ];
+  const min=Math.min(...schemes.map(s=>s.cost));
+  $('promoCards').innerHTML=schemes.map(s=>`<div class="compare-card ${s.cost===min?'best':''}"><small>${s.name}</small><b>${yuan(s.cost)}</b><small>${s.note}，单件 ${yuan(s.cost/qty)}</small></div>`).join('');
+  drawPromo(schemes);
+}
+function drawPromo(schemes){
+  const {ctx,w,h}=canvasSize($('promoCanvas')); clear(ctx,w,h);
+  const max=Math.max(...schemes.map(s=>s.cost))*1.15;
+  ctx.font='13px Microsoft YaHei'; ctx.textAlign='center';
+  schemes.forEach((s,i)=>{
+    const x=(i+.75)*w/3.45, bh=s.cost/max*(h-78), base=h-38;
+    ctx.fillStyle=s.cost===Math.min(...schemes.map(a=>a.cost))?'#0b7a75':'#b45f1b';
+    ctx.fillRect(x-42,base-bh,84,bh);
+    ctx.fillStyle='#15211f'; ctx.fillText(s.name,x,h-14); ctx.fillText(yuan(s.cost).replace(' 元',''),x,base-bh-8);
+  });
+}
+
+function updateMix(){
+  const a=+$('mARate').value, b=+$('mBRate').value, share=+$('mShare').value/100;
+  $('mARateOut').textContent=pct(a); $('mBRateOut').textContent=pct(b); $('mShareOut').textContent=pct(share*100);
+  const mix=a*share+b*(1-share);
+  setResult($('mixResult'),`总利润率 = ${pct(a)} × ${pct(share*100)} + ${pct(b)} × ${pct((1-share)*100)} = ${pct(mix)}。`);
+  drawMix(a,b,share,mix);
+}
+function drawMix(a,b,share,mix){
+  const {ctx,w,h}=canvasSize($('mixCanvas')); clear(ctx,w,h);
+  const min=Math.min(a,b,-20), max=Math.max(a,b,100), x0=50, x1=w-35, y=h/2;
+  const map=v=>x0+(v-min)/(max-min)*(x1-x0);
+  ctx.strokeStyle='#d8e1dc'; ctx.lineWidth=10; ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1,y); ctx.stroke();
+  [{v:a,t:'甲',c:'#306ca8'},{v:b,t:'乙',c:'#b45f1b'},{v:mix,t:'总',c:'#0b7a75'}].forEach(o=>{
+    const x=map(o.v); ctx.fillStyle=o.c; ctx.beginPath(); ctx.arc(x,y,12,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#15211f'; ctx.font='14px Microsoft YaHei'; ctx.textAlign='center'; ctx.fillText(`${o.t} ${pct(o.v)}`,x,y-24);
+  });
+  ctx.fillStyle='#66736f'; ctx.fillText(`甲成本 ${pct(share*100)}，乙成本 ${pct((1-share)*100)}`,w/2,y+45);
+}
+
+function bindInputs(ids, fn){ids.forEach(id=>$(id).addEventListener('input',fn))}
+bindInputs(['fCost','fMarkup','fDiscount'], updateFormula);
+bindInputs(['dCost','dList','dDiscount','dTarget','fallPct','risePct'], updateDiscount);
+bindInputs(['iP','iR','iY'], updateInterest);
+bindInputs(['tierScenario','tierInput'], updateTier);
+bindInputs(['lKg','lCost','lFee','lLoss','lRate'], updateLoss);
+bindInputs(['pQty','pUnit','buyN','freeN','promoDiscount','fullN','minusN'], updatePromo);
+bindInputs(['mARate','mBRate','mShare'], updateMix);
+
+$('dForward').onclick=()=>{discountMode='forward';$('dForward').classList.add('active');$('dReverse').classList.remove('active');$('dDiscountBox').style.display='grid';$('dTargetBox').style.display='none';updateDiscount()};
+$('dReverse').onclick=()=>{discountMode='reverse';$('dReverse').classList.add('active');$('dForward').classList.remove('active');$('dDiscountBox').style.display='none';$('dTargetBox').style.display='grid';updateDiscount()};
+$('tierForward').onclick=()=>{tierMode='forward';$('tierForward').classList.add('active');$('tierReverse').classList.remove('active');$('tierInput').value=tiers[$('tierScenario').value].input;updateTier()};
+$('tierReverse').onclick=()=>{tierMode='reverse';$('tierReverse').classList.add('active');$('tierForward').classList.remove('active');$('tierInput').value=3000;updateTier()};
+$('tierScenario').addEventListener('change',()=>{$('tierInput').value=tiers[$('tierScenario').value].input;updateTier()});
+
+$('q1New').onclick=newQ1;
+$('q1Check').onclick=()=> closeTo($('q1Answer').value,q1.ans,.1) ? (setResult($('q1Result'),'正确。利润率就是利润除以成本。','good'),markDone('m1')) : setResult($('q1Result'),`再想想：先算利润，再除以成本。`, 'bad');
+$('q2New').onclick=newQ2;
+$('q2Check').onclick=()=> closeTo($('q2Answer').value,q2.ans,.1) ? (setResult($('q2Result'),'正确。折扣先决定售价，再和成本比较。','good'),markDone('m2')) : setResult($('q2Result'),'先算售价 = 定价 × 折扣，再算利润率。','bad');
+$('q3Check').onclick=()=> closeTo($('q3Answer').value,25,.01) ? (setResult($('q3Result'),'正确。复利多出的 25 元来自第一年利息在第二年继续生息。','good'),markDone('m3')) : setResult($('q3Result'),'单利本息 11000 元，复利本息 11025 元。','bad');
+$('q3Show').onclick=()=>setResult($('q3Result'),'单利：10000×5%×2；复利：10000×1.05×1.05。');
+$('q4New').onclick=newQ4;
+$('q4Check').onclick=()=> closeTo($('q4Answer').value,q4.ans,.05) ? (setResult($('q4Result'),'正确。每一段只算落在本段的部分。','good'),markDone('m4')) : setResult($('q4Result'),'分段写出每一段的数量，再分别乘费率。','bad');
+$('q5Check').onclick=()=> closeTo($('q5Answer').value,7.5,.01) ? (setResult($('q5Result'),'正确。总成本 600 元，可售 80 千克，保本 7.5 元/千克。','good'),markDone('m5')) : setResult($('q5Result'),'总成本不是 500，而是进价 500 加杂费 100。','bad');
+$('q5Hint').onclick=()=>setResult($('q5Result'),'先算总成本 100×5+100，再除以可售重量 100×80%。');
+$('q6Check').onclick=()=> ['相同','一样','AB','A和B'].includes($('q6Answer').value.trim().toUpperCase()) ? (setResult($('q6Result'),'正确。买四送一需付 8 件，共 240 元；八折也是 240 元，并列最便宜。','good'),markDone('m6')) : setResult($('q6Result'),'算总价：买四送一付 8 件；八折按 10 件总价打 8 折。','bad');
+$('q6Hint').onclick=()=>setResult($('q6Result'),'A：10 件中 2 件免费；B：300 元打八折。');
+$('q7Check').onclick=()=> closeTo($('q7Answer').value,20,.01) ? (setResult($('q7Result'),'正确。成本相同就是两个利润率的平均数。','good'),markDone('m7')) : setResult($('q7Result'),'成本相同，甲乙权重各占一半。','bad');
+$('q7Hint').onclick=()=>setResult($('q7Result'),'(30% + 10%) ÷ 2。');
+
+function drawAll(){updateFormula();updateDiscount();updateInterest();updateTier();updateLoss();updatePromo();updateMix()}
+window.addEventListener('resize', drawAll);
+initPracticeBank(); newQ1(); newQ2(); newQ4(); updateProgress(); drawAll();
+</script>
+</body>
+</html>

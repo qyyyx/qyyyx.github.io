@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>多格骨牌铺砖：能不能刚好铺满？</title>
+<style>
+:root {
+  --bg: #f4f7f8;
+  --surface: #ffffff;
+  --surface-strong: #eef4f5;
+  --line: #d7e1e3;
+  --text: #152529;
+  --muted: #66777d;
+  --accent: #3b82f6;
+  --accent-dark: #2563eb;
+  --accent-soft: #dbeafe;
+  --warning: #c47a1c;
+  --warning-soft: #fef3c7;
+  --proof: #f3c44e;
+  --danger: #dc2626;
+  --success: #16a34a;
+
+  --tile-d: #64748b;   /* 多米诺 */
+  --tile-l3: #ec4899;
+  --tile-i3: #14b8a6;
+  --tile-l: #f97316;
+  --tile-t: #a855f7;
+  --tile-i: #06b6d4;
+  --tile-o: #facc15;
+  --tile-s: #22c55e;
+  --tile-z: #ef4444;
+  --tile-j: #6366f1;
+  --tile-p: #d946ef;
+  --tile-f: #0ea5e9;
+  --tile-y: #84cc16;
+
+  --cell-empty: #e5e7eb;
+  --cell-hole: #1f2937;
+  --preview-ok: rgba(34,197,94,.45);
+  --preview-bad: rgba(239,68,68,.45);
+
+  --color-black: rgba(15, 23, 42, .55);
+  --color-white: rgba(241, 245, 249, .0);
+  --color-c3a: rgba(59, 130, 246, .45);
+  --color-c3b: rgba(249, 115, 22, .45);
+  --color-c3c: rgba(34, 197, 94, .45);
+
+  --cell-size: 52px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+header.app-header {
+  padding: 16px 24px; background: var(--surface); border-bottom: 1px solid var(--line);
+  display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+}
+header h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
+header h1 .sub { color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 8px; }
+.nav-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  padding: 8px 14px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--text); cursor: pointer; font-size: 13px;
+  display: inline-flex; align-items: center; gap: 6px; transition: all .15s;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent-dark); }
+.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip .num { font-weight: 700; }
+
+main.layout {
+  display: grid; gap: 16px; padding: 16px 24px; min-height: calc(100vh - 64px);
+  grid-template-columns: 240px 1fr 320px; grid-template-rows: 1fr auto;
+  grid-template-areas: "nav stage panel" "prompt prompt prompt";
+}
+aside.nav, aside.panel, section.stage, footer.prompt {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 16px;
+}
+aside.nav { grid-area: nav; }
+section.stage { grid-area: stage; display: flex; flex-direction: column; gap: 12px; }
+aside.panel { grid-area: panel; }
+footer.prompt { grid-area: prompt; }
+
+.nav h2, .panel h2, .stage h2 { margin: 0 0 10px; font-size: 14px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+.module-card { padding: 10px 12px; border-radius: 8px; border: 1px solid transparent;
+  cursor: pointer; margin-bottom: 6px; transition: all .15s; }
+.module-card:hover { background: var(--surface-strong); }
+.module-card.active { background: var(--accent-soft); border-color: var(--accent); }
+.module-card .title { font-weight: 600; font-size: 14px; }
+.module-card .hint { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button.btn { min-height: 40px; padding: 0 14px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  cursor: pointer; font-size: 14px; transition: all .15s; }
+button.btn:hover { border-color: var(--accent); color: var(--accent-dark); }
+button.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+button.btn.primary:hover { background: var(--accent-dark); }
+button.btn.warn { background: var(--warning-soft); border-color: var(--warning); color: var(--warning); }
+button.btn[disabled] { opacity: .4; cursor: not-allowed; }
+select.size-select, select.lvl-select { min-height: 40px; padding: 0 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--surface); font-size: 14px; }
+
+.stage-area {
+  display: grid; grid-template-columns: minmax(300px, 1fr) minmax(180px, 280px);
+  gap: 18px; align-items: start;
+}
+@media (max-width: 1199px) {
+  .stage-area { grid-template-columns: 1fr; }
+}
+.board-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.board {
+  display: grid; gap: 2px;
+  background: #b8c4c7; border: 2px solid #94a3a8; border-radius: 8px;
+  padding: 6px; position: relative; touch-action: none;
+  grid-template-columns: repeat(var(--cols), var(--cell-size));
+  grid-template-rows: repeat(var(--rows), var(--cell-size));
+}
+.cell {
+  position: relative; background: var(--cell-empty); border-radius: 4px;
+  width: var(--cell-size); height: var(--cell-size);
+  display: flex; align-items: center; justify-content: center;
+  font-variant-numeric: tabular-nums; font-size: 12px; color: #6b7280;
+  transition: background .12s, box-shadow .12s;
+}
+.cell.hole { background: var(--cell-hole); }
+.cell.filled { background: var(--cell-fill, #999); }
+.cell.preview-ok { box-shadow: inset 0 0 0 3px var(--success);
+  background: var(--preview-ok) !important; }
+.cell.preview-bad { box-shadow: inset 0 0 0 3px var(--danger);
+  background: var(--preview-bad) !important; }
+.cell.color-black::before {
+  content: ""; position: absolute; inset: 0; background: var(--color-black);
+  pointer-events: none; border-radius: 4px;
+}
+.cell.color-c3a::before { content: ""; position: absolute; inset: 0; background: var(--color-c3a); pointer-events: none; border-radius: 4px; }
+.cell.color-c3b::before { content: ""; position: absolute; inset: 0; background: var(--color-c3b); pointer-events: none; border-radius: 4px; }
+.cell.color-c3c::before { content: ""; position: absolute; inset: 0; background: var(--color-c3c); pointer-events: none; border-radius: 4px; }
+.cell.win-pop { animation: winPop .55s ease-out; }
+@keyframes winPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.18); filter: brightness(1.25); }
+  100% { transform: scale(1); }
+}
+
+.tray-wrap { background: var(--surface-strong); border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px; min-height: 200px; }
+.tray-wrap h3 { margin: 0 0 8px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.tray { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.tile-slot {
+  position: relative; padding: 6px; border-radius: 8px;
+  background: var(--surface); border: 1px dashed var(--line);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: grab; touch-action: none; user-select: none;
+}
+.tile-slot:hover { border-color: var(--accent); }
+.tile-slot.empty { opacity: .35; cursor: not-allowed; }
+.tile-slot .badge {
+  position: absolute; top: -6px; right: -6px;
+  background: var(--accent); color: #fff; font-size: 11px; font-weight: 700;
+  border-radius: 999px; min-width: 18px; height: 18px; line-height: 18px;
+  text-align: center; padding: 0 5px;
+}
+.tile-svg { display: block; }
+.tile-rect { stroke: rgba(0,0,0,.25); stroke-width: 1.5; }
+.tile-ghost {
+  position: fixed; pointer-events: none; z-index: 500;
+  opacity: .85; filter: drop-shadow(0 4px 10px rgba(0,0,0,.25));
+}
+
+.stat-row { display: flex; justify-content: space-between; padding: 8px 0;
+  border-bottom: 1px dashed var(--line); font-variant-numeric: tabular-nums; }
+.stat-row:last-child { border-bottom: 0; }
+.stat-row .key { color: var(--muted); font-size: 13px; }
+.stat-row .val { font-weight: 600; font-size: 14px; }
+.stat-row .val.success { color: var(--success); }
+.stat-row .val.danger { color: var(--danger); }
+.stat-row .val.warn { color: var(--warning); }
+
+.prompt-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+.prompt-tabs button { min-height: 36px; padding: 0 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-size: 13px; }
+.prompt-tabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.prompt-body { background: var(--surface-strong); border-radius: 10px; padding: 14px;
+  min-height: 64px; }
+.prompt-body p { margin: 0 0 6px; }
+.prompt-body .answer { color: var(--muted); font-size: 13px; padding-top: 8px;
+  border-top: 1px dashed var(--line); margin-top: 8px; }
+.prompt-body.collapsed .answer { display: none; }
+
+.banner { padding: 10px 14px; border-radius: 8px; font-size: 14px; margin-top: 8px; }
+.banner.success { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+.banner.danger  { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+.banner.info    { background: var(--accent-soft); color: var(--accent-dark); border: 1px solid #bfdbfe; }
+.banner button.linklike { background: none; border: 0; color: inherit;
+  text-decoration: underline; cursor: pointer; font: inherit; padding: 0 4px; }
+
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.legend .dot { display: inline-block; width: 14px; height: 14px; border-radius: 3px;
+  vertical-align: middle; margin-right: 4px; border: 1px solid rgba(0,0,0,.1); }
+
+.mode-tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 8px;
+  overflow: hidden; }
+.mode-tabs button { min-height: 38px; padding: 0 12px; border: 0;
+  background: var(--surface); cursor: pointer; font-size: 13px; }
+.mode-tabs button.active { background: var(--accent); color: #fff; }
+
+.intro { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; width: 100%; align-items: start; }
+.intro-prose h3 { margin: 16px 0 6px; font-size: 15px; color: var(--accent-dark); }
+.intro-prose h3:first-child { margin-top: 0; }
+.intro-prose p { margin: 6px 0; color: var(--text); }
+.intro-prose ul { margin: 6px 0; padding-left: 22px; }
+.intro-prose li { margin: 3px 0; }
+.intro-prose .em { color: var(--accent-dark); font-weight: 600; }
+.intro-prose code { background: var(--surface-strong); padding: 1px 6px; border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+.demo-card { background: var(--surface-strong); border-radius: 12px; padding: 14px;
+  display: flex; flex-direction: column; gap: 10px; }
+.demo-card .demo-title { font-weight: 600; font-size: 14px; color: var(--text); }
+.demo-card .demo-hint { font-size: 12px; color: var(--muted); }
+.family-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 10px; }
+.family-cell { background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.family-cell:hover { border-color: var(--accent); }
+.family-cell .name { font-size: 12px; color: var(--muted); }
+.family-cell.active { border-color: var(--accent); background: var(--accent-soft); }
+
+/* 成就系统 */
+.trophy-btn { margin-left: auto; min-height: 40px; padding: 0 14px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.trophy-btn:hover { border-color: var(--proof); background: var(--warning-soft); }
+.trophy-btn .icon { font-size: 16px; }
+.trophy-btn .count { font-variant-numeric: tabular-nums; color: var(--muted); }
+.trophy-btn .count strong { color: var(--warning); font-weight: 700; }
+.toast-stack { position: fixed; top: 16px; right: 16px; z-index: 999;
+  display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast { background: var(--surface); border: 1px solid var(--proof); border-left: 4px solid var(--proof);
+  border-radius: 8px; padding: 10px 14px; min-width: 240px; max-width: 320px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.12);
+  animation: toastIn .25s ease-out, toastOut .4s ease-in 3.6s forwards;
+  pointer-events: auto; }
+.toast .t-title { font-weight: 700; font-size: 13px; color: var(--warning); display: flex; align-items: center; gap: 6px; }
+.toast .t-name { font-size: 14px; font-weight: 600; color: var(--text); margin: 2px 0; }
+.toast .t-desc { font-size: 12px; color: var(--muted); }
+@keyframes toastIn { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes toastOut { to { transform: translateX(20px); opacity: 0; } }
+.modal-bg { position: fixed; inset: 0; background: rgba(15,30,40,.45); z-index: 998;
+  display: none; align-items: center; justify-content: center; padding: 20px; }
+.modal-bg.open { display: flex; }
+.modal { background: var(--surface); border-radius: 14px; padding: 20px; max-width: 560px;
+  width: 100%; max-height: 80vh; overflow-y: auto; box-shadow: 0 18px 40px rgba(0,0,0,.2); }
+.modal h3 { margin: 0 0 4px; font-size: 18px; }
+.modal .modal-sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+.modal .close-x { float: right; background: none; border: none; font-size: 22px;
+  color: var(--muted); cursor: pointer; line-height: 1; }
+.ach-list { display: grid; gap: 8px; }
+.ach-row { display: grid; grid-template-columns: 38px 1fr auto; gap: 10px; align-items: center;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.ach-row.unlocked { border-color: var(--proof); background: #fffbeb; }
+.ach-row .ach-icon { font-size: 22px; text-align: center; filter: grayscale(1); opacity: .35; }
+.ach-row.unlocked .ach-icon { filter: none; opacity: 1; }
+.ach-row .ach-name { font-weight: 600; font-size: 14px; }
+.ach-row .ach-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.ach-row .ach-status { font-size: 12px; color: var(--muted); }
+.ach-row.unlocked .ach-status { color: var(--success); font-weight: 600; }
+.ach-progress { height: 6px; background: var(--surface-strong); border-radius: 3px; overflow: hidden;
+  margin: 4px 0 14px; }
+.ach-progress > div { height: 100%; background: var(--proof); transition: width .3s; }
+.ach-actions { margin-top: 14px; display: flex; gap: 8px; justify-content: flex-end; }
+
+@media (max-width: 1099px) {
+  main.layout { grid-template-columns: 1fr; grid-template-areas: "nav" "stage" "panel" "prompt"; }
+  aside.nav .modules { display: flex; gap: 8px; overflow-x: auto; }
+  aside.nav .module-card { min-width: 180px; }
+}
+@media (max-width: 699px) {
+  :root { --cell-size: 40px; }
+  header.app-header { padding: 12px; }
+  header h1 .sub { display: block; margin: 4px 0 0; }
+  main.layout { padding: 12px; gap: 12px; }
+  .intro { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<header class="app-header">
+  <h1>多格骨牌铺砖 <span class="sub">能不能刚好铺满？</span></h1>
+  <div class="nav-chips" id="topNav"></div>
+  <button class="trophy-btn" id="trophyBtn" aria-label="查看成就">
+    <span class="icon">🏆</span><span>成就</span>
+    <span class="count"><strong id="trophyCount">0</strong>/<span id="trophyTotal">0</span></span>
+  </button>
+</header>
+
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<div class="modal-bg" id="achModalBg" role="dialog" aria-labelledby="achModalTitle">
+  <div class="modal">
+    <button class="close-x" id="achModalClose" aria-label="关闭">×</button>
+    <h3 id="achModalTitle">🏆 成就</h3>
+    <div class="modal-sub">闯关、染色与编辑器都可解锁；进度保存在浏览器本地。</div>
+    <div class="ach-progress"><div id="achProgressBar" style="width:0%"></div></div>
+    <div class="ach-list" id="achList"></div>
+    <div class="ach-actions">
+      <button class="btn" id="achResetBtn">清空进度</button>
+      <button class="btn primary" id="achCloseBtn">关闭</button>
+    </div>
+  </div>
+</div>
+
+<main class="layout">
+  <aside class="nav">
+    <h2>模块导航</h2>
+    <div class="modules" id="moduleList"></div>
+  </aside>
+
+  <section class="stage">
+    <h2 id="stageTitle">模块标题</h2>
+    <div id="stageDesc" style="color:var(--muted);font-size:13px;margin-bottom:4px"></div>
+    <div class="controls" id="stageControls"></div>
+    <div id="stageBody"></div>
+    <div id="banner"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <aside class="panel">
+    <h2>数据面板</h2>
+    <div id="statPanel"></div>
+  </aside>
+
+  <footer class="prompt">
+    <div class="prompt-tabs">
+      <button data-tier="observe" class="active">观察</button>
+      <button data-tier="verify">验证</button>
+      <button data-tier="prove">解释</button>
+      <button class="reveal-btn" id="revealBtn" style="margin-left:auto;background:var(--surface)">显示结论</button>
+    </div>
+    <div class="prompt-body collapsed" id="promptBody"></div>
+  </footer>
+</main>
+
+<script>
+'use strict';
+(function () {
+
+// ============================================================
+// 0. 工具
+// ============================================================
+const $ = (sel, root=document) => root.querySelector(sel);
+const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+// ============================================================
+// 1. 骨牌定义
+// 每个骨牌用一组相对格子 [r,c] 表示
+// ============================================================
+const TILE_DEFS = {
+  D2: { name: '多米诺', short: 'D', cells: [[0,0],[0,1]], color: 'var(--tile-d)' },
+  L3: { name: 'L 三格', short: 'L₃', cells: [[0,0],[1,0],[1,1]], color: 'var(--tile-l3)' },
+  I3: { name: 'I 三格', short: 'I₃', cells: [[0,0],[0,1],[0,2]], color: 'var(--tile-i3)' },
+  I4: { name: 'I', short: 'I', cells: [[0,0],[0,1],[0,2],[0,3]], color: 'var(--tile-i)' },
+  L4: { name: 'L', short: 'L', cells: [[0,0],[1,0],[2,0],[2,1]], color: 'var(--tile-l)' },
+  J4: { name: 'J', short: 'J', cells: [[0,1],[1,1],[2,0],[2,1]], color: 'var(--tile-j)' },
+  T4: { name: 'T', short: 'T', cells: [[0,0],[0,1],[0,2],[1,1]], color: 'var(--tile-t)' },
+  O4: { name: 'O', short: 'O', cells: [[0,0],[0,1],[1,0],[1,1]], color: 'var(--tile-o)' },
+  S4: { name: 'S', short: 'S', cells: [[0,1],[0,2],[1,0],[1,1]], color: 'var(--tile-s)' },
+  Z4: { name: 'Z', short: 'Z', cells: [[0,0],[0,1],[1,1],[1,2]], color: 'var(--tile-z)' },
+  P5: { name: 'P 五格', short: 'P', cells: [[0,0],[0,1],[1,0],[1,1],[2,0]], color: 'var(--tile-p)' },
+  F5: { name: 'F 五格', short: 'F', cells: [[0,1],[0,2],[1,0],[1,1],[2,1]], color: 'var(--tile-f)' },
+  Y5: { name: 'Y 五格', short: 'Y', cells: [[0,1],[1,0],[1,1],[2,1],[3,1]], color: 'var(--tile-y)' },
+  L5: { name: 'L 五格', short: 'L₅', cells: [[0,0],[1,0],[2,0],[3,0],[3,1]], color: 'var(--tile-l)' },
+};
+
+// 归一化：平移到第一象限
+function normalize(cells) {
+  let mr = Infinity, mc = Infinity;
+  for (const [r,c] of cells) { if (r < mr) mr = r; if (c < mc) mc = c; }
+  const out = cells.map(([r,c]) => [r - mr, c - mc]);
+  out.sort((a,b) => a[0]-b[0] || a[1]-b[1]);
+  return out;
+}
+function rotateCW(cells) { return normalize(cells.map(([r,c]) => [c, -r])); }
+function flipH(cells)    { return normalize(cells.map(([r,c]) => [r, -c])); }
+function cellsKey(cells) { return cells.map(([r,c]) => r+','+c).join('|'); }
+function tileBBox(cells) {
+  let mr=0, mc=0; for (const [r,c] of cells) { if (r>mr) mr=r; if (c>mc) mc=c; }
+  return [mr+1, mc+1];
+}
+
+// 生成骨牌的所有不同朝向（去重后最多 8 个）
+function allOrientations(cells) {
+  const out = [], seen = new Set();
+  let cur = normalize(cells);
+  for (let f = 0; f < 2; f++) {
+    let c = cur;
+    for (let r = 0; r < 4; r++) {
+      const k = cellsKey(c);
+      if (!seen.has(k)) { seen.add(k); out.push(c); }
+      c = rotateCW(c);
+    }
+    cur = flipH(cur);
+  }
+  return out;
+}
+
+// 渲染骨牌为 SVG
+function renderTileSVG(cells, color, cellPx = 28, padding = 2) {
+  const [rows, cols] = tileBBox(cells);
+  const w = cols * cellPx, h = rows * cellPx;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'tile-svg');
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', h);
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  // 圆角块画法：先绘制每格底色，再统一勾边
+  for (const [r,c] of cells) {
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', c*cellPx + padding);
+    rect.setAttribute('y', r*cellPx + padding);
+    rect.setAttribute('width',  cellPx - padding*2);
+    rect.setAttribute('height', cellPx - padding*2);
+    rect.setAttribute('rx', 4);
+    rect.setAttribute('class', 'tile-rect');
+    rect.setAttribute('fill', color);
+    svg.appendChild(rect);
+  }
+  return svg;
+}
+
+// ============================================================
+// 2. 关卡数据
+// ============================================================
+const LEVELS = [
+  { id:1, rows:2, cols:4, holes:[], tray:[['D2',4]], note:'入门：4 块多米诺刚好铺满 2×4' },
+  { id:2, rows:3, cols:4, holes:[], tray:[['L3',4]], note:'4 块 L 三格铺 3×4' },
+  { id:3, rows:4, cols:4, holes:[], tray:[['L4',4]], note:'经典：4 块 L 四格拼正方形' },
+  { id:4, rows:4, cols:4, holes:[], tray:[['T4',4]], note:'4 块 T 拼成 4×4' },
+  { id:5, rows:4, cols:5, holes:[], tray:[['L4',2],['T4',1],['I4',1],['O4',1]], note:'混合骨牌：4×5 = 20 格' },
+  { id:6, rows:4, cols:4, holes:[[0,0]], tray:[['L3',5]], note:'15 格残棋：用 5 块 L 三格能铺吗？（提示：能！）' },
+  { id:7, rows:5, cols:6, holes:[], tray:[['P5',6]], note:'6 块 P 五格铺 5×6 = 30 格' },
+  { id:8, rows:5, cols:6, holes:[], tray:[['L4',2],['T4',2],['I4',2],['O4',1]], note:'混合 7 块 = 30 格' },
+  { id:9, rows:4, cols:4, holes:[[0,0],[3,3]], tray:[['D2',7]], note:'缺两同色对角，7 块多米诺 = 14 格。能铺吗？', insolvable:true },
+  { id:10, rows:6, cols:6, holes:[], tray:[['L4',3],['T4',3],['Y5',2],['P5',2],['I4',1]], note:'综合挑战：36 格' },
+];
+
+// ============================================================
+// 3. 主状态
+// ============================================================
+const state = {
+  module: 'M0',
+  level: 0,
+  board: null,         // 2D 数组：null=空, 'hole'=洞, {tileId,color}=已填
+  rows: 0, cols: 0,
+  tray: [],            // [{ key, defId, total, remaining }]
+  placed: [],          // [{ tileId, defId, color, anchor:[r,c], cells:[[r,c],...] }]
+  history: [],
+  coloring: 'none',    // 'none' | 'bw' | 'c3'
+  hovered: null,
+  startedAt: 0,
+  m3: { rows: 6, cols: 6, customHoles: new Set(), customTray: {}, editMode: 'hole' },
+};
+
+let tileSeq = 0;
+
+// ============================================================
+// 4. 模块定义
+// ============================================================
+const MODULES = [
+  { id: 'M0', title: '原理：多格骨牌', hint: '什么是 polyomino？' },
+  { id: 'M1', title: '闯关：铺满它',   hint: '拖拽骨牌、按 R 旋转 / F 翻转' },
+  { id: 'M2', title: '染色法证明',     hint: '为什么有时候铺不满？' },
+  { id: 'M3', title: '自由编辑器',     hint: '自定棋盘 + 自动求解' },
+];
+
+// ============================================================
+// 5. 成就
+// ============================================================
+const ACHIEVEMENTS = [
+  { id: 'first-place',  icon: '🧩', name: '第一次拼图',     desc: '在棋盘上成功放下第一块骨牌',     check: s => s.placements >= 1 },
+  { id: 'first-clear',  icon: '🎯', name: '初战告捷',       desc: '完成第 1 关',                    check: s => s.clears.has(1) },
+  { id: 'rotate-pro',   icon: '🔄', name: '旋转大师',       desc: '累计旋转骨牌 10 次',            check: s => s.rotations >= 10 },
+  { id: 'flip-pro',     icon: '🪞', name: '翻转大师',       desc: '累计翻转骨牌 5 次',             check: s => s.flips >= 5 },
+  { id: 'all-easy',     icon: '🌟', name: '初级全清',       desc: '完成 1-5 关',                   check: s => [1,2,3,4,5].every(i => s.clears.has(i)) },
+  { id: 'all-clear',    icon: '🏆', name: '通关全部',       desc: '完成全部 10 关',                check: s => LEVELS.every(l => s.clears.has(l.id)) },
+  { id: 'try-color',    icon: '🎨', name: '看见染色',       desc: '在染色法模块切换至黑白染色',     check: s => s.usedBW },
+  { id: 'spot-impossible', icon: '🔍', name: '识破不可能', desc: '在 M2 通过染色看出缺角棋盘的差额', check: s => s.spottedImp },
+  { id: 'solver-yes',   icon: '⚙️', name: '召唤求解器',     desc: '在 M3 用求解器找到一个解',       check: s => s.solverHits >= 1 },
+  { id: 'editor-build', icon: '✏️', name: '关卡设计师',     desc: '在 M3 自定义棋盘并完成铺满',     check: s => s.editorWin },
+];
+const persist = {
+  load() {
+    try {
+      const raw = localStorage.getItem('polyomino-state');
+      if (raw) return Object.assign(this.defaults(), JSON.parse(raw, this.reviver));
+    } catch(e){}
+    return this.defaults();
+  },
+  defaults() {
+    return { clears: new Set(), rotations: 0, flips: 0, placements: 0, usedBW: false, spottedImp: false,
+      solverHits: 0, editorWin: false, unlocked: new Set() };
+  },
+  reviver(k, v) {
+    if (k === 'clears' || k === 'unlocked') return new Set(Array.isArray(v) ? v : []);
+    return v;
+  },
+  save(s) {
+    const plain = Object.assign({}, s, { clears: [...s.clears], unlocked: [...s.unlocked] });
+    try { localStorage.setItem('polyomino-state', JSON.stringify(plain)); } catch(e){}
+  },
+  reset() { try { localStorage.removeItem('polyomino-state'); } catch(e){} }
+};
+let userState = persist.load();
+function checkAchievements() {
+  let newOnes = [];
+  for (const a of ACHIEVEMENTS) {
+    if (!userState.unlocked.has(a.id) && a.check(userState)) {
+      userState.unlocked.add(a.id); newOnes.push(a);
+    }
+  }
+  persist.save(userState);
+  updateTrophyCount();
+  newOnes.forEach(showToast);
+  return newOnes;
+}
+function showToast(a) {
+  const stack = $('#toastStack');
+  const div = document.createElement('div');
+  div.className = 'toast';
+  div.innerHTML = `<div class="t-title"><span>🏆</span>解锁成就</div>
+    <div class="t-name">${a.icon} ${a.name}</div>
+    <div class="t-desc">${a.desc}</div>`;
+  stack.appendChild(div);
+  setTimeout(() => div.remove(), 4200);
+}
+function updateTrophyCount() {
+  $('#trophyCount').textContent = userState.unlocked.size;
+  $('#trophyTotal').textContent = ACHIEVEMENTS.length;
+}
+function openAchModal() {
+  $('#achModalBg').classList.add('open');
+  const list = $('#achList'); list.innerHTML = '';
+  for (const a of ACHIEVEMENTS) {
+    const unlocked = userState.unlocked.has(a.id);
+    const row = document.createElement('div');
+    row.className = 'ach-row' + (unlocked ? ' unlocked' : '');
+    row.innerHTML = `<div class="ach-icon">${a.icon}</div>
+      <div><div class="ach-name">${a.name}</div><div class="ach-desc">${a.desc}</div></div>
+      <div class="ach-status">${unlocked ? '已解锁' : '未解锁'}</div>`;
+    list.appendChild(row);
+  }
+  const pct = (userState.unlocked.size / ACHIEVEMENTS.length) * 100;
+  $('#achProgressBar').style.width = pct + '%';
+}
+
+// ============================================================
+// 6. 渲染棋盘
+// ============================================================
+function newEmptyBoard(rows, cols, holes) {
+  const b = Array.from({length: rows}, () => new Array(cols).fill(null));
+  for (const [r,c] of holes) b[r][c] = 'hole';
+  return b;
+}
+function buildBoardDOM(container) {
+  container.innerHTML = '';
+  const board = document.createElement('div');
+  board.className = 'board';
+  board.style.setProperty('--rows', state.rows);
+  board.style.setProperty('--cols', state.cols);
+  board.dataset.role = 'board';
+  for (let r = 0; r < state.rows; r++) {
+    for (let c = 0; c < state.cols; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.r = r; cell.dataset.c = c;
+      board.appendChild(cell);
+    }
+  }
+  container.appendChild(board);
+  return board;
+}
+function paintBoard() {
+  const board = $('.board'); if (!board) return;
+  for (const cell of board.children) {
+    const r = +cell.dataset.r, c = +cell.dataset.c;
+    cell.className = 'cell';
+    cell.style.removeProperty('--cell-fill');
+    cell.textContent = '';
+    const v = state.board[r][c];
+    if (v === 'hole') { cell.classList.add('hole'); continue; }
+    if (v && typeof v === 'object') {
+      cell.classList.add('filled');
+      cell.style.setProperty('--cell-fill', v.color);
+    }
+    if (state.coloring === 'bw') {
+      if ((r + c) % 2 === 0) cell.classList.add('color-black');
+    } else if (state.coloring === 'c3') {
+      const k = (r + c) % 3;
+      cell.classList.add(k === 0 ? 'color-c3a' : k === 1 ? 'color-c3b' : 'color-c3c');
+    }
+  }
+}
+
+// ============================================================
+// 7. 骨牌仓库
+// ============================================================
+function buildTray(container, trayConfig) {
+  container.innerHTML = '';
+  const wrap = document.createElement('div'); wrap.className = 'tray-wrap';
+  const title = document.createElement('h3');
+  title.textContent = '骨牌仓库（拖拽到棋盘 ｜ 拖动时按 R 旋转，F 翻转）';
+  wrap.appendChild(title);
+  const tray = document.createElement('div'); tray.className = 'tray';
+  state.tray = [];
+  for (const [defId, count] of trayConfig) {
+    const def = TILE_DEFS[defId];
+    for (let i = 0; i < count; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'tile-slot';
+      slot.dataset.defId = defId;
+      slot.dataset.key = defId + ':' + tileSeq++;
+      slot.appendChild(renderTileSVG(def.cells, def.color));
+      slot.title = def.name + '（按 R 旋转、F 翻转）';
+      tray.appendChild(slot);
+      state.tray.push({ key: slot.dataset.key, defId, slot });
+    }
+  }
+  wrap.appendChild(tray);
+  container.appendChild(wrap);
+  return wrap;
+}
+function trayCount() { return state.tray.length; }
+
+// ============================================================
+// 8. 拖拽系统
+// ============================================================
+const drag = {
+  active: false,
+  source: null,    // 'tray' | 'board'
+  defId: null,
+  tileId: null,    // 已放置骨牌的 id（如果从棋盘上拿起）
+  cells: null,
+  color: null,
+  ghost: null,
+  pointerOffset: { x: 0, y: 0 }, // 鼠标在 ghost 上的偏移
+  anchorCellIdx: 0,              // 鼠标按下的那一格在 cells 数组里的索引
+  hoverAnchor: null,             // 当前预览的左上锚点 [r,c]
+};
+
+function pickupFromTray(defId, fromSlot, ev) {
+  const def = TILE_DEFS[defId];
+  startDrag(def.cells.slice(), def.color, ev, 'tray', { fromSlot, defId });
+}
+function pickupFromBoard(tileId, ev) {
+  const t = state.placed.find(p => p.tileId === tileId);
+  if (!t) return;
+  removePlaced(tileId);
+  // 把绝对 cells 转为相对（以左上锚点为原点）
+  const cells = normalize(t.cells);
+  startDrag(cells, t.color, ev, 'board', { tileId, defId: t.defId });
+  paintBoard();
+}
+function startDrag(cells, color, ev, source, meta) {
+  drag.active = true; drag.source = source;
+  drag.defId = meta.defId; drag.tileId = meta.tileId || null;
+  drag.cells = normalize(cells); drag.color = color;
+  drag.fromSlot = meta.fromSlot || null;
+  drag.anchorCellIdx = 0;
+  // 创建 ghost
+  if (drag.ghost) drag.ghost.remove();
+  const ghost = renderTileSVG(drag.cells, color, parseInt(getCellPx()), 2);
+  ghost.classList.add('tile-ghost');
+  document.body.appendChild(ghost);
+  drag.ghost = ghost;
+  // 默认让鼠标落在第一格中心
+  positionGhost(ev.clientX, ev.clientY);
+}
+function getCellPx() {
+  return getComputedStyle(document.documentElement).getPropertyValue('--cell-size') || '52px';
+}
+function positionGhost(x, y) {
+  if (!drag.ghost) return;
+  const cellPx = parseInt(getCellPx());
+  // ghost 的 (0,0) 对应 drag.cells[0]，让鼠标位于 cells[anchorCellIdx] 的中心
+  const [ar, ac] = drag.cells[drag.anchorCellIdx];
+  const gx = x - (ac * cellPx + cellPx / 2);
+  const gy = y - (ar * cellPx + cellPx / 2);
+  drag.ghost.style.left = gx + 'px';
+  drag.ghost.style.top  = gy + 'px';
+}
+function updateGhostFromCells() {
+  if (!drag.ghost) return;
+  const cellPx = parseInt(getCellPx());
+  const newGhost = renderTileSVG(drag.cells, drag.color, cellPx, 2);
+  newGhost.classList.add('tile-ghost');
+  newGhost.style.left = drag.ghost.style.left;
+  newGhost.style.top = drag.ghost.style.top;
+  drag.ghost.replaceWith(newGhost);
+  drag.ghost = newGhost;
+}
+function rotateCurrent() {
+  if (!drag.active) return;
+  drag.cells = rotateCW(drag.cells);
+  drag.anchorCellIdx = clamp(drag.anchorCellIdx, 0, drag.cells.length - 1);
+  userState.rotations++; persist.save(userState); checkAchievements();
+  updateGhostFromCells();
+  refreshPreview();
+}
+function flipCurrent() {
+  if (!drag.active) return;
+  drag.cells = flipH(drag.cells);
+  drag.anchorCellIdx = clamp(drag.anchorCellIdx, 0, drag.cells.length - 1);
+  userState.flips++; persist.save(userState); checkAchievements();
+  updateGhostFromCells();
+  refreshPreview();
+}
+
+function clearPreview() {
+  $$('.cell.preview-ok, .cell.preview-bad').forEach(c => {
+    c.classList.remove('preview-ok'); c.classList.remove('preview-bad');
+  });
+}
+function refreshPreview() {
+  clearPreview();
+  if (!drag.active || !drag.hoverAnchor) return;
+  const [ar, ac] = drag.hoverAnchor;
+  const board = $('.board');
+  let ok = true;
+  for (const [r, c] of drag.cells) {
+    const rr = ar + r, cc = ac + c;
+    if (rr < 0 || rr >= state.rows || cc < 0 || cc >= state.cols) { ok = false; break; }
+    if (state.board[rr][cc] !== null) { ok = false; break; }
+  }
+  for (const [r, c] of drag.cells) {
+    const rr = ar + r, cc = ac + c;
+    if (rr < 0 || rr >= state.rows || cc < 0 || cc >= state.cols) continue;
+    const cell = board.children[rr * state.cols + cc];
+    if (cell) cell.classList.add(ok ? 'preview-ok' : 'preview-bad');
+  }
+}
+
+function pointerMove(ev) {
+  if (!drag.active) return;
+  positionGhost(ev.clientX, ev.clientY);
+  const board = $('.board');
+  if (!board) return;
+  const bRect = board.getBoundingClientRect();
+  const cellPx = parseInt(getCellPx());
+  const padding = 6; // .board padding
+  const [ar, ac] = drag.cells[drag.anchorCellIdx];
+  const relX = ev.clientX - bRect.left - padding;
+  const relY = ev.clientY - bRect.top - padding;
+  const anchorCellC = Math.floor(relX / (cellPx + 2)) - ac;
+  const anchorCellR = Math.floor(relY / (cellPx + 2)) - ar;
+  const oldHover = drag.hoverAnchor;
+  // 只要任何一格落在棋盘内，就显示预览
+  let intoBoard = false;
+  for (const [r, c] of drag.cells) {
+    const rr = anchorCellR + r, cc = anchorCellC + c;
+    if (rr >= 0 && rr < state.rows && cc >= 0 && cc < state.cols) { intoBoard = true; break; }
+  }
+  drag.hoverAnchor = intoBoard ? [anchorCellR, anchorCellC] : null;
+  if (!oldHover || !drag.hoverAnchor
+      || oldHover[0] !== drag.hoverAnchor[0] || oldHover[1] !== drag.hoverAnchor[1]) {
+    refreshPreview();
+  }
+}
+
+function pointerUp(ev) {
+  if (!drag.active) return;
+  // 尝试落子
+  let placed = false;
+  if (drag.hoverAnchor) {
+    const [ar, ac] = drag.hoverAnchor;
+    let ok = true;
+    for (const [r, c] of drag.cells) {
+      const rr = ar + r, cc = ac + c;
+      if (rr < 0 || rr >= state.rows || cc < 0 || cc >= state.cols) { ok = false; break; }
+      if (state.board[rr][cc] !== null) { ok = false; break; }
+    }
+    if (ok) {
+      placeTile(ar, ac);
+      placed = true;
+    }
+  }
+  if (!placed && drag.source === 'tray') {
+    // 把骨牌还回仓库（什么也不做：仓库 slot 还在）
+  }
+  if (!placed && drag.source === 'board') {
+    // 从棋盘拿起又没放回 → 还回仓库（创建新 slot）
+    returnTileToTray(drag.defId);
+  }
+  endDrag();
+  paintBoard();
+  updateStatPanel();
+  checkWin();
+}
+function endDrag() {
+  if (drag.ghost) drag.ghost.remove();
+  drag.ghost = null;
+  drag.active = false;
+  drag.hoverAnchor = null;
+  clearPreview();
+}
+
+function placeTile(ar, ac) {
+  const absCells = drag.cells.map(([r,c]) => [ar+r, ac+c]);
+  const tileId = 't' + (tileSeq++);
+  const obj = { tileId, defId: drag.defId, color: drag.color, cells: absCells };
+  state.placed.push(obj);
+  for (const [r,c] of absCells) state.board[r][c] = { tileId, color: drag.color };
+  state.history.push({ type: 'place', tileId });
+  // 从 tray 移除 slot
+  if (drag.source === 'tray' && drag.fromSlot) {
+    drag.fromSlot.remove();
+    state.tray = state.tray.filter(t => t.slot !== drag.fromSlot);
+  }
+  userState.placements++;
+  persist.save(userState);
+  checkAchievements();
+}
+function removePlaced(tileId) {
+  const idx = state.placed.findIndex(p => p.tileId === tileId);
+  if (idx < 0) return null;
+  const t = state.placed[idx];
+  for (const [r, c] of t.cells) state.board[r][c] = null;
+  state.placed.splice(idx, 1);
+  return t;
+}
+function returnTileToTray(defId) {
+  const def = TILE_DEFS[defId];
+  const tray = $('.tray'); if (!tray) return;
+  const slot = document.createElement('div');
+  slot.className = 'tile-slot';
+  slot.dataset.defId = defId;
+  slot.dataset.key = defId + ':' + tileSeq++;
+  slot.appendChild(renderTileSVG(def.cells, def.color));
+  slot.title = def.name;
+  tray.appendChild(slot);
+  state.tray.push({ key: slot.dataset.key, defId, slot });
+}
+
+// ============================================================
+// 9. 胜利判定
+// ============================================================
+function checkWin() {
+  // 看是否所有非洞的格子都已填
+  for (let r = 0; r < state.rows; r++)
+    for (let c = 0; c < state.cols; c++)
+      if (state.board[r][c] === null) return;
+  // 胜利
+  winAnimation();
+  if (state.module === 'M1') {
+    userState.clears.add(LEVELS[state.level].id);
+    persist.save(userState);
+  } else if (state.module === 'M3') {
+    userState.editorWin = true;
+    persist.save(userState);
+  }
+  checkAchievements();
+  setBanner('🎉 全部铺满！漂亮的覆盖。', 'success');
+}
+function winAnimation() {
+  const board = $('.board'); if (!board) return;
+  for (let i = 0; i < board.children.length; i++) {
+    const cell = board.children[i];
+    setTimeout(() => { cell.classList.add('win-pop');
+      setTimeout(() => cell.classList.remove('win-pop'), 700);
+    }, i * 18);
+  }
+}
+
+// ============================================================
+// 10. 求解器（精确覆盖，回溯 + 早停）
+// ============================================================
+function solve(board, rows, cols, trayMap) {
+  // board: 2D 数组，'hole'/null/已填
+  // trayMap: { defId: count }
+  const b = board.map(row => row.slice());
+  let used = 0;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (b[r][c] !== null) used++;
+  const totalCells = rows * cols - used;
+  let trayCount = 0, trayArea = 0;
+  for (const defId in trayMap) {
+    trayCount += trayMap[defId];
+    trayArea += trayMap[defId] * TILE_DEFS[defId].cells.length;
+  }
+  if (trayArea !== totalCells) return { ok: false, reason: 'area' };
+  // 预计算每种骨牌的所有朝向
+  const orients = {};
+  for (const defId in trayMap) orients[defId] = allOrientations(TILE_DEFS[defId].cells);
+  const placements = [];
+  const remain = Object.assign({}, trayMap);
+
+  function findFirstEmpty() {
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        if (b[r][c] === null) return [r, c];
+    return null;
+  }
+  let steps = 0;
+  const MAX_STEPS = 1500000;
+  function rec() {
+    if (++steps > MAX_STEPS) return 'timeout';
+    const next = findFirstEmpty();
+    if (!next) return true;
+    const [r, c] = next;
+    for (const defId in remain) {
+      if (remain[defId] <= 0) continue;
+      for (const shape of orients[defId]) {
+        // 让 shape 的第一格对齐 (r, c) ：cells 按行优先排序，第一个就是最小
+        const [or, oc] = shape[0];
+        const abs = shape.map(([sr, sc]) => [r + sr - or, c + sc - oc]);
+        let ok = true;
+        for (const [rr, cc] of abs) {
+          if (rr < 0 || rr >= rows || cc < 0 || cc >= cols) { ok = false; break; }
+          if (b[rr][cc] !== null) { ok = false; break; }
+        }
+        if (!ok) continue;
+        for (const [rr, cc] of abs) b[rr][cc] = defId;
+        remain[defId]--;
+        placements.push({ defId, cells: abs });
+        const res = rec();
+        if (res === true) return true;
+        if (res === 'timeout') return 'timeout';
+        for (const [rr, cc] of abs) b[rr][cc] = null;
+        remain[defId]++;
+        placements.pop();
+      }
+    }
+    return false;
+  }
+  const t0 = performance.now();
+  const res = rec();
+  const t1 = performance.now();
+  if (res === 'timeout') return { ok: null, reason: 'timeout', ms: t1 - t0, steps };
+  if (res === true) return { ok: true, placements, ms: t1 - t0, steps };
+  return { ok: false, reason: 'no-solution', ms: t1 - t0, steps };
+}
+
+// ============================================================
+// 11. 模块渲染
+// ============================================================
+function renderModule() {
+  const m = state.module;
+  $$('.module-card').forEach(c => c.classList.toggle('active', c.dataset.mid === m));
+  $$('.chip').forEach(c => c.classList.toggle('active', c.dataset.mid === m));
+  const mod = MODULES.find(x => x.id === m);
+  $('#stageTitle').textContent = mod.title;
+  $('#stageDesc').textContent = mod.hint;
+  $('#banner').innerHTML = '';
+  $('#stageControls').innerHTML = '';
+  $('#stageBody').innerHTML = '';
+  $('#legend').innerHTML = '';
+  if (m === 'M0') renderM0();
+  if (m === 'M1') renderM1();
+  if (m === 'M2') renderM2();
+  if (m === 'M3') renderM3();
+  renderPrompt();
+}
+
+// ---------- M0 原理 ----------
+function renderM0() {
+  $('#stageBody').innerHTML = `
+    <div class="intro">
+      <div class="intro-prose demo-card">
+        <h3>什么是"多格骨牌"？</h3>
+        <p>把 <span class="em">n 个方格</span>沿边连起来，得到的形状叫做 <span class="em">n-omino（多格骨牌）</span>：</p>
+        <ul>
+          <li>2 格：<code>多米诺</code>（只有 1 种）</li>
+          <li>3 格：<code>I 形 / L 形</code>（共 2 种）</li>
+          <li>4 格：<code>I, L, J, T, O, S, Z</code>（共 5 种自由形状 / 7 种含镜像）</li>
+          <li>5 格：<code>P, F, Y, T, L, I, ...</code>（共 12 种自由五格骨牌）</li>
+        </ul>
+        <h3>铺砖的核心问题</h3>
+        <p>给定 <span class="em">棋盘</span> 与 <span class="em">一组骨牌</span>，能不能 <span class="em">不重叠、不留空</span> 地把棋盘铺满？</p>
+        <p>这听起来像拼图，但藏着深刻的数学：</p>
+        <ul>
+          <li><span class="em">面积约束</span>：骨牌总面积必须等于棋盘空格数</li>
+          <li><span class="em">染色法不变量</span>：用黑白或多色染色找出 "无论怎么放都会矛盾" 的局面</li>
+          <li><span class="em">构造与反证</span>：能则给出一种铺法，不能则给出严格证明</li>
+        </ul>
+      </div>
+      <div class="demo-card">
+        <div class="demo-title">骨牌家族一览</div>
+        <div class="demo-hint">点击任一图标，看它的所有朝向（旋转 + 镜像）</div>
+        <div class="family-grid" id="familyGrid"></div>
+        <div id="orientsPreview" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;min-height:64px"></div>
+      </div>
+    </div>`;
+  const grid = $('#familyGrid');
+  for (const id of ['D2','I3','L3','I4','L4','J4','T4','O4','S4','Z4','P5','F5','Y5','L5']) {
+    const def = TILE_DEFS[id];
+    const div = document.createElement('div');
+    div.className = 'family-cell';
+    div.dataset.defId = id;
+    div.appendChild(renderTileSVG(def.cells, def.color, 18, 2));
+    const name = document.createElement('div'); name.className = 'name'; name.textContent = def.name;
+    div.appendChild(name);
+    div.onclick = () => {
+      $$('.family-cell').forEach(c => c.classList.remove('active'));
+      div.classList.add('active');
+      const orients = allOrientations(def.cells);
+      const wrap = $('#orientsPreview'); wrap.innerHTML = '';
+      orients.forEach(cells => {
+        const card = document.createElement('div');
+        card.style.cssText = 'background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px';
+        card.appendChild(renderTileSVG(cells, def.color, 18, 2));
+        wrap.appendChild(card);
+      });
+      const lbl = document.createElement('div');
+      lbl.style.cssText = 'width:100%;font-size:12px;color:var(--muted);margin-top:4px';
+      lbl.textContent = `${def.name} 共有 ${orients.length} 种不同朝向`;
+      wrap.appendChild(lbl);
+    };
+    grid.appendChild(div);
+  }
+  // 默认展开多米诺
+  grid.firstElementChild.click();
+  $('#statPanel').innerHTML = `
+    <div class="stat-row"><span class="key">已收录形状</span><span class="val">${Object.keys(TILE_DEFS).length}</span></div>
+    <div class="stat-row"><span class="key">关卡总数</span><span class="val">${LEVELS.length}</span></div>
+    <div class="stat-row"><span class="key">下一步</span><span class="val">进入 M1 开始闯关</span></div>`;
+}
+
+// ---------- M1 闯关 ----------
+function renderM1() {
+  const ctl = $('#stageControls');
+  const sel = document.createElement('select'); sel.className = 'lvl-select';
+  LEVELS.forEach((l, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `第 ${l.id} 关 · ${l.rows}×${l.cols}${l.holes.length?' 残棋':''}${userState.clears.has(l.id)?' ✓':''}`;
+    sel.appendChild(opt);
+  });
+  sel.value = state.level;
+  sel.onchange = () => { loadLevel(+sel.value); };
+  ctl.appendChild(sel);
+
+  const prev = document.createElement('button'); prev.className = 'btn'; prev.textContent = '上一关';
+  prev.onclick = () => loadLevel(clamp(state.level - 1, 0, LEVELS.length - 1));
+  ctl.appendChild(prev);
+  const next = document.createElement('button'); next.className = 'btn'; next.textContent = '下一关';
+  next.onclick = () => loadLevel(clamp(state.level + 1, 0, LEVELS.length - 1));
+  ctl.appendChild(next);
+  const reset = document.createElement('button'); reset.className = 'btn warn'; reset.textContent = '重置 (R*)';
+  reset.title = '重置当前关卡（Shift+R）';
+  reset.onclick = () => loadLevel(state.level);
+  ctl.appendChild(reset);
+  const undo = document.createElement('button'); undo.className = 'btn'; undo.textContent = '撤销';
+  undo.onclick = undoLast;
+  ctl.appendChild(undo);
+
+  const body = $('#stageBody');
+  body.innerHTML = `<div class="stage-area">
+      <div class="board-wrap" id="boardWrap"></div>
+      <div id="trayHost"></div>
+    </div>`;
+
+  loadLevel(state.level);
+}
+function loadLevel(idx) {
+  state.level = idx;
+  const lv = LEVELS[idx];
+  state.rows = lv.rows; state.cols = lv.cols;
+  state.board = newEmptyBoard(lv.rows, lv.cols, lv.holes);
+  state.placed = []; state.history = [];
+  state.startedAt = performance.now();
+  buildBoardDOM($('#boardWrap'));
+  buildTray($('#trayHost'), lv.tray);
+  paintBoard();
+  updateStatPanel();
+  setBanner(lv.note, 'info');
+}
+function undoLast() {
+  const h = state.history.pop(); if (!h) return;
+  if (h.type === 'place') {
+    const t = removePlaced(h.tileId);
+    if (t) returnTileToTray(t.defId);
+    paintBoard(); updateStatPanel();
+    $('#banner').innerHTML = '';
+  }
+}
+
+// ---------- M2 染色法 ----------
+const M2_SCENES = [
+  { id:'cut', title:'缺两同色角的 8×8', rows:8, cols:8, holes:[[0,0],[7,7]], tray:[['D2',31]],
+    hint:'拿掉左上和右下两格（都是黑色），剩 62 格。31 块多米诺面积刚好够……但能铺吗？',
+    color:'bw', impossible:true,
+    explain:'每块多米诺 一定 覆盖 1 黑 1 白。62 格里有 30 黑 + 32 白（拿掉了 2 黑），黑白数不等，不可能铺。' },
+  { id:'full', title:'完整 4×4', rows:4, cols:4, holes:[], tray:[['D2',8]],
+    hint:'完整棋盘 8 黑 + 8 白，多米诺铺得满。亲手放一放看看。',
+    color:'bw', impossible:false,
+    explain:'多米诺天然保证黑白覆盖各为 1，黑白数相等的矩形棋盘总能铺。' },
+  { id:'c3', title:'三色染色：5×3 + I 三格', rows:3, cols:5, holes:[], tray:[['I3',5]],
+    hint:'按 (i+c) mod 3 染三色：每种颜色各几个？I 三格水平放 / 竖直放各覆盖哪几种颜色？',
+    color:'c3', impossible:false,
+    explain:'水平 I 三格各覆盖 3 种颜色各 1 次；竖直放则把同一颜色覆盖 3 次。可以铺。' },
+];
+function renderM2() {
+  const ctl = $('#stageControls');
+  state.coloring = 'bw';
+  const tabs = document.createElement('div'); tabs.className = 'mode-tabs';
+  [['none','无染色'],['bw','黑白染色'],['c3','三色染色']].forEach(([v, lbl]) => {
+    const b = document.createElement('button'); b.textContent = lbl;
+    if (v === state.coloring) b.classList.add('active');
+    b.onclick = () => {
+      state.coloring = v;
+      $$('.mode-tabs button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      if (v === 'bw') { userState.usedBW = true; persist.save(userState); checkAchievements(); }
+      paintBoard(); updateM2Stats();
+    };
+    tabs.appendChild(b);
+  });
+  ctl.appendChild(tabs);
+
+  const sceneSel = document.createElement('select'); sceneSel.className = 'lvl-select';
+  M2_SCENES.forEach((s, i) => {
+    const opt = document.createElement('option'); opt.value = i; opt.textContent = s.title;
+    sceneSel.appendChild(opt);
+  });
+  sceneSel.value = 0;
+  sceneSel.onchange = () => loadM2Scene(+sceneSel.value);
+  ctl.appendChild(sceneSel);
+
+  const reset = document.createElement('button'); reset.className = 'btn warn'; reset.textContent = '重置';
+  reset.onclick = () => loadM2Scene(+sceneSel.value);
+  ctl.appendChild(reset);
+
+  const spot = document.createElement('button'); spot.className = 'btn'; spot.textContent = '"看出差额"';
+  spot.title = '在染色面板看到不可铺的颜色差额，点这里';
+  spot.onclick = () => {
+    userState.spottedImp = true; persist.save(userState); checkAchievements();
+    setBanner('好眼力！黑白格数不相等就证明了不可铺。', 'success');
+  };
+  ctl.appendChild(spot);
+
+  const body = $('#stageBody');
+  body.innerHTML = `<div class="stage-area">
+      <div class="board-wrap" id="boardWrap"></div>
+      <div id="trayHost"></div>
+    </div>`;
+  loadM2Scene(0);
+  $('#legend').innerHTML = `
+    <span><span class="dot" style="background:var(--color-black)"></span>"黑"格</span>
+    <span><span class="dot" style="background:#eee;border:1px solid #ccc"></span>"白"格</span>
+    <span><span class="dot" style="background:var(--color-c3a)"></span>颜色 0</span>
+    <span><span class="dot" style="background:var(--color-c3b)"></span>颜色 1</span>
+    <span><span class="dot" style="background:var(--color-c3c)"></span>颜色 2</span>`;
+}
+function loadM2Scene(idx) {
+  const s = M2_SCENES[idx];
+  state._m2sceneIdx = idx;
+  state.rows = s.rows; state.cols = s.cols;
+  state.board = newEmptyBoard(s.rows, s.cols, s.holes);
+  state.placed = []; state.history = [];
+  buildBoardDOM($('#boardWrap'));
+  buildTray($('#trayHost'), s.tray);
+  paintBoard();
+  setBanner(s.hint, 'info');
+  updateM2Stats();
+}
+function updateM2Stats() {
+  const idx = state._m2sceneIdx || 0;
+  const s = M2_SCENES[idx];
+  // 计数
+  let black = 0, white = 0, c3 = [0,0,0];
+  for (let r = 0; r < state.rows; r++)
+    for (let c = 0; c < state.cols; c++)
+      if (state.board[r][c] !== 'hole') {
+        if ((r + c) % 2 === 0) black++; else white++;
+        c3[(r + c) % 3]++;
+      }
+  const totalArea = black + white;
+  let html = '';
+  html += `<div class="stat-row"><span class="key">棋盘空格</span><span class="val">${totalArea}</span></div>`;
+  if (state.coloring === 'bw' || s.color === 'bw') {
+    const delta = Math.abs(black - white);
+    html += `<div class="stat-row"><span class="key">"黑" 格</span><span class="val">${black}</span></div>`;
+    html += `<div class="stat-row"><span class="key">"白" 格</span><span class="val">${white}</span></div>`;
+    html += `<div class="stat-row"><span class="key">| 黑 - 白 |</span><span class="val ${delta?'danger':'success'}">${delta}</span></div>`;
+    html += `<div class="stat-row"><span class="key">骨牌须覆盖差</span><span class="val">0</span></div>`;
+    if (delta > 0)
+      html += `<div class="banner danger" style="margin-top:8px">黑白差为 ${delta}，但多米诺一定覆盖 1 黑 1 白 → <strong>不可铺！</strong></div>`;
+  } else if (state.coloring === 'c3') {
+    html += `<div class="stat-row"><span class="key">颜色 0</span><span class="val">${c3[0]}</span></div>`;
+    html += `<div class="stat-row"><span class="key">颜色 1</span><span class="val">${c3[1]}</span></div>`;
+    html += `<div class="stat-row"><span class="key">颜色 2</span><span class="val">${c3[2]}</span></div>`;
+  }
+  html += `<div class="stat-row"><span class="key">仓库剩余</span><span class="val">${state.tray.length}</span></div>`;
+  $('#statPanel').innerHTML = html;
+}
+
+// ---------- M3 编辑器 ----------
+function renderM3() {
+  const ctl = $('#stageControls');
+  // 棋盘尺寸
+  const rowSel = document.createElement('select'); rowSel.className = 'size-select';
+  for (let i = 3; i <= 8; i++) { const o = document.createElement('option'); o.value = i; o.textContent = i + ' 行'; rowSel.appendChild(o); }
+  rowSel.value = state.m3.rows;
+  const colSel = document.createElement('select'); colSel.className = 'size-select';
+  for (let i = 3; i <= 8; i++) { const o = document.createElement('option'); o.value = i; o.textContent = i + ' 列'; colSel.appendChild(o); }
+  colSel.value = state.m3.cols;
+  rowSel.onchange = colSel.onchange = () => {
+    state.m3.rows = +rowSel.value; state.m3.cols = +colSel.value;
+    state.m3.customHoles = new Set();
+    initM3();
+  };
+  ctl.appendChild(rowSel); ctl.appendChild(colSel);
+
+  // 编辑模式
+  const modeTabs = document.createElement('div'); modeTabs.className = 'mode-tabs';
+  [['hole','戳洞'],['play','铺砖']].forEach(([v,lbl]) => {
+    const b = document.createElement('button'); b.textContent = lbl;
+    if (v === state.m3.editMode) b.classList.add('active');
+    b.onclick = () => {
+      state.m3.editMode = v;
+      $$('.mode-tabs button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      initM3();
+    };
+    modeTabs.appendChild(b);
+  });
+  ctl.appendChild(modeTabs);
+
+  // 求解 / 清空 / 清洞
+  const solveBtn = document.createElement('button'); solveBtn.className = 'btn primary'; solveBtn.textContent = '检查可行性';
+  solveBtn.onclick = () => runSolver(false);
+  ctl.appendChild(solveBtn);
+  const showBtn = document.createElement('button'); showBtn.className = 'btn'; showBtn.textContent = '展示一个解';
+  showBtn.onclick = () => runSolver(true);
+  ctl.appendChild(showBtn);
+  const clearBtn = document.createElement('button'); clearBtn.className = 'btn warn'; clearBtn.textContent = '清空棋盘';
+  clearBtn.onclick = () => { state.m3.customHoles = new Set(); initM3(); };
+  ctl.appendChild(clearBtn);
+
+  // 仓库选择器
+  const body = $('#stageBody');
+  body.innerHTML = `<div class="stage-area">
+      <div class="board-wrap" id="boardWrap"></div>
+      <div id="trayHost">
+        <div class="tray-wrap">
+          <h3>选择骨牌库（点 + 加 ｜ 点 − 减）</h3>
+          <div id="trayPicker" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)">
+            <h3 style="margin-top:0">可拖拽仓库</h3>
+            <div class="tray" id="trayActive"></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  // picker
+  const picker = $('#trayPicker');
+  for (const id of ['D2','L3','I3','I4','L4','J4','T4','O4','S4','Z4','P5','Y5']) {
+    const def = TILE_DEFS[id];
+    if (!(id in state.m3.customTray)) state.m3.customTray[id] = (id === 'D2' ? 4 : 0);
+    const card = document.createElement('div');
+    card.style.cssText = 'background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:60px';
+    card.appendChild(renderTileSVG(def.cells, def.color, 16, 2));
+    const counter = document.createElement('div'); counter.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:12px';
+    const minus = document.createElement('button'); minus.textContent = '−'; minus.style.cssText = 'width:22px;height:22px;border:1px solid var(--line);background:var(--surface);border-radius:4px;cursor:pointer';
+    const num = document.createElement('span'); num.style.cssText = 'min-width:18px;text-align:center;font-weight:700'; num.textContent = state.m3.customTray[id];
+    const plus = document.createElement('button'); plus.textContent = '+'; plus.style.cssText = 'width:22px;height:22px;border:1px solid var(--line);background:var(--surface);border-radius:4px;cursor:pointer';
+    minus.onclick = () => { state.m3.customTray[id] = Math.max(0, state.m3.customTray[id]-1); num.textContent = state.m3.customTray[id]; refreshM3Tray(); updateStatPanel(); };
+    plus.onclick  = () => { state.m3.customTray[id] = Math.min(20, state.m3.customTray[id]+1); num.textContent = state.m3.customTray[id]; refreshM3Tray(); updateStatPanel(); };
+    counter.appendChild(minus); counter.appendChild(num); counter.appendChild(plus);
+    card.appendChild(counter);
+    picker.appendChild(card);
+  }
+  initM3();
+}
+function initM3() {
+  state.rows = state.m3.rows; state.cols = state.m3.cols;
+  // 保留 customHoles
+  const holes = [...state.m3.customHoles].map(s => s.split(',').map(Number));
+  state.board = newEmptyBoard(state.rows, state.cols, holes);
+  state.placed = []; state.history = [];
+  buildBoardDOM($('#boardWrap'));
+  refreshM3Tray();
+  paintBoard();
+  setBanner(state.m3.editMode === 'hole'
+    ? '"戳洞" 模式：点击格子把它挖成障碍（再点取消）'
+    : '"铺砖" 模式：拖拽下方仓库的骨牌到棋盘', 'info');
+  updateStatPanel();
+}
+function refreshM3Tray() {
+  const host = $('#trayActive'); if (!host) return;
+  host.innerHTML = '';
+  state.tray = [];
+  for (const defId in state.m3.customTray) {
+    const cnt = state.m3.customTray[defId]; if (!cnt) continue;
+    const def = TILE_DEFS[defId];
+    for (let i = 0; i < cnt; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'tile-slot';
+      slot.dataset.defId = defId;
+      slot.dataset.key = defId + ':' + tileSeq++;
+      slot.appendChild(renderTileSVG(def.cells, def.color));
+      slot.title = def.name;
+      host.appendChild(slot);
+      state.tray.push({ key: slot.dataset.key, defId, slot });
+    }
+  }
+}
+function runSolver(showSolution) {
+  const trayMap = {};
+  for (const defId in state.m3.customTray) {
+    if (state.m3.customTray[defId] > 0) trayMap[defId] = state.m3.customTray[defId];
+  }
+  // 清掉已放置（视为重新求解）
+  for (const t of state.placed) for (const [r,c] of t.cells) state.board[r][c] = null;
+  state.placed = [];
+  const res = solve(state.board, state.rows, state.cols, trayMap);
+  paintBoard();
+  if (res.reason === 'area') {
+    setBanner(`面积不匹配：骨牌总面积与空格数不等，自然铺不满。`, 'danger');
+    return;
+  }
+  if (res.ok === null) {
+    setBanner(`求解器超时（步数 > ${res.steps}），结果未知。试着减少棋盘或骨牌数量。`, 'danger');
+    return;
+  }
+  if (res.ok === false) {
+    setBanner(`不存在铺法（搜索 ${res.steps} 步，用时 ${res.ms.toFixed(0)}ms）。`, 'danger');
+    return;
+  }
+  userState.solverHits++; persist.save(userState); checkAchievements();
+  if (showSolution) {
+    // 把解填到棋盘
+    for (const p of res.placements) {
+      const def = TILE_DEFS[p.defId];
+      const color = def.color;
+      const tileId = 't' + (tileSeq++);
+      state.placed.push({ tileId, defId: p.defId, color, cells: p.cells });
+      for (const [r,c] of p.cells) state.board[r][c] = { tileId, color };
+    }
+    paintBoard();
+    setBanner(`存在解！已展示一种铺法（搜索 ${res.steps} 步，${res.ms.toFixed(0)}ms）。`, 'success');
+    winAnimation();
+  } else {
+    setBanner(`✓ 存在铺法（搜索 ${res.steps} 步，${res.ms.toFixed(0)}ms）。点 "展示一个解" 查看。`, 'success');
+  }
+}
+
+// ============================================================
+// 12. 数据面板
+// ============================================================
+function updateStatPanel() {
+  if (state.module === 'M0') return;
+  if (state.module === 'M2') { updateM2Stats(); return; }
+  let empty = 0, filled = 0, holes = 0;
+  for (let r = 0; r < state.rows; r++)
+    for (let c = 0; c < state.cols; c++) {
+      const v = state.board[r][c];
+      if (v === null) empty++;
+      else if (v === 'hole') holes++;
+      else filled++;
+    }
+  let trayArea = 0;
+  for (const t of state.tray) trayArea += TILE_DEFS[t.defId].cells.length;
+  const balanced = (trayArea === empty);
+  let html = '';
+  html += `<div class="stat-row"><span class="key">棋盘 (含洞)</span><span class="val">${state.rows} × ${state.cols}</span></div>`;
+  html += `<div class="stat-row"><span class="key">空格</span><span class="val">${empty}</span></div>`;
+  html += `<div class="stat-row"><span class="key">已铺</span><span class="val success">${filled}</span></div>`;
+  if (holes) html += `<div class="stat-row"><span class="key">障碍</span><span class="val">${holes}</span></div>`;
+  html += `<div class="stat-row"><span class="key">仓库骨牌</span><span class="val">${state.tray.length}</span></div>`;
+  html += `<div class="stat-row"><span class="key">仓库面积</span><span class="val ${balanced?'':'warn'}">${trayArea}</span></div>`;
+  html += `<div class="stat-row"><span class="key">面积平衡</span><span class="val ${balanced?'success':'danger'}">${balanced?'✓ 相等':'≠ 不等'}</span></div>`;
+  if (state.module === 'M1') {
+    html += `<div class="stat-row"><span class="key">已通关</span><span class="val">${userState.clears.size}/${LEVELS.length}</span></div>`;
+  }
+  $('#statPanel').innerHTML = html;
+}
+
+function setBanner(text, kind='info') {
+  const b = $('#banner');
+  b.innerHTML = `<div class="banner ${kind}">${text}</div>`;
+  if (kind === 'danger' && state.module === 'M1' && LEVELS[state.level] && LEVELS[state.level].insolvable) {
+    // 添加跳到 M2 的提示
+  }
+}
+
+// ============================================================
+// 13. 提示面板
+// ============================================================
+const PROMPTS = {
+  M0: {
+    observe: ['多米诺只有 1 种、I/L 三格共 2 种、四格共 5 种…… 形状越大，"自由形状" 数量增长很快。',
+              '点击右上的家族图标，看每个形状有多少种朝向。'],
+    verify:  ['L 三格旋转 4 次 + 翻转 = 几种朝向？',
+              'O 形（2×2）旋转任意角度都和自己重合 → 只有 1 种朝向。',
+              'I 形（1×4）旋转 90° 后变成另一种朝向 → 共 2 种。'],
+    prove:   ['核心问题是：给定棋盘 + 一组骨牌 → 是否存在 "不重叠不留空" 的铺法。',
+              '当面积不匹配时，立刻可知不可铺；面积匹配时，仍可能因 染色/奇偶 等不变量而不可铺。']
+  },
+  M1: {
+    observe: ['先数一数：棋盘有多少格？骨牌总面积是多少？',
+              '把最大块、形状最不规则的先放，再用小块补缝。',
+              '碰到角落，先想哪个骨牌能贴上去。'],
+    verify:  ['每放一块骨牌前，按 R 旋转 / F 翻转看看不同朝向。',
+              '若铺到最后一两格剩下奇怪的形状，多半是早期方向放错了 → 撤销重来。',
+              '关 6 是残棋：15 格 / 5 块 L₃，面积刚好 → 一定可铺，找找看。'],
+    prove:   ['关 9 是经典：缺两同色对角的 4×4，14 格 / 7 多米诺，面积恰好 → 但仍铺不满！',
+              '原因要靠染色法证明 → 进入 M2 看真相。']
+  },
+  M2: {
+    observe: ['把棋盘想象成国际象棋盘：(行+列) 偶数为 "黑"，奇数为 "白"。',
+              '一块多米诺无论横放、竖放，总是覆盖 1 黑 1 白。'],
+    verify:  ['场景 1：缺左上和右下两格 → 这两格颜色一样（都是黑）→ 黑白数差 2。',
+              '场景 3：(行+列) mod 3 三色染色，水平 / 竖直 I 三格分别覆盖什么颜色组合？'],
+    prove:   ['若 N 块多米诺要铺 → 必然覆盖 N 黑 + N 白。',
+              '若棋盘黑白不等 → 不可能铺！这就是 "染色法不变量" 的反证。',
+              '推广：任何染色方案，只要骨牌覆盖颜色的 "总贡献" 与棋盘颜色 "总需求" 矛盾，就证明了不可铺。']
+  },
+  M3: {
+    observe: ['先用 "戳洞" 模式造一个奇怪形状（残棋）。',
+              '再切到 "铺砖" 模式，调一组骨牌库，试着手动铺。'],
+    verify:  ['手动铺不下 → 点 "检查可行性"。求解器秒答 "可" 或 "不可"。',
+              '点 "展示一个解" 可看到一种合法铺法。'],
+    prove:   ['面积不等是显然的反例；面积等但仍不可铺，多半能用 染色法 或 局部不变量 证明。',
+              '挑战：能不能造一个 面积平衡 + 没有染色法漏洞 但仍不可铺 的棋盘？（提示：很难，需要更深的不变量。）']
+  }
+};
+function renderPrompt() {
+  const tier = $('.prompt-tabs button.active')?.dataset.tier || 'observe';
+  const body = $('#promptBody');
+  const p = (PROMPTS[state.module] || {})[tier] || [];
+  body.innerHTML = p.map((line, i) => i === p.length - 1 && tier === 'prove'
+    ? `<p class="answer">${line}</p>` : `<p>${line}</p>`).join('');
+}
+
+// ============================================================
+// 14. 事件绑定
+// ============================================================
+function bindEvents() {
+  // 顶部 / 侧栏导航
+  const topNav = $('#topNav'); topNav.innerHTML = '';
+  const list = $('#moduleList'); list.innerHTML = '';
+  MODULES.forEach((m, i) => {
+    const chip = document.createElement('button');
+    chip.className = 'chip'; chip.dataset.mid = m.id;
+    chip.innerHTML = `<span class="num">${i}</span> ${m.title}`;
+    chip.onclick = () => { state.module = m.id; renderModule(); };
+    topNav.appendChild(chip);
+    const card = document.createElement('div');
+    card.className = 'module-card'; card.dataset.mid = m.id;
+    card.innerHTML = `<div class="title">${m.title}</div><div class="hint">${m.hint}</div>`;
+    card.onclick = () => { state.module = m.id; renderModule(); };
+    list.appendChild(card);
+  });
+
+  // 提示 tabs
+  $$('.prompt-tabs button[data-tier]').forEach(b => {
+    b.onclick = () => {
+      $$('.prompt-tabs button[data-tier]').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      renderPrompt();
+    };
+  });
+  $('#revealBtn').onclick = () => {
+    const body = $('#promptBody');
+    body.classList.toggle('collapsed');
+    $('#revealBtn').textContent = body.classList.contains('collapsed') ? '显示结论' : '隐藏结论';
+  };
+
+  // 全局拖拽
+  document.addEventListener('pointerdown', onPointerDown, true);
+  document.addEventListener('pointermove', pointerMove);
+  document.addEventListener('pointerup', pointerUp);
+  document.addEventListener('pointercancel', () => {
+    if (drag.active && drag.source === 'board') returnTileToTray(drag.defId);
+    endDrag();
+  });
+
+  // 键盘
+  document.addEventListener('keydown', (ev) => {
+    if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'SELECT') return;
+    if (ev.key === 'r' || ev.key === 'R') {
+      if (drag.active) { rotateCurrent(); ev.preventDefault(); }
+      else if (ev.shiftKey && state.module === 'M1') loadLevel(state.level);
+    }
+    if (ev.key === 'f' || ev.key === 'F') {
+      if (drag.active) { flipCurrent(); ev.preventDefault(); }
+    }
+    if (ev.key === 'Escape') {
+      if (drag.active) {
+        if (drag.source === 'board') returnTileToTray(drag.defId);
+        endDrag(); paintBoard();
+      } else if ($('#achModalBg').classList.contains('open')) {
+        $('#achModalBg').classList.remove('open');
+      }
+    }
+    if (ev.key >= '0' && ev.key <= '3' && !ev.metaKey && !ev.ctrlKey) {
+      state.module = MODULES[+ev.key].id; renderModule();
+    }
+    if (ev.key === 'a' || ev.key === 'A') openAchModal();
+    if (ev.key === 'u' || ev.key === 'U') { if (state.module === 'M1') undoLast(); }
+  });
+
+  // 成就
+  $('#trophyBtn').onclick = openAchModal;
+  $('#achModalClose').onclick = $('#achCloseBtn').onclick = () => $('#achModalBg').classList.remove('open');
+  $('#achModalBg').onclick = (e) => { if (e.target === $('#achModalBg')) $('#achModalBg').classList.remove('open'); };
+  $('#achResetBtn').onclick = () => {
+    if (!confirm('确认清空所有成就和通关进度？')) return;
+    persist.reset(); userState = persist.load(); updateTrophyCount(); openAchModal();
+  };
+}
+
+function onPointerDown(ev) {
+  // 优先处理 tile-slot 拖拽
+  const slot = ev.target.closest('.tile-slot');
+  if (slot && !drag.active) {
+    ev.preventDefault();
+    pickupFromTray(slot.dataset.defId, slot, ev);
+    return;
+  }
+  // 棋盘上的点击 / 拿起 / 戳洞
+  const cell = ev.target.closest('.cell');
+  if (cell && !drag.active) {
+    const r = +cell.dataset.r, c = +cell.dataset.c;
+    if (state.module === 'M3' && state.m3.editMode === 'hole') {
+      ev.preventDefault();
+      // 切换洞
+      const v = state.board[r][c];
+      if (v && typeof v === 'object') return; // 不让在已铺骨牌上挖洞
+      if (v === 'hole') {
+        state.board[r][c] = null; state.m3.customHoles.delete(r+','+c);
+      } else if (v === null) {
+        state.board[r][c] = 'hole'; state.m3.customHoles.add(r+','+c);
+      }
+      paintBoard(); updateStatPanel();
+      return;
+    }
+    const v = state.board[r][c];
+    if (v && typeof v === 'object') {
+      ev.preventDefault();
+      pickupFromBoard(v.tileId, ev);
+      return;
+    }
+  }
+}
+
+// ============================================================
+// 15. 启动
+// ============================================================
+function init() {
+  bindEvents();
+  updateTrophyCount();
+  renderModule();
+}
+init();
+
+})();
+</script>
+</body>
+</html>

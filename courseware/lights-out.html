@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>关灯游戏：灯阵里的奇偶与方程</title>
+<style>
+:root {
+  --bg: #f4f7f8;
+  --surface: #ffffff;
+  --surface-strong: #eef4f5;
+  --line: #d7e1e3;
+  --text: #152529;
+  --muted: #66777d;
+  --accent: #3b82f6;
+  --accent-dark: #2563eb;
+  --accent-soft: #dbeafe;
+  --warning: #c47a1c;
+  --warning-soft: #fef3c7;
+  --proof: #f3c44e;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --lit: #fde68a;
+  --lit-border: #f59e0b;
+  --lit-glow: rgba(245,158,11,.45);
+  --q1: rgba(168, 85, 247, 0.55);
+  --q2: rgba(249, 115, 22, 0.55);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+header.app-header {
+  padding: 16px 24px; background: var(--surface); border-bottom: 1px solid var(--line);
+  display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+}
+header h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
+header h1 .sub { color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 8px; }
+.nav-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  padding: 8px 14px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--text); cursor: pointer; font-size: 13px;
+  display: inline-flex; align-items: center; gap: 6px; transition: all .15s;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent-dark); }
+.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip .num { font-weight: 700; }
+main.layout {
+  display: grid; gap: 16px; padding: 16px 24px; min-height: calc(100vh - 64px);
+  grid-template-columns: 260px 1fr 320px; grid-template-rows: 1fr auto;
+  grid-template-areas: "nav stage panel" "prompt prompt prompt";
+}
+aside.nav, aside.panel, section.stage, footer.prompt {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 16px;
+}
+aside.nav { grid-area: nav; }
+section.stage { grid-area: stage; display: flex; flex-direction: column; gap: 12px;
+  align-items: stretch; }
+aside.panel { grid-area: panel; }
+footer.prompt { grid-area: prompt; }
+.nav h2, .panel h2, .stage h2 { margin: 0 0 10px; font-size: 14px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+.module-card { padding: 10px 12px; border-radius: 8px; border: 1px solid transparent;
+  cursor: pointer; margin-bottom: 6px; transition: all .15s; }
+.module-card:hover { background: var(--surface-strong); }
+.module-card.active { background: var(--accent-soft); border-color: var(--accent); }
+.module-card .title { font-weight: 600; font-size: 14px; }
+.module-card .hint { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 8px; }
+button.btn { min-height: 40px; padding: 0 14px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  cursor: pointer; font-size: 14px; transition: all .15s; }
+button.btn:hover { border-color: var(--accent); color: var(--accent-dark); }
+button.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+button.btn.primary:hover { background: var(--accent-dark); }
+button.btn.warn { background: var(--warning-soft); border-color: var(--warning); color: var(--warning); }
+button.btn[disabled] { opacity: .4; cursor: not-allowed; }
+select.size-select { min-height: 40px; padding: 0 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--surface); font-size: 14px; }
+
+.lights-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.lights {
+  display: grid; gap: 10px; aspect-ratio: 1; width: 100%; max-width: 480px;
+  grid-template-columns: repeat(var(--n), 1fr);
+  background: var(--surface-strong); border-radius: 16px; padding: 14px;
+  border: 1px solid var(--line);
+}
+.cell {
+  position: relative; border-radius: 12px; background: #cbd5d8;
+  border: 2px solid #94a3a8; transition: background .18s, box-shadow .18s, border-color .18s;
+  cursor: pointer; padding: 0; min-height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  font-variant-numeric: tabular-nums; font-size: 13px; color: #334;
+}
+.cell:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.cell[aria-pressed="true"] {
+  background: var(--lit); border-color: var(--lit-border);
+  box-shadow: 0 0 16px var(--lit-glow), inset 0 0 12px rgba(245,158,11,.25);
+}
+.cell.hint-press::before {
+  content: ""; position: absolute; inset: 18%; border-radius: 50%;
+  background: rgba(59,130,246,.55); border: 2px dashed var(--accent-dark);
+}
+.cell.quiet-q1::after {
+  content: ""; position: absolute; inset: 28%; border-radius: 50%;
+  background: var(--q1); pointer-events: none;
+}
+.cell.quiet-q2::after {
+  content: ""; position: absolute; inset: 28%; border-radius: 50%;
+  background: var(--q2); pointer-events: none;
+  transform: translate(8%, 8%);
+}
+.cell.flash { animation: flash .3s ease-out; }
+@keyframes flash {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.dual-board { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%;
+  max-width: 720px; }
+.dual-board .lights { max-width: none; }
+.dual-board .label { text-align: center; font-weight: 600; color: var(--muted); }
+.seq-display { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px; background: var(--surface-strong); border-radius: 8px;
+  padding: 8px 12px; color: var(--text); word-break: break-all; }
+
+.stat-row { display: flex; justify-content: space-between; padding: 8px 0;
+  border-bottom: 1px dashed var(--line); font-variant-numeric: tabular-nums; }
+.stat-row:last-child { border-bottom: 0; }
+.stat-row .key { color: var(--muted); font-size: 13px; }
+.stat-row .val { font-weight: 600; font-size: 14px; }
+.stat-row .val.success { color: var(--success); }
+.stat-row .val.danger { color: var(--danger); }
+.stat-row .val.warn { color: var(--warning); }
+
+.prompt-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+.prompt-tabs button { min-height: 36px; padding: 0 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-size: 13px; }
+.prompt-tabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.prompt-body { background: var(--surface-strong); border-radius: 10px; padding: 14px;
+  min-height: 64px; }
+.prompt-body p { margin: 0 0 6px; }
+.prompt-body .answer { color: var(--muted); font-size: 13px; padding-top: 8px;
+  border-top: 1px dashed var(--line); margin-top: 8px; }
+.prompt-body.collapsed .answer { display: none; }
+
+.banner { padding: 10px 14px; border-radius: 8px; font-size: 14px; margin-top: 8px; }
+.banner.success { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+.banner.danger { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+.banner.info { background: var(--accent-soft); color: var(--accent-dark); border: 1px solid #bfdbfe; }
+
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.legend .dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%;
+  vertical-align: middle; margin-right: 4px; border: 1px solid rgba(0,0,0,.1); }
+.legend .dot.lit { background: var(--lit); border-color: var(--lit-border); }
+.legend .dot.q1 { background: var(--q1); }
+.legend .dot.q2 { background: var(--q2); }
+.legend .dot.hint { background: rgba(59,130,246,.6); }
+
+.mode-tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 8px;
+  overflow: hidden; }
+.mode-tabs button { min-height: 40px; padding: 0 14px; border: 0;
+  background: var(--surface); cursor: pointer; font-size: 13px; }
+.mode-tabs button.active { background: var(--accent); color: #fff; }
+
+.intro { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; width: 100%; align-items: start; }
+.intro-prose h3 { margin: 16px 0 6px; font-size: 15px; color: var(--accent-dark); }
+.intro-prose h3:first-child { margin-top: 0; }
+.intro-prose p { margin: 6px 0; color: var(--text); }
+.intro-prose ul { margin: 6px 0; padding-left: 22px; color: var(--text); }
+.intro-prose li { margin: 3px 0; }
+.intro-prose .em { color: var(--accent-dark); font-weight: 600; }
+.intro-prose code { background: var(--surface-strong); padding: 1px 6px; border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+.intro-prose .formula { background: var(--surface-strong); padding: 10px 12px; border-radius: 8px;
+  text-align: center; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin: 8px 0; }
+.timeline { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; margin: 8px 0; }
+.timeline .item { margin: 6px 0; font-size: 13px; }
+.timeline .year { display: inline-block; min-width: 56px; color: var(--accent-dark);
+  font-weight: 700; font-variant-numeric: tabular-nums; }
+.demo-card { background: var(--surface-strong); border-radius: 12px; padding: 14px;
+  display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.demo-card .demo-title { font-weight: 600; font-size: 14px; color: var(--text); align-self: flex-start; }
+.demo-card .demo-hint { font-size: 12px; color: var(--muted); text-align: center; }
+.cell.intro-self { background: #bfdbfe !important; border-color: var(--accent-dark) !important; }
+.cell.intro-affected { background: rgba(59,130,246,.35) !important; border-color: var(--accent) !important; }
+
+/* 成就系统 */
+.trophy-btn { margin-left: auto; min-height: 40px; padding: 0 14px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.trophy-btn:hover { border-color: var(--proof); background: var(--warning-soft); }
+.trophy-btn .icon { font-size: 16px; }
+.trophy-btn .count { font-variant-numeric: tabular-nums; color: var(--muted); }
+.trophy-btn .count strong { color: var(--warning); font-weight: 700; }
+
+.toast-stack { position: fixed; top: 16px; right: 16px; z-index: 999;
+  display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast { background: var(--surface); border: 1px solid var(--proof); border-left: 4px solid var(--proof);
+  border-radius: 8px; padding: 10px 14px; min-width: 240px; max-width: 320px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.12);
+  animation: toastIn .25s ease-out, toastOut .4s ease-in 3.6s forwards;
+  pointer-events: auto; }
+.toast .t-title { font-weight: 700; font-size: 13px; color: var(--warning); display: flex; align-items: center; gap: 6px; }
+.toast .t-name { font-size: 14px; font-weight: 600; color: var(--text); margin: 2px 0; }
+.toast .t-desc { font-size: 12px; color: var(--muted); }
+@keyframes toastIn { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes toastOut { to { transform: translateX(20px); opacity: 0; } }
+
+.modal-bg { position: fixed; inset: 0; background: rgba(15,30,40,.45); z-index: 998;
+  display: none; align-items: center; justify-content: center; padding: 20px; }
+.modal-bg.open { display: flex; }
+.modal { background: var(--surface); border-radius: 14px; padding: 20px; max-width: 560px;
+  width: 100%; max-height: 80vh; overflow-y: auto; box-shadow: 0 18px 40px rgba(0,0,0,.2); }
+.modal h3 { margin: 0 0 4px; font-size: 18px; }
+.modal .modal-sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+.modal .close-x { float: right; background: none; border: none; font-size: 22px;
+  color: var(--muted); cursor: pointer; line-height: 1; }
+.ach-list { display: grid; gap: 8px; }
+.ach-row { display: grid; grid-template-columns: 38px 1fr auto; gap: 10px; align-items: center;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); }
+.ach-row.unlocked { border-color: var(--proof); background: #fffbeb; }
+.ach-row .ach-icon { font-size: 22px; text-align: center; filter: grayscale(1); opacity: .35; }
+.ach-row.unlocked .ach-icon { filter: none; opacity: 1; }
+.ach-row .ach-name { font-weight: 600; font-size: 14px; }
+.ach-row .ach-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.ach-row .ach-status { font-size: 12px; color: var(--muted); }
+.ach-row.unlocked .ach-status { color: var(--success); font-weight: 600; }
+.ach-progress { height: 6px; background: var(--surface-strong); border-radius: 3px; overflow: hidden;
+  margin: 4px 0 14px; }
+.ach-progress > div { height: 100%; background: var(--proof); transition: width .3s; }
+.ach-actions { margin-top: 14px; display: flex; gap: 8px; justify-content: flex-end; }
+
+@media (max-width: 1099px) {
+  main.layout { grid-template-columns: 1fr; grid-template-areas: "nav" "stage" "panel" "prompt"; }
+  aside.nav .modules { display: flex; gap: 8px; overflow-x: auto; }
+  aside.nav .module-card { min-width: 200px; }
+}
+@media (max-width: 699px) {
+  header.app-header { padding: 12px; }
+  header h1 .sub { display: block; margin: 4px 0 0; }
+  main.layout { padding: 12px; gap: 12px; }
+  .dual-board { grid-template-columns: 1fr; }
+  .lights { padding: 10px; gap: 6px; }
+}
+@media (max-width: 899px) {
+  .intro { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<header class="app-header">
+  <h1>关灯游戏 <span class="sub">灯阵里的奇偶与方程</span></h1>
+  <div class="nav-chips" id="topNav"></div>
+  <button class="trophy-btn" id="trophyBtn" aria-label="查看成就">
+    <span class="icon">🏆</span><span>成就</span>
+    <span class="count"><strong id="trophyCount">0</strong>/<span id="trophyTotal">0</span></span>
+  </button>
+</header>
+
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<div class="modal-bg" id="achModalBg" role="dialog" aria-labelledby="achModalTitle">
+  <div class="modal">
+    <button class="close-x" id="achModalClose" aria-label="关闭">×</button>
+    <h3 id="achModalTitle">🏆 成就</h3>
+    <div class="modal-sub">完成挑战会自动解锁；进度保存在浏览器本地。</div>
+    <div class="ach-progress"><div id="achProgressBar" style="width:0%"></div></div>
+    <div class="ach-list" id="achList"></div>
+    <div class="ach-actions">
+      <button class="btn" id="achResetBtn">清空进度</button>
+      <button class="btn primary" id="achCloseBtn">关闭</button>
+    </div>
+  </div>
+</div>
+
+<main class="layout">
+  <aside class="nav">
+    <h2>模块导航</h2>
+    <div class="modules" id="moduleList"></div>
+  </aside>
+
+  <section class="stage">
+    <h2 id="stageTitle">模块标题</h2>
+    <div id="stageDesc" style="color:var(--muted);font-size:13px;margin-bottom:4px"></div>
+    <div class="controls" id="stageControls"></div>
+    <div class="lights-wrap" id="lightsWrap"></div>
+    <div id="banner"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <aside class="panel">
+    <h2>数据面板</h2>
+    <div id="statPanel"></div>
+  </aside>
+
+  <footer class="prompt">
+    <div class="prompt-tabs">
+      <button data-tier="observe" class="active">观察</button>
+      <button data-tier="verify">验证</button>
+      <button data-tier="prove">证明</button>
+      <button class="reveal-btn" id="revealBtn" style="margin-left:auto;background:var(--surface)">隐藏结论</button>
+    </div>
+    <div class="prompt-body collapsed" id="promptBody"></div>
+  </footer>
+</main>
+
+<script>
+'use strict';
+(function () {
+
+// ============================================================
+// 0. 工具函数
+// ============================================================
+const NEIGHBORS = [[0,0],[1,0],[-1,0],[0,1],[0,-1]];
+const $ = (sel, root=document) => root.querySelector(sel);
+const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+const clone = b => new Uint8Array(b);
+
+function press(board, n, r, c) {
+  for (const [dr, dc] of NEIGHBORS) {
+    const nr = r + dr, nc = c + dc;
+    if (nr >= 0 && nr < n && nc >= 0 && nc < n) {
+      board[nr * n + nc] ^= 1;
+    }
+  }
+}
+function pressIdx(board, n, idx) {
+  press(board, n, Math.floor(idx / n), idx % n);
+}
+function isAllOff(board) {
+  for (const v of board) if (v) return false;
+  return true;
+}
+function countLit(board) {
+  let c = 0;
+  for (const v of board) if (v) c++;
+  return c;
+}
+function boardToBigInt(board) {
+  let x = 0n;
+  for (let i = 0; i < board.length; i++) if (board[i]) x |= (1n << BigInt(i));
+  return x;
+}
+function bigIntToBoard(x, len) {
+  const b = new Uint8Array(len);
+  for (let i = 0; i < len; i++) if ((x >> BigInt(i)) & 1n) b[i] = 1;
+  return b;
+}
+function popcount(x) {
+  let c = 0;
+  while (x > 0n) { x &= x - 1n; c++; }
+  return c;
+}
+
+// ============================================================
+// 0b. 成就系统
+// ============================================================
+const ACHIEVEMENTS = [
+  { id: 'firstPress',   icon: '👆', name: '初次点灯',   desc: '第一次按下任意按钮。' },
+  { id: 'm1Clear',      icon: '🟢', name: '3×3 通关',   desc: '在 M1 把所有灯关掉。' },
+  { id: 'm1Lightning',  icon: '⚡', name: '闪电手',     desc: '在 M1 用 ≤ 4 步通关。' },
+  { id: 'm2Same',       icon: '🔁', name: '顺序无关',   desc: '在 M2 看到盘面 A、B 按完后完全相同。' },
+  { id: 'm3Solver',     icon: '🧠', name: '求解大师',   desc: '在 M3 调用求解器并让它播放完毕。' },
+  { id: 'm3Optimal',    icon: '🎯', name: '最优玩家',   desc: '在 M3 自己手动通关，且步数等于理论最优。' },
+  { id: 'm4Detective',  icon: '🕵', name: '染色侦探',   desc: '在 M4 加载不可解盘面并打开 quiet pattern 染色。' },
+  { id: 'm4Invariant',  icon: '🔬', name: '不变量证人', desc: '在 M4 让"判定可解性"返回"不可解"。' },
+  { id: 'm5Author',     icon: '✍', name: '造物主',     desc: '在 M5 用"出题模式"生成一个非空盘面。' },
+  { id: 'completionist',icon: '🏆', name: '全部解锁',   desc: '解锁前 9 项成就。' },
+];
+const ACH_STORAGE_KEY = 'lights-out-achievements-v1';
+
+const achievements = {
+  unlocked: new Set(),
+  load() {
+    try {
+      const raw = localStorage.getItem(ACH_STORAGE_KEY);
+      if (raw) JSON.parse(raw).forEach(id => this.unlocked.add(id));
+    } catch (e) {}
+  },
+  save() {
+    try { localStorage.setItem(ACH_STORAGE_KEY, JSON.stringify([...this.unlocked])); }
+    catch (e) {}
+  },
+  has(id) { return this.unlocked.has(id); },
+  unlock(id) {
+    if (this.unlocked.has(id)) return;
+    const def = ACHIEVEMENTS.find(a => a.id === id);
+    if (!def) return;
+    this.unlocked.add(id);
+    this.save();
+    showToast(def);
+    updateTrophyCount();
+    // 检查全部解锁
+    if (id !== 'completionist') {
+      const required = ACHIEVEMENTS.filter(a => a.id !== 'completionist');
+      if (required.every(a => this.unlocked.has(a.id))) {
+        setTimeout(() => this.unlock('completionist'), 500);
+      }
+    }
+  },
+  reset() { this.unlocked.clear(); this.save(); updateTrophyCount(); },
+};
+achievements.load();
+
+function showToast(def) {
+  const stack = document.getElementById('toastStack');
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<div class="t-title"><span>🏆</span>解锁成就</div>
+    <div class="t-name">${def.icon} ${def.name}</div>
+    <div class="t-desc">${def.desc}</div>`;
+  stack.appendChild(el);
+  setTimeout(() => el.remove(), 4200);
+}
+function updateTrophyCount() {
+  const total = ACHIEVEMENTS.length;
+  const got = ACHIEVEMENTS.filter(a => achievements.has(a.id)).length;
+  const cntEl = document.getElementById('trophyCount');
+  const totEl = document.getElementById('trophyTotal');
+  if (cntEl) cntEl.textContent = got;
+  if (totEl) totEl.textContent = total;
+  const bar = document.getElementById('achProgressBar');
+  if (bar) bar.style.width = Math.round(got / total * 100) + '%';
+}
+function openAchModal() {
+  const list = document.getElementById('achList');
+  list.innerHTML = '';
+  for (const a of ACHIEVEMENTS) {
+    const got = achievements.has(a.id);
+    const row = document.createElement('div');
+    row.className = 'ach-row' + (got ? ' unlocked' : '');
+    row.innerHTML = `
+      <div class="ach-icon">${a.icon}</div>
+      <div><div class="ach-name">${a.name}</div><div class="ach-desc">${a.desc}</div></div>
+      <div class="ach-status">${got ? '✓ 已解锁' : '未解锁'}</div>`;
+    list.appendChild(row);
+  }
+  updateTrophyCount();
+  document.getElementById('achModalBg').classList.add('open');
+}
+function closeAchModal() {
+  document.getElementById('achModalBg').classList.remove('open');
+}
+
+// 绑定 UI 入口（DOM 已就绪：脚本在 body 末尾）
+document.getElementById('trophyBtn').addEventListener('click', openAchModal);
+document.getElementById('achModalClose').addEventListener('click', closeAchModal);
+document.getElementById('achCloseBtn').addEventListener('click', closeAchModal);
+document.getElementById('achModalBg').addEventListener('click', (e) => {
+  if (e.target.id === 'achModalBg') closeAchModal();
+});
+document.getElementById('achResetBtn').addEventListener('click', () => {
+  if (confirm('确定要清空所有成就进度吗？')) { achievements.reset(); openAchModal(); }
+});
+updateTrophyCount();
+
+// ============================================================
+// 1. GF(2) 求解器
+// ============================================================
+// 求解 A·x = b (mod 2)，返回 { solvable, particular, nullBasis, optimal }
+// optimal = 在 particular + span(nullBasis) 中 popcount 最小者（BigInt）
+function buildA(n) {
+  const N = n * n;
+  const A = new Array(N);
+  for (let i = 0; i < N; i++) {
+    // 第 i 行：按按钮 i 影响的灯集合
+    const r = Math.floor(i / n), c = i % n;
+    let row = 0n;
+    for (const [dr, dc] of NEIGHBORS) {
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < n && nc >= 0 && nc < n) {
+        row |= 1n << BigInt(nr * n + nc);
+      }
+    }
+    A[i] = row;
+  }
+  // 注意：A 对称 → "按按钮 j 影响灯 i" ⇔ "按按钮 i 影响灯 j"
+  // 解 Ax = b 时，列 j 代表按钮 j，行 i 代表灯 i
+  return A;
+}
+
+function solveLights(n, board) {
+  const N = n * n;
+  // 增广矩阵：每行为 (A 的第 i 行 | b_i)
+  // 第 j 列对应按钮 j；第 N 位为 b_i
+  const A = buildA(n);
+  const rows = new Array(N);
+  for (let i = 0; i < N; i++) {
+    rows[i] = A[i] | (board[i] ? (1n << BigInt(N)) : 0n);
+  }
+  // 高斯消元
+  const pivotRowForCol = new Array(N).fill(-1);
+  let r = 0;
+  for (let col = 0; col < N && r < N; col++) {
+    let sel = -1;
+    for (let i = r; i < N; i++) {
+      if ((rows[i] >> BigInt(col)) & 1n) { sel = i; break; }
+    }
+    if (sel < 0) continue;
+    if (sel !== r) { const tmp = rows[r]; rows[r] = rows[sel]; rows[sel] = tmp; }
+    for (let i = 0; i < N; i++) {
+      if (i !== r && ((rows[i] >> BigInt(col)) & 1n)) {
+        rows[i] ^= rows[r];
+      }
+    }
+    pivotRowForCol[col] = r;
+    r++;
+  }
+  // 判定可解
+  const bMask = 1n << BigInt(N);
+  for (let i = r; i < N; i++) {
+    if (rows[i] & bMask) return { solvable: false };
+  }
+  // 特解：自由变量取 0
+  let particular = 0n;
+  const freeCols = [];
+  for (let col = 0; col < N; col++) {
+    if (pivotRowForCol[col] === -1) {
+      freeCols.push(col);
+    } else {
+      const row = rows[pivotRowForCol[col]];
+      if (row & bMask) particular |= (1n << BigInt(col));
+    }
+  }
+  // 零空间基：每个自由列 c，对应一个基向量 e_c + 由消元行决定的 pivot 分量
+  const nullBasis = [];
+  for (const fc of freeCols) {
+    let basis = 1n << BigInt(fc);
+    for (let col = 0; col < N; col++) {
+      const pr = pivotRowForCol[col];
+      if (pr === -1) continue;
+      if ((rows[pr] >> BigInt(fc)) & 1n) {
+        basis |= (1n << BigInt(col));
+      }
+    }
+    nullBasis.push(basis);
+  }
+  // 枚举 2^k 取 popcount 最小
+  const k = nullBasis.length;
+  let best = particular;
+  let bestPop = popcount(particular);
+  for (let mask = 1; mask < (1 << k); mask++) {
+    let x = particular;
+    for (let i = 0; i < k; i++) if (mask & (1 << i)) x ^= nullBasis[i];
+    const p = popcount(x);
+    if (p < bestPop) { best = x; bestPop = p; }
+  }
+  return { solvable: true, particular, nullBasis, optimal: best, optimalCount: bestPop };
+}
+
+// ============================================================
+// 2. 5x5 quiet patterns（写死常量并自检）
+// ============================================================
+// q1: 1 0 1 0 1 / 1 0 1 0 1 / 0 0 0 0 0 / 1 0 1 0 1 / 1 0 1 0 1
+// q2: 1 1 0 1 1 / 0 0 0 0 0 / 1 1 0 1 1 / 0 0 0 0 0 / 1 1 0 1 1
+const QUIET_5_GRID = {
+  q1: [[1,0,1,0,1],[1,0,1,0,1],[0,0,0,0,0],[1,0,1,0,1],[1,0,1,0,1]],
+  q2: [[1,1,0,1,1],[0,0,0,0,0],[1,1,0,1,1],[0,0,0,0,0],[1,1,0,1,1]],
+};
+function gridToBigInt(g) {
+  let x = 0n;
+  for (let r = 0; r < g.length; r++)
+    for (let c = 0; c < g[r].length; c++)
+      if (g[r][c]) x |= 1n << BigInt(r * g.length + c);
+  return x;
+}
+const QUIET_5 = [gridToBigInt(QUIET_5_GRID.q1), gridToBigInt(QUIET_5_GRID.q2)];
+
+// 自检：A * q_i == 0
+(function selfCheck5() {
+  const A = buildA(5);
+  for (const q of QUIET_5) {
+    // Ax 的第 i 位 = popcount(A[i] & x) mod 2
+    let ok = true;
+    for (let i = 0; i < 25; i++) {
+      if ((popcount(A[i] & q) & 1) !== 0) { ok = false; break; }
+    }
+    if (!ok) console.error('[selfCheck5] quiet pattern 错误：', q.toString(2));
+  }
+})();
+
+function solvable5(board) {
+  const b = boardToBigInt(board);
+  return QUIET_5.every(q => (popcount(b & q) & 1) === 0);
+}
+
+// ============================================================
+// 3. 模块配置与状态
+// ============================================================
+const MODULES = [
+  { id: 'M0', num: '0', title: '起源与原理',
+    desc: '了解关灯游戏的来历，以及"按按钮翻邻居"为什么对应一个线性方程组。',
+    hint: '从历史到数学：一次性把概念地图建立起来。', n: 5 },
+  { id: 'M1', num: '1', title: '3×3 入门关',
+    desc: '点击翻转自身与上下左右邻居，把所有灯关掉。',
+    hint: '熟悉规则，建立"按按钮 → 灯被翻"的直觉。', n: 3 },
+  { id: 'M2', num: '2', title: '操作可交换实验',
+    desc: '同一组按钮，换个顺序按，结果会不一样吗？',
+    hint: '发现"顺序无关""按两次=没按"。', n: 5 },
+  { id: 'M3', num: '3', title: '4×4 求解器',
+    desc: '一键找出"按下哪几个按钮"就能全灭，对比你自己的步数。',
+    hint: '体验最优解；理解可能存在多组等价解。', n: 4 },
+  { id: 'M4', num: '4', title: '5×5 不变量实验',
+    desc: '有些 5×5 盘面怎么按都不行，看看 quiet pattern 如何揭示原因。',
+    hint: '理解不可解的染色证明。', n: 5 },
+  { id: 'M5', num: '5', title: '自由沙盒',
+    desc: '自己编辑盘面、自己出题，验证你的猜想。',
+    hint: '尺寸 3/4/5 可切换；模式可切换。', n: 5 },
+];
+
+const PROMPTS = {
+  M0: {
+    observe: { q: '把鼠标依次悬停在右侧 5×5 的不同按钮上，看哪些灯被它影响？', a: '"自身 + 上下左右" 至多 5 盏灯。角落只影响 3 盏，边上 4 盏，中间 5 盏。' },
+    verify:  { q: '为什么"按按钮的次序无关"这一直觉，在数学上对应于"加法可交换"？', a: '把每个按钮看成一个 GF(2) 向量 v_j（表示它影响的灯集合）。按一串按钮 = 把对应 v_j 全部加起来；加法可交换且可结合，所以与顺序无关。' },
+    prove:   { q: '为什么 Lights Out 等价于解一个方程组？', a: '设按钮 j 是否被按为 x_j（0/1），盘面 b 是否亮为 b_i（0/1）。"按按钮 → 灯翻"的关系把 x 映为 A·x（mod 2），其中 A 是 n²×n² 的 0/1 矩阵。"全灭"⇔ A·x = b 在 GF(2) 上有解。' },
+  },
+  M1: {
+    observe: { q: '随便点击几个格子，仔细看：每次点击都让哪几盏灯变了？', a: '点击的那一格 + 它上下左右最多 4 个邻居，共 ≤ 5 盏灯翻转。' },
+    verify:  { q: '试试在 5 步以内把所有灯关掉。', a: '3×3 任意盘面都能通关，且大多数能在 5 步内解决。' },
+    prove:   { q: '3×3 是否一定能通关？', a: '是。3×3 的影响矩阵 A 在 GF(2) 上是满秩的（秩 9），所以任何盘面 b 都有唯一解。' },
+  },
+  M2: {
+    observe: { q: '两个盘面按下的按钮集合一样，但顺序不同，结果会有差吗？', a: '不会。两个盘面操作完之后完全相同。' },
+    verify:  { q: '在右下方"重复按按钮"区域，连点同一格两次，盘面会怎样？', a: '回到点击前。任意格按偶数次等于没按。' },
+    prove:   { q: '为什么"按按钮的顺序无关"？', a: '每个按钮的"翻转邻居"在 GF(2) 上是 +1，加法可交换；且每个按钮只需考虑按 0 次或 1 次。' },
+  },
+  M3: {
+    observe: { q: '点击"求最优解"，被点的按钮和你之前点击的位置一样吗？', a: '通常不一样。最优解是"按这些按钮的集合"，与你按的顺序无关。' },
+    verify:  { q: '在 4×4 上，"求解给的按按钮集合"是唯一的吗？', a: '不唯一。4×4 的零空间维数为 4，每个可解盘面都有 2⁴=16 组等价按法，课件已为你挑选了按下数最少的一种。' },
+    prove:   { q: '为什么"找一组按钮集合"就能解决？', a: '因为操作可交换且每按钮按 0/1 次足够（M2 已说明），盘面 ↔ 按钮集合是 GF(2) 上的线性映射 A。' },
+  },
+  M4: {
+    observe: { q: '点击"加载不可解盘面"，再打开 quiet pattern 染色。看紫色覆盖下亮起的灯有几盏？', a: '不可解盘面下，紫色（q₁）覆盖下的亮灯个数一定是奇数；可解盘面下一定是偶数。' },
+    verify:  { q: '试着翻转任意一颗紫色覆盖下的灯（点击该格），看 q₁ 内积如何变。', a: '点击一格会同时改变它和 ≤4 个邻居，紫色范围内亮灯数的奇偶性不会被任何"按按钮"操作改变。' },
+    prove:   { q: '为什么"按按钮"不会改变 q₁ 内积的奇偶性？', a: '因为 A·q₁ = 0（q₁ 是零空间元素），所以按按钮 j 影响的灯集合，在 q₁ 染色内恰有偶数颗。' },
+  },
+  M5: {
+    observe: { q: '在编辑模式直接画一个图案，再切回游戏模式，看可解性面板。', a: '3×3 任意可解；4×4 仅 1/16 盘面可解（但每个可解盘面有 16 组等价按法）；5×5 仅 1/4 盘面可解。' },
+    verify:  { q: '出题模式：选择若干按钮按下，生成的盘面"逆向按一次同样按钮集合"能否还原？', a: '能。按一次按钮集合的盘面 = A·x；再按一次 = A·(2x) = 0（mod 2）。' },
+    prove:   { q: '5×5 不可解盘面占多少？', a: '可解盘面占 2²³/2²⁵ = 1/4，不可解盘面占 3/4。' },
+  },
+};
+
+const app = {
+  active: 'M0',
+  modules: {},
+  promptTier: 'observe',
+  promptRevealed: false,
+};
+
+function newModuleState(id) {
+  const cfg = MODULES.find(m => m.id === id);
+  const n = cfg.n;
+  return {
+    id, n,
+    board: new Uint8Array(n * n),
+    presses: new Uint8Array(n * n),
+    history: [],
+    // M2 双盘面
+    boardA: new Uint8Array(n * n), boardB: new Uint8Array(n * n),
+    sequence: [], orderA: [], orderB: [],
+    // M3/M4 求解结果
+    solution: null,
+    solveSteps: null,
+    // M4 不变量染色
+    showInvariant: false,
+    // M5 模式
+    mode: 'play',
+    pressMask: new Uint8Array(n * n),
+  };
+}
+MODULES.forEach(m => { app.modules[m.id] = newModuleState(m.id); });
+
+// 初始化默认盘面
+function makeRandomSolvable(n, lit = 5) {
+  // 用"按 lit 个随机按钮"生成 → 一定可解
+  const b = new Uint8Array(n * n);
+  const used = new Set();
+  while (used.size < lit) used.add(Math.floor(Math.random() * n * n));
+  for (const idx of used) pressIdx(b, n, idx);
+  if (isAllOff(b)) return makeRandomSolvable(n, lit);
+  return b;
+}
+function makeRandomAny(n, p = 0.4) {
+  const b = new Uint8Array(n * n);
+  for (let i = 0; i < n * n; i++) if (Math.random() < p) b[i] = 1;
+  if (isAllOff(b)) b[0] = 1;
+  return b;
+}
+function initM1() {
+  app.modules.M1.board = makeRandomSolvable(3, 4);
+  app.modules.M1.boardInit = clone(app.modules.M1.board);
+  app.modules.M1.history = [];
+}
+function resetM1() {
+  // 重置：回到当前关卡的初始盘面，不换关
+  app.modules.M1.board = clone(app.modules.M1.boardInit);
+  app.modules.M1.history = [];
+}
+function initM2() {
+  const seq = [];
+  const n = 5, N = n * n;
+  const used = new Set();
+  while (used.size < 4) used.add(Math.floor(Math.random() * N));
+  for (const i of used) seq.push(i);
+  const base = makeRandomSolvable(5, 3);
+  app.modules.M2.boardA = clone(base);
+  app.modules.M2.boardB = clone(base);
+  app.modules.M2.board = clone(base); // 仅用于"重复按按钮"区域
+  app.modules.M2.base0 = clone(base);  // 双盘面初始快照（演示重置用）
+  app.modules.M2.sequence = seq;
+  app.modules.M2.orderA = [...seq];
+  app.modules.M2.orderB = [...seq].reverse();
+  app.modules.M2.presses = new Uint8Array(N);
+}
+function initM3() {
+  // 4×4 零空间维数 4 → 只有 1/16 盘面可解；用"按若干按钮"生成保证可解
+  app.modules.M3.board = makeRandomSolvable(4, 5);
+  app.modules.M3.boardInit = clone(app.modules.M3.board);
+  app.modules.M3.history = [];
+  app.modules.M3.solution = null;
+  app.modules.M3.solveSteps = null;
+  app.modules.M3._solverUsedThisRound = false;
+}
+function resetM3() {
+  app.modules.M3.board = clone(app.modules.M3.boardInit);
+  app.modules.M3.history = [];
+  app.modules.M3.solution = null;
+  app.modules.M3.solveSteps = null;
+  app.modules.M3._solverUsedThisRound = false;
+}
+function initM4(loadUnsolvable = false) {
+  if (loadUnsolvable) {
+    const b = new Uint8Array(25);
+    b[0] = 1; // (0,0) 单灯 → 5×5 经典不可解盘面
+    app.modules.M4.board = b;
+  } else {
+    app.modules.M4.board = makeRandomAny(5, 0.45);
+  }
+  app.modules.M4.solution = null;
+  app.modules.M4.history = [];
+}
+function initM5() {
+  app.modules.M5.board = new Uint8Array(25);
+  app.modules.M5.pressMask = new Uint8Array(25);
+  app.modules.M5.mode = 'play';
+  app.modules.M5.history = [];
+}
+initM1(); initM2(); initM3(); initM4(); initM5();
+
+// ============================================================
+// 4. 渲染
+// ============================================================
+function renderTopNav() {
+  const el = $('#topNav');
+  el.innerHTML = '';
+  for (const m of MODULES) {
+    const b = document.createElement('button');
+    b.className = 'chip' + (m.id === app.active ? ' active' : '');
+    b.innerHTML = `<span class="num">${m.num}</span><span>${m.title}</span>`;
+    b.addEventListener('click', () => { app.active = m.id; renderAll(); });
+    el.appendChild(b);
+  }
+}
+function renderModuleList() {
+  const el = $('#moduleList');
+  el.innerHTML = '';
+  for (const m of MODULES) {
+    const c = document.createElement('div');
+    c.className = 'module-card' + (m.id === app.active ? ' active' : '');
+    c.innerHTML = `<div class="title">M${m.num} · ${m.title}</div><div class="hint">${m.hint}</div>`;
+    c.addEventListener('click', () => { app.active = m.id; renderAll(); });
+    el.appendChild(c);
+  }
+}
+
+function buildLights(board, n, onClick, opts = {}) {
+  const div = document.createElement('div');
+  div.className = 'lights';
+  div.style.setProperty('--n', n);
+  for (let i = 0; i < n * n; i++) {
+    const cell = document.createElement('button');
+    cell.className = 'cell';
+    const lit = !!board[i];
+    cell.setAttribute('aria-pressed', lit ? 'true' : 'false');
+    cell.setAttribute('aria-label', `第 ${Math.floor(i/n)+1} 行 第 ${(i%n)+1} 列 ${lit?'亮':'灭'}`);
+    cell.dataset.idx = i;
+    if (opts.hintMask && opts.hintMask[i]) cell.classList.add('hint-press');
+    if (opts.q1 && opts.q1[i]) cell.classList.add('quiet-q1');
+    if (opts.q2 && opts.q2[i]) cell.classList.add('quiet-q2');
+    if (onClick) cell.addEventListener('click', () => onClick(i));
+    div.appendChild(cell);
+  }
+  return div;
+}
+
+function renderStage() {
+  const cfg = MODULES.find(m => m.id === app.active);
+  const st = app.modules[app.active];
+  $('#stageTitle').textContent = `M${cfg.num} · ${cfg.title}`;
+  $('#stageDesc').textContent = cfg.desc;
+
+  const ctrls = $('#stageControls');
+  const wrap = $('#lightsWrap');
+  const banner = $('#banner');
+  const legend = $('#legend');
+  ctrls.innerHTML = ''; wrap.innerHTML = ''; banner.innerHTML = ''; legend.innerHTML = '';
+
+  const stat = $('#statPanel'); stat.innerHTML = '';
+
+  if (app.active === 'M0') renderM0(ctrls, wrap, banner, legend, stat, st);
+  else if (app.active === 'M1') renderM1(ctrls, wrap, banner, legend, stat, st);
+  else if (app.active === 'M2') renderM2(ctrls, wrap, banner, legend, stat, st);
+  else if (app.active === 'M3') renderM3(ctrls, wrap, banner, legend, stat, st);
+  else if (app.active === 'M4') renderM4(ctrls, wrap, banner, legend, stat, st);
+  else if (app.active === 'M5') renderM5(ctrls, wrap, banner, legend, stat, st);
+}
+
+function addBtn(parent, label, opts = {}) {
+  const b = document.createElement('button');
+  b.className = 'btn' + (opts.primary ? ' primary' : '') + (opts.warn ? ' warn' : '');
+  b.textContent = label;
+  if (opts.disabled) b.disabled = true;
+  b.addEventListener('click', opts.onClick);
+  parent.appendChild(b);
+  return b;
+}
+function addStat(parent, key, val, cls = '') {
+  const row = document.createElement('div');
+  row.className = 'stat-row';
+  row.innerHTML = `<span class="key">${key}</span><span class="val ${cls}">${val}</span>`;
+  parent.appendChild(row);
+}
+
+// -------- M0：起源与原理 --------
+function renderM0(ctrls, wrap, banner, legend, stat, st) {
+  addBtn(ctrls, '进入 M1 入门关', { primary: true, onClick: () => { app.active = 'M1'; renderAll(); } });
+
+  const intro = document.createElement('div');
+  intro.className = 'intro';
+
+  // 左：历史 + 原理叙事
+  const prose = document.createElement('div');
+  prose.className = 'intro-prose';
+  prose.innerHTML = `
+    <h3>① 这个游戏从哪里来？</h3>
+    <p>关灯游戏（<span class="em">Lights Out</span>）是 1995 年由美国玩具公司
+    <span class="em">Tiger Electronics</span> 推出的一款电子掌机：5×5 的灯阵，
+    每按一个按钮，它和上下左右的灯一起翻转，目标是把所有灯都关掉。</p>
+    <div class="timeline">
+      <div class="item"><span class="year">1989</span> Klaus Sutner 在论文中研究了 σ-game（关灯游戏的数学等价物），证明 n×n 灯阵全亮时一定有解。</div>
+      <div class="item"><span class="year">1995</span> Tiger Electronics 推出 Lights Out 掌机，全球热销。</div>
+      <div class="item"><span class="year">1998</span> Anderson & Feil 用 GF(2) 线性代数完整描述了 5×5 的可解性与不变量。</div>
+      <div class="item"><span class="year">至今</span> 它成为线性代数、奇偶论证、可解性分析的"教学标本"。</div>
+    </div>
+
+    <h3>② 为什么是数学题？</h3>
+    <p>课件中的每一个按钮 <code>j</code> 只做一件事：把<span class="em">它自己和上下左右最多 4 个邻居</span>的状态翻一翻（亮变灭，灭变亮）。
+    所以"按一串按钮"等价于：</p>
+    <ul>
+      <li>每个按钮的"翻转效应"是一个 0/1 向量（影响哪些灯）；</li>
+      <li>多个按钮的总效应 = 把这些 0/1 向量相加（同一格翻两次相互抵消）；</li>
+      <li>因此<span class="em">顺序无关、按两次=没按</span>——这就是"模 2 加法"，记作 <code>(mod 2)</code>。</li>
+    </ul>
+
+    <h3>③ 用一个方程概括</h3>
+    <p>设按钮 <code>j</code> 是否被按为 <code>x_j ∈ {0,1}</code>；盘面 <code>b</code> 的第 <code>i</code> 格是否亮为 <code>b_i ∈ {0,1}</code>；
+    再把所有按钮的影响排成一个 <code>n²×n²</code> 的 0/1 矩阵 <code>A</code>。那么关灯游戏就是：</p>
+    <div class="formula">求 x，使 &nbsp; A · x ≡ b &nbsp; (mod 2)</div>
+    <p>有解 ⇔ 盘面可关；解可能不唯一（对应"多种等价按法"）；解可能不存在（对应"再怎么按也关不掉"）。
+    后续 M1–M5 的所有发现，都是这条方程在不同尺寸下的表现。</p>
+
+    <h3>④ 三个尺寸的指纹</h3>
+    <ul>
+      <li><span class="em">3×3</span>：A 满秩 → <span class="em">任意盘面都能赢</span>，且解唯一。</li>
+      <li><span class="em">4×4</span>：零空间维数 4 → 仅 <span class="em">1/16</span> 盘面可解；每个可解盘面有 <span class="em">16 组等价按法</span>。</li>
+      <li><span class="em">5×5</span>：零空间维数 2 → 仅 <span class="em">1/4</span> 盘面可解；可解性由两个"quiet pattern"奇偶判定（M4 会用染色看见）。</li>
+    </ul>
+  `;
+  intro.appendChild(prose);
+
+  // 右：互动演示——按按钮影响哪些灯
+  const demo = document.createElement('div');
+  demo.className = 'demo-card';
+  const demoTitle = document.createElement('div');
+  demoTitle.className = 'demo-title';
+  demoTitle.textContent = '🔬 小演示：每个按钮"翻"哪些灯？';
+  demo.appendChild(demoTitle);
+
+  const demoBoard = document.createElement('div');
+  demoBoard.className = 'lights'; demoBoard.style.setProperty('--n', 5);
+  demoBoard.style.maxWidth = '320px';
+  const cells = [];
+  for (let i = 0; i < 25; i++) {
+    const cell = document.createElement('button');
+    cell.className = 'cell';
+    cell.setAttribute('aria-label', `按钮 ${Math.floor(i/5)+1}-${(i%5)+1}`);
+    cell.dataset.idx = i;
+    cells.push(cell);
+    demoBoard.appendChild(cell);
+  }
+  function highlight(idx) {
+    cells.forEach(c => c.classList.remove('intro-self', 'intro-affected'));
+    if (idx == null) return;
+    const r = Math.floor(idx / 5), c = idx % 5;
+    for (const [dr, dc] of NEIGHBORS) {
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < 5 && nc >= 0 && nc < 5) {
+        const j = nr * 5 + nc;
+        cells[j].classList.add(j === idx ? 'intro-self' : 'intro-affected');
+      }
+    }
+  }
+  cells.forEach((c, i) => {
+    c.addEventListener('mouseenter', () => highlight(i));
+    c.addEventListener('focus', () => highlight(i));
+    c.addEventListener('click', () => highlight(i));
+  });
+  demoBoard.addEventListener('mouseleave', () => highlight(null));
+  // 默认高亮中心，让一打开就有视觉
+  setTimeout(() => highlight(12), 0);
+
+  demo.appendChild(demoBoard);
+  const demoHint = document.createElement('div');
+  demoHint.className = 'demo-hint';
+  demoHint.innerHTML = '深蓝 = 被点击的按钮自身；浅蓝 = 它会"翻"的邻居。<br/>移到角落 / 边上 / 中央对比影响的格子数。';
+  demo.appendChild(demoHint);
+
+  intro.appendChild(demo);
+  wrap.appendChild(intro);
+
+  // legend
+  legend.innerHTML = `
+    <span><span class="dot" style="background:#bfdbfe;border-color:var(--accent-dark)"></span>按钮自身</span>
+    <span><span class="dot" style="background:rgba(59,130,246,.35);border-color:var(--accent)"></span>被翻转的邻居</span>`;
+
+  // 数据面板：浓缩结论卡片
+  addStat(stat, '游戏诞生', '1995（Tiger Electronics）');
+  addStat(stat, '核心规则', '按 1 格 → 翻 ≤5 灯');
+  addStat(stat, '数学语言', 'GF(2) 线性代数');
+  addStat(stat, '方程', 'A · x = b (mod 2)');
+  addStat(stat, '3×3', '全可解', 'success');
+  addStat(stat, '4×4', '1/16 可解', 'warn');
+  addStat(stat, '5×5', '1/4 可解', 'warn');
+}
+
+// -------- M1 --------
+function renderM1(ctrls, wrap, banner, legend, stat, st) {
+  addBtn(ctrls, '上一步', { onClick: () => { undo(st); renderAll(); }, disabled: st.history.length === 0 });
+  addBtn(ctrls, '重置', { onClick: () => { resetM1(); renderAll(); } });
+  addBtn(ctrls, '换一关', { primary: true, onClick: () => { initM1(); renderAll(); } });
+
+  wrap.appendChild(buildLights(st.board, 3, (i) => {
+    st.history.push(clone(st.board));
+    pressIdx(st.board, 3, i);
+    achievements.unlock('firstPress');
+    if (isAllOff(st.board)) {
+      achievements.unlock('m1Clear');
+      if (st.history.length <= 4) achievements.unlock('m1Lightning');
+      renderAll(); flashCells();
+    } else renderAll();
+  }));
+
+  if (isAllOff(st.board)) {
+    const b = document.createElement('div');
+    b.className = 'banner success';
+    b.textContent = `🎉 全部熄灭！共 ${st.history.length} 步。`;
+    banner.appendChild(b);
+  }
+
+  legend.innerHTML = `<span><span class="dot lit"></span>已点亮</span>`;
+
+  addStat(stat, '尺寸', '3 × 3');
+  addStat(stat, '当前亮灯', countLit(st.board), countLit(st.board) === 0 ? 'success' : '');
+  addStat(stat, '已走步数', st.history.length);
+  // 可解性 / 最优解
+  const r = solveLights(3, st.board);
+  addStat(stat, '可解', r.solvable ? '是' : '否', r.solvable ? 'success' : 'danger');
+  if (r.solvable) addStat(stat, '理论最优步数', r.optimalCount);
+}
+
+function flashCells() {
+  $$('.cell').forEach(c => { c.classList.add('flash'); setTimeout(() => c.classList.remove('flash'), 320); });
+}
+function undo(st) {
+  if (st.history.length) st.board = st.history.pop();
+}
+
+// -------- M2 --------
+function renderM2(ctrls, wrap, banner, legend, stat, st) {
+  addBtn(ctrls, '换一组按钮', { primary: true, onClick: () => { initM2(); renderAll(); } });
+  addBtn(ctrls, '按顺序 A 演示', { onClick: () => animateSequence(st, 'A') });
+  addBtn(ctrls, '按顺序 B 演示', { onClick: () => animateSequence(st, 'B') });
+  addBtn(ctrls, '同时按完', { onClick: () => {
+    st.boardA = clone(st.base0); st.boardB = clone(st.base0);
+    st.orderA.forEach(i => pressIdx(st.boardA, 5, i));
+    st.orderB.forEach(i => pressIdx(st.boardB, 5, i));
+    renderAll();
+  } });
+  addBtn(ctrls, '重置盘面', { onClick: () => { initM2(); renderAll(); } });
+
+  // 双盘面区
+  const dual = document.createElement('div'); dual.className = 'dual-board';
+  const colA = document.createElement('div');
+  const lblA = document.createElement('div'); lblA.className = 'label';
+  lblA.textContent = `盘面 A（顺序：${st.orderA.map(i=>posLabel(i,5)).join('→')}）`;
+  colA.appendChild(lblA);
+  colA.appendChild(buildLights(st.boardA, 5, null));
+  dual.appendChild(colA);
+  const colB = document.createElement('div');
+  const lblB = document.createElement('div'); lblB.className = 'label';
+  lblB.textContent = `盘面 B（顺序：${st.orderB.map(i=>posLabel(i,5)).join('→')}）`;
+  colB.appendChild(lblB);
+  colB.appendChild(buildLights(st.boardB, 5, null));
+  dual.appendChild(colB);
+  wrap.appendChild(dual);
+
+  // "重复按按钮" 区
+  const repHead = document.createElement('div');
+  repHead.style.color = 'var(--muted)'; repHead.style.fontSize = '13px';
+  repHead.textContent = '↓ 在下方灯阵上随便按，观察每格累计按次（mod 2）：偶数次=没按。';
+  wrap.appendChild(repHead);
+  wrap.appendChild(buildLights(st.board, 5, (i) => {
+    pressIdx(st.board, 5, i);
+    st.presses[i] = (st.presses[i] + 1) & 1; // 显示 mod 2
+    achievements.unlock('firstPress');
+    renderAll();
+  }));
+
+  // 对比横幅
+  const same = arraysEqual(st.boardA, st.boardB);
+  // 仅当 A、B 都按完（即任一不等于 base0）才算"看到结果"
+  const aDone = !arraysEqual(st.boardA, st.base0);
+  const bDone = !arraysEqual(st.boardB, st.base0);
+  if (same && aDone && bDone) achievements.unlock('m2Same');
+  const b = document.createElement('div');
+  b.className = 'banner ' + (same ? 'success' : 'info');
+  b.textContent = same ? '✅ 盘面 A 与盘面 B 完全相同：操作顺序无关。' : '当前 A、B 还没都按完，按"同时按完"看结果。';
+  banner.appendChild(b);
+
+  legend.innerHTML = `<span><span class="dot lit"></span>已点亮</span>`;
+
+  addStat(stat, '按钮集合 (按下次数 mod 2)', '');
+  // 把 presses (mod 2) 用一个小网格表示
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:6px';
+  for (let i = 0; i < 25; i++) {
+    const c = document.createElement('div');
+    c.style.cssText = 'aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600';
+    c.style.background = st.presses[i] ? '#bfdbfe' : '#f1f5f9';
+    c.style.color = st.presses[i] ? '#1d4ed8' : '#94a3a8';
+    c.textContent = st.presses[i];
+    grid.appendChild(c);
+  }
+  stat.appendChild(grid);
+  addStat(stat, '同色亮灯数（A）', countLit(st.boardA));
+  addStat(stat, '同色亮灯数（B）', countLit(st.boardB));
+  addStat(stat, '结论', same ? '顺序无关 ✔' : '——', same ? 'success' : '');
+}
+
+function posLabel(idx, n) {
+  return `(${Math.floor(idx/n)+1},${(idx%n)+1})`;
+}
+function arraysEqual(a, b) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+async function animateSequence(st, which) {
+  const order = which === 'A' ? st.orderA : st.orderB;
+  // 重置该盘面到 base0
+  if (which === 'A') st.boardA = clone(st.base0);
+  else st.boardB = clone(st.base0);
+  renderAll();
+  for (const i of order) {
+    if (which === 'A') pressIdx(st.boardA, 5, i);
+    else pressIdx(st.boardB, 5, i);
+    renderAll();
+    await sleep(380);
+  }
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// -------- M3 --------
+function renderM3(ctrls, wrap, banner, legend, stat, st) {
+  addBtn(ctrls, '换一关', { primary: true, onClick: () => { initM3(); renderAll(); } });
+  addBtn(ctrls, '求最优解', { onClick: () => {
+    const r = solveLights(4, st.board);
+    if (!r.solvable) return; // 4×4 总是可解
+    st.solution = bigIntToBoard(r.optimal, 16);
+    st.solveSteps = [];
+    for (let i = 0; i < 16; i++) if (st.solution[i]) st.solveSteps.push(i);
+    renderAll();
+  } });
+  addBtn(ctrls, '分步播放', { onClick: () => playSolution(st, 4), disabled: !st.solveSteps });
+  addBtn(ctrls, '上一步', { onClick: () => { undo(st); renderAll(); }, disabled: st.history.length === 0 });
+  addBtn(ctrls, '重置盘面', { onClick: () => { resetM3(); renderAll(); } });
+
+  wrap.appendChild(buildLights(st.board, 4, (i) => {
+    st.history.push(clone(st.board));
+    pressIdx(st.board, 4, i);
+    achievements.unlock('firstPress');
+    renderAll();
+  }, { hintMask: st.solution }));
+
+  const r = solveLights(4, st.board);
+  if (isAllOff(st.board)) {
+    // 仅当玩家有过手动按下记录，且步数等于最优，才算"最优玩家"
+    if (st.history.length > 0 && r.solvable && st.history.length === r.optimalCount
+        && !st._solverUsedThisRound) {
+      achievements.unlock('m3Optimal');
+    }
+    const b = document.createElement('div');
+    b.className = 'banner success';
+    b.textContent = `🎉 全灭！你用了 ${st.history.length} 步；理论最少 ${r.solvable ? r.optimalCount : '—'} 步。`;
+    banner.appendChild(b);
+  } else if (st.solution) {
+    const cnt = st.solveSteps.length;
+    const b = document.createElement('div');
+    b.className = 'banner info';
+    b.textContent = `蓝色虚线圆圈标出需要按的 ${cnt} 个按钮。点击"分步播放"自动按下。`;
+    banner.appendChild(b);
+  }
+
+  legend.innerHTML = `<span><span class="dot lit"></span>已点亮</span>
+    <span><span class="dot hint"></span>建议按下的按钮</span>`;
+
+  addStat(stat, '尺寸', '4 × 4');
+  addStat(stat, '当前亮灯', countLit(st.board), countLit(st.board) === 0 ? 'success' : '');
+  addStat(stat, '玩家步数', st.history.length);
+  addStat(stat, '可解', r.solvable ? '是' : '否', r.solvable ? 'success' : 'danger');
+  if (r.solvable) {
+    addStat(stat, '最优步数', r.optimalCount, 'success');
+    addStat(stat, '等价解组数', `2^${r.nullBasis.length} = ${1 << r.nullBasis.length}`);
+  }
+}
+
+async function playSolution(st, n) {
+  if (!st.solveSteps) return;
+  st._solverUsedThisRound = true;
+  for (const i of st.solveSteps) {
+    st.history.push(clone(st.board));
+    pressIdx(st.board, n, i);
+    renderAll();
+    await sleep(380);
+  }
+  // 清掉求解高亮
+  st.solution = null; st.solveSteps = null;
+  renderAll();
+  if (n === 4 && isAllOff(st.board)) achievements.unlock('m3Solver');
+}
+
+// -------- M4 --------
+function renderM4(ctrls, wrap, banner, legend, stat, st) {
+  addBtn(ctrls, '随机盘面', { primary: true, onClick: () => { initM4(false); renderAll(); } });
+  addBtn(ctrls, '加载不可解盘面', { warn: true, onClick: () => {
+    initM4(true); st.loadedUnsolvable = true; renderAll();
+  } });
+  addBtn(ctrls, '判定可解性 & 求解', { onClick: () => {
+    const r = solveLights(5, st.board);
+    if (!r.solvable) {
+      achievements.unlock('m4Invariant');
+      st.solution = null; st.solveSteps = null; renderAll(); return;
+    }
+    st.solution = bigIntToBoard(r.optimal, 25);
+    st.solveSteps = [];
+    for (let i = 0; i < 25; i++) if (st.solution[i]) st.solveSteps.push(i);
+    renderAll();
+  } });
+  addBtn(ctrls, '分步播放', { onClick: () => playSolution(st, 5), disabled: !st.solveSteps });
+  addBtn(ctrls, st.showInvariant ? '关闭染色' : '显示 quiet pattern 染色', {
+    onClick: () => {
+      st.showInvariant = !st.showInvariant;
+      if (st.showInvariant && st.loadedUnsolvable) achievements.unlock('m4Detective');
+      renderAll();
+    }
+  });
+  addBtn(ctrls, '上一步', { onClick: () => { undo(st); renderAll(); }, disabled: st.history.length === 0 });
+
+  const opts = { hintMask: st.solution };
+  if (st.showInvariant) {
+    const q1 = new Uint8Array(25), q2 = new Uint8Array(25);
+    for (let i = 0; i < 25; i++) {
+      if ((QUIET_5[0] >> BigInt(i)) & 1n) q1[i] = 1;
+      if ((QUIET_5[1] >> BigInt(i)) & 1n) q2[i] = 1;
+    }
+    opts.q1 = q1; opts.q2 = q2;
+  }
+  wrap.appendChild(buildLights(st.board, 5, (i) => {
+    st.history.push(clone(st.board));
+    pressIdx(st.board, 5, i);
+    st.solution = null; st.solveSteps = null;
+    achievements.unlock('firstPress');
+    renderAll();
+  }, opts));
+
+  const b = boardToBigInt(st.board);
+  const q1Sum = popcount(b & QUIET_5[0]) & 1;
+  const q2Sum = popcount(b & QUIET_5[1]) & 1;
+  const solvable = (q1Sum === 0) && (q2Sum === 0);
+
+  const banEl = document.createElement('div');
+  if (isAllOff(st.board)) {
+    banEl.className = 'banner success';
+    banEl.textContent = `🎉 全灭！`;
+  } else if (!solvable) {
+    banEl.className = 'banner danger';
+    banEl.textContent = `❌ 此盘面不可解：q₁ 内积 = ${q1Sum}, q₂ 内积 = ${q2Sum}（必须都为 0）。`;
+  } else if (st.solution) {
+    banEl.className = 'banner info';
+    banEl.textContent = `✅ 可解。需按 ${st.solveSteps.length} 个按钮。`;
+  } else {
+    banEl.className = 'banner info';
+    banEl.textContent = `点击"判定可解性 & 求解"查看结论。`;
+  }
+  banner.appendChild(banEl);
+
+  legend.innerHTML = `
+    <span><span class="dot lit"></span>已点亮</span>
+    <span><span class="dot hint"></span>建议按下的按钮</span>
+    <span><span class="dot q1"></span>quiet pattern q₁</span>
+    <span><span class="dot q2"></span>quiet pattern q₂</span>`;
+
+  addStat(stat, '尺寸', '5 × 5');
+  addStat(stat, '当前亮灯', countLit(st.board), countLit(st.board) === 0 ? 'success' : '');
+  addStat(stat, '可解性', solvable ? '可解' : '不可解', solvable ? 'success' : 'danger');
+  addStat(stat, '⟨b, q₁⟩ mod 2', q1Sum, q1Sum === 0 ? 'success' : 'danger');
+  addStat(stat, '⟨b, q₂⟩ mod 2', q2Sum, q2Sum === 0 ? 'success' : 'danger');
+  // 紫色覆盖下亮灯数
+  let q1Lit = 0, q2Lit = 0;
+  for (let i = 0; i < 25; i++) {
+    if (st.board[i] && ((QUIET_5[0] >> BigInt(i)) & 1n)) q1Lit++;
+    if (st.board[i] && ((QUIET_5[1] >> BigInt(i)) & 1n)) q2Lit++;
+  }
+  addStat(stat, '紫色覆盖下亮灯数', q1Lit, q1Lit % 2 === 0 ? 'success' : 'warn');
+  addStat(stat, '橙色覆盖下亮灯数', q2Lit, q2Lit % 2 === 0 ? 'success' : 'warn');
+}
+
+// -------- M5 --------
+function renderM5(ctrls, wrap, banner, legend, stat, st) {
+  // 尺寸切换
+  const sizeWrap = document.createElement('div');
+  sizeWrap.style.cssText = 'display:flex;gap:8px;align-items:center';
+  const sizeLabel = document.createElement('span');
+  sizeLabel.textContent = '尺寸：'; sizeLabel.style.color = 'var(--muted)';
+  const sel = document.createElement('select'); sel.className = 'size-select';
+  for (const n of [3, 4, 5]) {
+    const o = document.createElement('option');
+    o.value = n; o.textContent = `${n} × ${n}`;
+    if (n === st.n) o.selected = true;
+    sel.appendChild(o);
+  }
+  sel.addEventListener('change', () => {
+    const n = +sel.value;
+    st.n = n;
+    st.board = new Uint8Array(n * n);
+    st.pressMask = new Uint8Array(n * n);
+    st.history = [];
+    renderAll();
+  });
+  sizeWrap.appendChild(sizeLabel); sizeWrap.appendChild(sel);
+  ctrls.appendChild(sizeWrap);
+
+  // 模式切换
+  const tabs = document.createElement('div'); tabs.className = 'mode-tabs';
+  for (const [mode, label] of [['play','游戏模式'],['edit','编辑模式'],['press','出题模式']]) {
+    const b = document.createElement('button');
+    b.textContent = label;
+    if (st.mode === mode) b.classList.add('active');
+    b.addEventListener('click', () => { st.mode = mode; if (mode === 'press') st.pressMask = new Uint8Array(st.n * st.n); renderAll(); });
+    tabs.appendChild(b);
+  }
+  ctrls.appendChild(tabs);
+
+  addBtn(ctrls, '清空盘面', { onClick: () => { st.board = new Uint8Array(st.n * st.n); st.pressMask = new Uint8Array(st.n*st.n); st.history = []; renderAll(); } });
+  addBtn(ctrls, '求解', { onClick: () => {
+    const r = solveLights(st.n, st.board);
+    if (!r.solvable) return;
+    // 直接按下最优解
+    for (let i = 0; i < st.n * st.n; i++) {
+      if ((r.optimal >> BigInt(i)) & 1n) pressIdx(st.board, st.n, i);
+    }
+    renderAll();
+  } });
+  if (st.mode === 'press') {
+    addBtn(ctrls, '生成盘面', { primary: true, onClick: () => {
+      const b = new Uint8Array(st.n * st.n);
+      let any = false;
+      for (let i = 0; i < st.n * st.n; i++) if (st.pressMask[i]) { pressIdx(b, st.n, i); any = true; }
+      st.board = b; st.mode = 'play';
+      if (any) achievements.unlock('m5Author');
+      renderAll();
+    } });
+  }
+
+  const opts = {};
+  if (st.mode === 'press') opts.hintMask = st.pressMask;
+
+  wrap.appendChild(buildLights(st.board, st.n, (i) => {
+    if (st.mode === 'edit') {
+      st.board[i] ^= 1;
+    } else if (st.mode === 'press') {
+      st.pressMask[i] ^= 1;
+    } else {
+      st.history.push(clone(st.board));
+      pressIdx(st.board, st.n, i);
+      achievements.unlock('firstPress');
+    }
+    renderAll();
+  }, opts));
+
+  const modeHint = document.createElement('div');
+  modeHint.style.cssText = 'color:var(--muted);font-size:13px;text-align:center';
+  modeHint.textContent = {
+    play: '游戏模式：点击按钮翻转自身与邻居。',
+    edit: '编辑模式：点击直接切换该灯状态（不翻邻居），用于绘制初始盘面。',
+    press: '出题模式：标记要"按下的按钮"，点"生成盘面"得到对应题面。'
+  }[st.mode];
+  wrap.appendChild(modeHint);
+
+  const r = solveLights(st.n, st.board);
+  const banEl = document.createElement('div');
+  if (isAllOff(st.board)) { banEl.className = 'banner success'; banEl.textContent = '🌑 当前全灭。'; }
+  else if (!r.solvable) { banEl.className = 'banner danger'; banEl.textContent = '❌ 当前盘面不可解。'; }
+  else { banEl.className = 'banner info'; banEl.textContent = `✅ 当前盘面可解，最优 ${r.optimalCount} 步。`; }
+  banner.appendChild(banEl);
+
+  legend.innerHTML = `<span><span class="dot lit"></span>已点亮</span>
+    <span><span class="dot hint"></span>${st.mode === 'press' ? '将按下的按钮' : '建议按下的按钮'}</span>`;
+
+  addStat(stat, '尺寸', `${st.n} × ${st.n}`);
+  addStat(stat, '当前模式', { play: '游戏', edit: '编辑', press: '出题' }[st.mode]);
+  addStat(stat, '亮灯数', countLit(st.board));
+  addStat(stat, '可解', r.solvable ? '是' : '否', r.solvable ? 'success' : 'danger');
+  if (r.solvable) addStat(stat, '最优步数', r.optimalCount);
+  if (st.mode === 'press') addStat(stat, '将按下按钮数', countLit(st.pressMask));
+  // 5×5 时展示不变量
+  if (st.n === 5) {
+    const b = boardToBigInt(st.board);
+    addStat(stat, '⟨b, q₁⟩ mod 2', popcount(b & QUIET_5[0]) & 1);
+    addStat(stat, '⟨b, q₂⟩ mod 2', popcount(b & QUIET_5[1]) & 1);
+  }
+}
+
+// ============================================================
+// 5. 提示渲染
+// ============================================================
+function renderPrompt() {
+  const p = PROMPTS[app.active][app.promptTier];
+  const body = $('#promptBody');
+  body.innerHTML = `<p><strong>${tierLabel(app.promptTier)}：</strong>${p.q}</p>
+    <div class="answer">参考结论：${p.a}</div>`;
+  body.classList.toggle('collapsed', !app.promptRevealed);
+  $$('.prompt-tabs button[data-tier]').forEach(b => {
+    b.classList.toggle('active', b.dataset.tier === app.promptTier);
+  });
+  $('#revealBtn').textContent = app.promptRevealed ? '隐藏结论' : '显示结论';
+}
+function tierLabel(t) { return { observe: '观察', verify: '验证', prove: '证明' }[t]; }
+
+$$('.prompt-tabs button[data-tier]').forEach(b => {
+  b.addEventListener('click', () => { app.promptTier = b.dataset.tier; renderPrompt(); });
+});
+$('#revealBtn').addEventListener('click', () => { app.promptRevealed = !app.promptRevealed; renderPrompt(); });
+
+// ============================================================
+// 6. 主循环
+// ============================================================
+function renderAll() {
+  renderTopNav();
+  renderModuleList();
+  renderStage();
+  renderPrompt();
+}
+renderAll();
+
+// 键盘支持
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'r' || e.key === 'R') {
+    // 重置当前模块（M0 是介绍页，无需重置）
+    if (app.active === 'M1') initM1();
+    else if (app.active === 'M2') initM2();
+    else if (app.active === 'M3') initM3();
+    else if (app.active === 'M4') initM4();
+    else if (app.active === 'M5') initM5();
+    renderAll();
+  } else if (/^[0-5]$/.test(e.key)) {
+    app.active = `M${e.key}`;
+    renderAll();
+  } else if (e.key === 'Escape') {
+    closeAchModal();
+  } else if (e.key === 'a' || e.key === 'A') {
+    openAchModal();
+  }
+});
+})();
+</script>
+</body>
+</html>

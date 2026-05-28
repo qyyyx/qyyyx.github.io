@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数学交互课件库</title>
+<style>
+  :root{
+    --bg:#0f172a; --bg2:#1e293b;
+    --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --brand:#4f46e5; --brand2:#7c3aed;
+    --geo:#0ea5e9; --alg:#10b981; --num:#f59e0b; --app:#ef4444;
+    --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,-apple-system,sans-serif;
+    color:var(--ink); background:#f1f5f9; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* 顶部 */
+  header{
+    background:linear-gradient(135deg,var(--bg) 0%,#312e81 60%,var(--brand2) 120%);
+    color:#fff; padding:56px 20px 72px; text-align:center; position:relative;
+  }
+  header h1{font-size:clamp(28px,5vw,44px);font-weight:800;letter-spacing:.5px}
+  header p{margin-top:12px;font-size:clamp(14px,2.5vw,18px);color:#c7d2fe;max-width:680px;margin-left:auto;margin-right:auto}
+  .stat{margin-top:18px;font-size:13px;color:#a5b4fc;letter-spacing:.5px}
+  /* 搜索 + 筛选 */
+  .toolbar{
+    max-width:1080px;margin:-34px auto 0;padding:0 20px;position:relative;z-index:2;
+  }
+  .search-wrap{position:relative}
+  #search{
+    width:100%;padding:16px 18px 16px 50px;font-size:16px;border:1px solid var(--line);
+    border-radius:14px;box-shadow:var(--shadow);outline:none;background:#fff;color:var(--ink);
+  }
+  #search:focus{border-color:var(--brand);box-shadow:0 0 0 4px rgba(79,70,229,.15)}
+  .search-wrap svg{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--muted)}
+  .filters{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;justify-content:center}
+  .chip{
+    border:1px solid var(--line);background:#fff;color:var(--muted);
+    padding:7px 16px;border-radius:999px;font-size:14px;cursor:pointer;transition:.15s;user-select:none;
+  }
+  .chip:hover{border-color:var(--brand);color:var(--brand)}
+  .chip.active{background:var(--brand);border-color:var(--brand);color:#fff}
+  /* 内容 */
+  main{max-width:1080px;margin:0 auto;padding:40px 20px 80px}
+  .category{margin-top:44px}
+  .category:first-child{margin-top:30px}
+  .cat-head{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .cat-dot{width:12px;height:12px;border-radius:4px}
+  .cat-head h2{font-size:22px;font-weight:700}
+  .cat-head .count{font-size:13px;color:var(--muted);background:#fff;border:1px solid var(--line);padding:2px 10px;border-radius:999px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;
+    box-shadow:var(--shadow);display:flex;flex-direction:column;transition:transform .18s,box-shadow .18s;
+    text-decoration:none;color:inherit;position:relative;overflow:hidden;
+  }
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,var(--brand))}
+  .card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(15,23,42,.14)}
+  .card .tag{align-self:flex-start;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;color:#fff;background:var(--accent,var(--brand));margin-bottom:12px}
+  .card h3{font-size:18px;font-weight:700;margin-bottom:8px}
+  .card p{font-size:14px;color:var(--muted);flex:1}
+  .card .go{margin-top:16px;font-size:14px;font-weight:600;color:var(--accent,var(--brand));display:inline-flex;align-items:center;gap:6px}
+  .card .go svg{transition:transform .18s}
+  .card:hover .go svg{transform:translateX(4px)}
+  .empty{display:none;text-align:center;color:var(--muted);padding:60px 0;font-size:16px}
+  footer{text-align:center;padding:30px 20px 50px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)}
+  footer a{color:var(--brand);text-decoration:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>数学交互课件库</h1>
+  <p>把抽象的数学变成可以动手探究的实验。点击任意课件，即可在浏览器中直接交互学习。</p>
+  <div class="stat" id="stat"></div>
+</header>
+
+<div class="toolbar">
+  <div class="search-wrap">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="search" type="search" placeholder="搜索课件标题、知识点或关键词…" autocomplete="off">
+  </div>
+  <div class="filters" id="filters"></div>
+</div>
+
+<main id="main"></main>
+<div class="empty" id="empty">没有匹配的课件，换个关键词试试～</div>
+
+<footer>
+  © <span id="year"></span> 数学交互课件库 · 由单文件 HTML 课件构建 ·
+  <a href="https://github.com/qyyyx/qyyyx.github.io" target="_blank" rel="noopener">GitHub</a>
+</footer>
+
+<script>
+const CATEGORIES = [
+  {key:"geo", name:"几何与图形", color:"var(--geo)"},
+  {key:"alg", name:"代数与函数", color:"var(--alg)"},
+  {key:"num", name:"数论与组合", color:"var(--num)"},
+  {key:"app", name:"应用问题",   color:"var(--app)"},
+];
+
+const COURSEWARE = [
+  // 几何与图形
+  {title:"圆柱与圆锥", cat:"geo", file:"cylinder-cone.html",
+   desc:"动态展开与切割圆柱、圆锥，直观理解体积与表面积公式的来历。", tags:["立体几何","体积","表面积"]},
+  {title:"燕尾模型", cat:"geo", file:"swallowtail-model.html",
+   desc:"经典面积模型：通过燕尾定理探究三角形内线段与面积之比。", tags:["面积模型","三角形","比例"]},
+  {title:"鸟头模型", cat:"geo", file:"birdhead-model.html",
+   desc:"自学探究实验室，拖动顶点感受共角三角形的面积关系。", tags:["面积模型","共角","三角形"]},
+  {title:"风筝与蝴蝶模型", cat:"geo", file:"kite-butterfly.html",
+   desc:"梯形中的风筝模型与蝴蝶模型，可视化对应线段与面积的转化。", tags:["面积模型","梯形","相似"]},
+
+  // 代数与函数
+  {title:"二次函数", cat:"alg", file:"quadratic-function.html",
+   desc:"数学实验室：调节系数实时观察抛物线开口、顶点与对称轴的变化。", tags:["函数","抛物线","参数"]},
+  {title:"正反比例图像", cat:"alg", file:"proportion-graphs.html",
+   desc:"探究正比例与反比例函数的图像特征及其在生活中的对应关系。", tags:["函数","比例","图像"]},
+  {title:"最值原理", cat:"alg", file:"extremum-principle.html",
+   desc:"通过交互模型理解最大值与最小值的几何与代数求解思路。", tags:["最值","优化","几何"]},
+  {title:"运动图像（S-T 与 V-T 图）", cat:"alg", file:"motion-graphs.html",
+   desc:"拖动小车实时生成位移—时间、速度—时间图像，建立图像与运动的联系。", tags:["函数图像","运动","物理"]},
+
+  // 数论与组合
+  {title:"费马小定理", cat:"num", file:"fermat-little.html",
+   desc:"用项链着色的组合证明，直观感受费马小定理背后的对称之美。", tags:["数论","组合证明","同余"]},
+  {title:"关灯游戏", cat:"num", file:"lights-out.html",
+   desc:"灯阵里的奇偶与方程：用线性代数破解经典 Lights Out 谜题。", tags:["线性代数","奇偶","谜题"]},
+  {title:"多格骨牌铺砖", cat:"num", file:"polyomino-tiling.html",
+   desc:"能不能刚好铺满？动手摆放多格骨牌，体会铺砖问题中的染色论证。", tags:["组合","铺砖","染色"]},
+  {title:"骑士巡游问题", cat:"num", file:"knights-tour.html",
+   desc:"在棋盘上让骑士走遍每一格，探索图论与回溯的奇妙路径。", tags:["图论","回溯","棋盘"]},
+
+  // 应用问题
+  {title:"经济问题", cat:"app", file:"economics.html",
+   desc:"交互实验课件，用数学模型分析利润、成本与定价等经济情境。", tags:["应用","建模","利润"]},
+];
+
+const main = document.getElementById("main");
+const filtersEl = document.getElementById("filters");
+const searchEl = document.getElementById("search");
+const emptyEl = document.getElementById("empty");
+
+document.getElementById("year").textContent = new Date().getFullYear();
+document.getElementById("stat").textContent = `共 ${COURSEWARE.length} 个交互课件 · ${CATEGORIES.length} 个主题分类`;
+
+let activeCat = "all";
+
+// 筛选标签
+const allChip = chip("全部", "all", true);
+filtersEl.appendChild(allChip);
+CATEGORIES.forEach(c => filtersEl.appendChild(chip(c.name, c.key, false)));
+
+function chip(label, key, active){
+  const el = document.createElement("span");
+  el.className = "chip" + (active ? " active" : "");
+  el.textContent = label;
+  el.dataset.key = key;
+  el.onclick = () => {
+    activeCat = key;
+    [...filtersEl.children].forEach(c => c.classList.toggle("active", c.dataset.key === key));
+    render();
+  };
+  return el;
+}
+
+function render(){
+  const q = searchEl.value.trim().toLowerCase();
+  main.innerHTML = "";
+  let total = 0;
+
+  CATEGORIES.forEach(cat => {
+    if (activeCat !== "all" && activeCat !== cat.key) return;
+    const items = COURSEWARE.filter(c => c.cat === cat.key && matches(c, q));
+    if (!items.length) return;
+    total += items.length;
+
+    const section = document.createElement("section");
+    section.className = "category";
+    section.innerHTML =
+      `<div class="cat-head">
+         <span class="cat-dot" style="background:${cat.color}"></span>
+         <h2>${cat.name}</h2>
+         <span class="count">${items.length}</span>
+       </div>`;
+    const grid = document.createElement("div");
+    grid.className = "grid";
+    items.forEach(c => grid.appendChild(card(c, cat)));
+    section.appendChild(grid);
+    main.appendChild(section);
+  });
+
+  emptyEl.style.display = total ? "none" : "block";
+}
+
+function matches(c, q){
+  if (!q) return true;
+  return (c.title + " " + c.desc + " " + c.tags.join(" ")).toLowerCase().includes(q);
+}
+
+function card(c, cat){
+  const a = document.createElement("a");
+  a.className = "card";
+  a.href = "courseware/" + c.file;
+  a.target = "_blank";
+  a.rel = "noopener";
+  a.style.setProperty("--accent", cat.color);
+  a.innerHTML =
+    `<span class="tag">${cat.name}</span>
+     <h3>${c.title}</h3>
+     <p>${c.desc}</p>
+     <span class="go">打开课件
+       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+     </span>`;
+  return a;
+}
+
+searchEl.addEventListener("input", render);
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>费马小定理 - 项链着色证明</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --brand: #3b82f6;
+      --brand-dark: #2563eb;
+      --brand-soft: #dbeafe;
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --line: #e2e8f0;
+      --text: #172033;
+      --muted: #64748b;
+      --soft: #f1f5f9;
+      --green: #16a34a;
+      --green-soft: #dcfce7;
+      --amber: #d97706;
+      --amber-soft: #fef3c7;
+      --red: #dc2626;
+      --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    body {
+      overflow-x: hidden;
+    }
+
+    button,
+    select,
+    input {
+      font: inherit;
+    }
+
+    button {
+      min-height: 42px;
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+
+    button:focus-visible,
+    select:focus-visible,
+    input:focus-visible {
+      outline: 3px solid rgba(59, 130, 246, 0.32);
+      outline-offset: 2px;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 16px 20px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .title-block {
+      min-width: 0;
+    }
+
+    .eyebrow {
+      color: var(--brand);
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 5px;
+    }
+
+    h1 {
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .formula-strip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .formula-pill {
+      font-family: var(--mono);
+      background: var(--brand-soft);
+      color: #1d4ed8;
+      padding: 8px 11px;
+      border-radius: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+      border: 1px solid #bfdbfe;
+    }
+
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 232px minmax(0, 1fr) 300px;
+      gap: 16px;
+      padding: 16px;
+      min-height: 0;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .nav {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-self: start;
+      position: sticky;
+      top: 86px;
+    }
+
+    .section-label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 0 2px 2px;
+    }
+
+    .step-btn {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      gap: 9px;
+      align-items: center;
+      width: 100%;
+      padding: 10px;
+      background: var(--soft);
+      color: var(--text);
+      text-align: left;
+      border: 1px solid transparent;
+    }
+
+    .step-btn .num {
+      width: 28px;
+      height: 28px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 8px;
+      background: #e2e8f0;
+      color: #475569;
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .step-btn .name {
+      display: block;
+      font-weight: 800;
+      font-size: 14px;
+      white-space: normal;
+      line-height: 1.25;
+    }
+
+    .step-btn .hint {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .step-btn.active {
+      background: var(--brand);
+      color: #fff;
+      border-color: var(--brand-dark);
+      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.24);
+    }
+
+    .step-btn.active .num {
+      background: #fff;
+      color: var(--brand);
+    }
+
+    .step-btn.active .hint {
+      color: rgba(255, 255, 255, 0.82);
+    }
+
+    .stage {
+      display: flex;
+      flex-direction: column;
+      min-height: 640px;
+      overflow: hidden;
+    }
+
+    .stage-toolbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .control label {
+      font-weight: 800;
+      color: #334155;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .control select {
+      min-height: 32px;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      font-weight: 800;
+      font-family: var(--mono);
+    }
+
+    .action-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn-primary {
+      background: var(--brand);
+      color: #fff;
+      padding: 0 13px;
+      font-weight: 800;
+    }
+
+    .btn-primary:hover {
+      background: var(--brand-dark);
+    }
+
+    .btn-soft {
+      background: var(--soft);
+      color: #334155;
+      padding: 0 13px;
+      border: 1px solid var(--line);
+      font-weight: 800;
+    }
+
+    .btn-warn {
+      background: var(--amber-soft);
+      color: #92400e;
+      padding: 0 13px;
+      border: 1px solid #fde68a;
+      font-weight: 800;
+    }
+
+    .visual-area {
+      flex: 1;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 12px;
+      padding: 14px;
+      min-height: 0;
+    }
+
+    .stage-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .stage-heading h2 {
+      font-size: 22px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .stage-heading p {
+      margin-top: 6px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 15px;
+    }
+
+    .status-badge {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: var(--green-soft);
+      color: #166534;
+      font-weight: 900;
+      font-size: 13px;
+      white-space: nowrap;
+      border: 1px solid #bbf7d0;
+    }
+
+    .canvas-wrap {
+      min-height: 430px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background:
+        linear-gradient(90deg, rgba(226, 232, 240, 0.58) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(226, 232, 240, 0.58) 1px, transparent 1px),
+        #ffffff;
+      background-size: 32px 32px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .canvas-wrap svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 430px;
+    }
+
+    .svg-label {
+      font-size: 16px;
+      font-weight: 800;
+      fill: #1e293b;
+    }
+
+    .svg-small {
+      font-size: 12px;
+      font-weight: 700;
+      fill: #64748b;
+    }
+
+    .svg-mono {
+      font-family: var(--mono);
+      font-weight: 800;
+    }
+
+    .bead {
+      stroke: #ffffff;
+      stroke-width: 3;
+      filter: drop-shadow(0 2px 3px rgba(15, 23, 42, 0.18));
+    }
+
+    .bead.ghost {
+      opacity: 0.22;
+    }
+
+    .necklace-ring {
+      fill: none;
+      stroke: #cbd5e1;
+      stroke-width: 4;
+      stroke-dasharray: 8 8;
+    }
+
+    .highlight-ring {
+      fill: none;
+      stroke: var(--brand);
+      stroke-width: 4;
+    }
+
+    .arrow {
+      stroke: var(--brand);
+      stroke-width: 4;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .tray-box {
+      fill: #f8fafc;
+      stroke: #cbd5e1;
+      stroke-width: 1.5;
+      rx: 12;
+    }
+
+    .tray-box.active {
+      fill: #eff6ff;
+      stroke: var(--brand);
+      stroke-width: 2.5;
+    }
+
+    .proof-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 14px;
+      align-self: start;
+      position: sticky;
+      top: 86px;
+    }
+
+    .data-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .data-card {
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .data-card .label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .data-card .value {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 900;
+      color: #0f172a;
+      word-break: break-word;
+    }
+
+    .data-card.good .value {
+      color: var(--green);
+    }
+
+    .formula-box {
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .formula-box h3,
+    .proof-text h3 {
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .formula-line {
+      font-family: var(--mono);
+      font-weight: 900;
+      color: #1d4ed8;
+      line-height: 1.65;
+      font-size: 15px;
+      word-break: break-word;
+    }
+
+    .proof-text {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .proof-text p {
+      color: #334155;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .footer-prompt {
+      margin: 0 16px 16px;
+      padding: 13px 16px;
+      display: grid;
+      grid-template-columns: 110px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .prompt-tag {
+      align-self: start;
+      display: inline-flex;
+      min-height: 34px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      background: var(--brand-soft);
+      color: #1d4ed8;
+      font-weight: 900;
+    }
+
+    .prompt-content {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .prompt-content p {
+      line-height: 1.55;
+      color: #334155;
+    }
+
+    .prompt-content .question {
+      font-weight: 900;
+      color: #0f172a;
+    }
+
+    .hidden-conclusion .conclusion-only {
+      filter: blur(5px);
+      user-select: none;
+    }
+
+    .hidden-conclusion .conclusion-only::after {
+      content: "  已隐藏";
+      color: var(--muted);
+      font-family: inherit;
+      filter: none;
+    }
+
+    .mobile-note {
+      display: none;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 1120px) {
+      .workspace {
+        grid-template-columns: minmax(0, 1fr) 286px;
+      }
+
+      .nav {
+        grid-column: 1 / -1;
+        position: static;
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 12px;
+      }
+
+      .nav .section-label {
+        display: none;
+      }
+
+      .step-btn {
+        min-width: 188px;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .formula-strip {
+        justify-content: flex-start;
+      }
+
+      .workspace {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 12px;
+      }
+
+      .proof-panel,
+      .nav {
+        position: static;
+      }
+
+      .stage {
+        min-height: auto;
+      }
+
+      .stage-toolbar {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .action-row {
+        justify-content: flex-start;
+      }
+
+      .canvas-wrap,
+      .canvas-wrap svg {
+        min-height: 390px;
+      }
+
+      .footer-prompt {
+        margin: 0 12px 12px;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .mobile-note {
+        display: block;
+      }
+    }
+
+    @media (max-width: 520px) {
+      h1 {
+        font-size: 20px;
+      }
+
+      .formula-pill {
+        width: 100%;
+      }
+
+      .controls,
+      .action-row {
+        width: 100%;
+      }
+
+      .control {
+        flex: 1 1 132px;
+      }
+
+      .action-row button {
+        flex: 1 1 126px;
+      }
+
+      .stage-heading {
+        flex-direction: column;
+      }
+
+      .canvas-wrap,
+      .canvas-wrap svg {
+        min-height: 360px;
+      }
+
+      .data-card .value {
+        font-size: 19px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="header">
+      <div class="title-block">
+        <div class="eyebrow">组合计数法 · 项链着色</div>
+        <h1>费马小定理的可视化证明</h1>
+      </div>
+      <div class="formula-strip" aria-label="核心公式">
+        <div class="formula-pill">p | (a^p - a)</div>
+        <div class="formula-pill conclusion-only">a^(p-1) ≡ 1 (mod p)</div>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <nav class="nav card" aria-label="证明步骤">
+        <div class="section-label">Proof Steps</div>
+        <button class="step-btn active" data-step="0" type="button">
+          <span class="num">1</span>
+          <span><span class="name">观察全体着色</span><span class="hint">长度 p，每颗 a 种颜色</span></span>
+        </button>
+        <button class="step-btn" data-step="1" type="button">
+          <span class="num">2</span>
+          <span><span class="name">找固定项链</span><span class="hint">旋转后仍不变的特例</span></span>
+        </button>
+        <button class="step-btn" data-step="2" type="button">
+          <span class="num">3</span>
+          <span><span class="name">旋转成组</span><span class="hint">非全同色每组 p 个</span></span>
+        </button>
+        <button class="step-btn" data-step="3" type="button">
+          <span class="num">4</span>
+          <span><span class="name">推出整除</span><span class="hint">a^p - a 被 p 整除</span></span>
+        </button>
+        <button class="step-btn" data-step="4" type="button">
+          <span class="num">5</span>
+          <span><span class="name">得到小定理</span><span class="hint">两边同除以 a</span></span>
+        </button>
+      </nav>
+
+      <section class="stage card">
+        <div class="stage-toolbar">
+          <div class="controls">
+            <div class="control">
+              <label for="primeSelect">质数 p</label>
+              <select id="primeSelect">
+                <option value="3">3</option>
+                <option value="5" selected>5</option>
+                <option value="7">7</option>
+              </select>
+            </div>
+            <div class="control">
+              <label for="colorSelect">颜色数 a</label>
+              <select id="colorSelect">
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+              </select>
+            </div>
+          </div>
+          <div class="action-row" aria-label="课堂演示控制">
+            <button class="btn-soft" id="prevBtn" type="button">上一步</button>
+            <button class="btn-primary" id="nextBtn" type="button">下一步</button>
+            <button class="btn-soft" id="rotateBackBtn" type="button">逆转</button>
+            <button class="btn-soft" id="rotateNextBtn" type="button">旋转</button>
+            <button class="btn-primary" id="autoBtn" type="button">自动演示</button>
+            <button class="btn-warn" id="hideBtn" type="button">隐藏结论</button>
+            <button class="btn-soft" id="resetBtn" type="button">重置</button>
+          </div>
+        </div>
+
+        <div class="visual-area">
+          <div class="stage-heading">
+            <div>
+              <h2 id="stageTitle">观察全体着色</h2>
+              <p id="stageSubtitle">先把每一种长度为 p 的有序着色都看作一个“带起点的项链”。</p>
+            </div>
+            <div class="status-badge" id="statusBadge">观察</div>
+          </div>
+          <div class="canvas-wrap" aria-label="项链着色可视化画板">
+            <svg id="board" viewBox="0 0 900 560" role="img" aria-labelledby="stageTitle stageSubtitle"></svg>
+          </div>
+          <p class="mobile-note">窄屏下可先操作上方按钮，再向下查看计数面板。</p>
+        </div>
+      </section>
+
+      <aside class="proof-panel card" aria-label="计数与证明数据">
+        <div class="section-label">Live Counting</div>
+        <div class="data-grid">
+          <div class="data-card">
+            <div class="label">全部带起点着色 a^p</div>
+            <div class="value" id="totalValue">243</div>
+          </div>
+          <div class="data-card">
+            <div class="label">旋转不变的全同色</div>
+            <div class="value" id="fixedValue">3</div>
+          </div>
+          <div class="data-card">
+            <div class="label">需要分组的非全同色 a^p - a</div>
+            <div class="value" id="movingValue">240</div>
+          </div>
+          <div class="data-card good">
+            <div class="label">每组 p 个后的组数</div>
+            <div class="value" id="groupValue">48</div>
+          </div>
+          <div class="data-card good">
+            <div class="label">余数验证</div>
+            <div class="value" id="remainderValue">240 mod 5 = 0</div>
+          </div>
+        </div>
+
+        <div class="formula-box">
+          <h3>当前推理</h3>
+          <div class="formula-line" id="formulaLine">a^p = 3^5 = 243</div>
+          <div class="formula-line conclusion-only" id="finalLine">3^4 ≡ 1 (mod 5)</div>
+        </div>
+
+        <div class="proof-text">
+          <h3>为什么 p 是质数很关键</h3>
+          <p id="proofText">如果一个非全同色项链旋转 k 格后回到自身，那么 p 个位置会被 k 的循环周期分割。p 是质数时，只有 0 格旋转能固定它；否则所有珠子都会被迫同色。</p>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="footer-prompt card">
+      <div class="prompt-tag" id="promptTag">观察</div>
+      <div class="prompt-content">
+        <p class="question" id="promptQuestion">如果每颗珠子都有 a 种颜色，长度为 p 的带起点项链一共有多少种？</p>
+        <p id="promptGuide">先不急着看结论，试着把“每个位置独立选择颜色”翻译成乘法计数。</p>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var palette = ["#3b82f6", "#f97316", "#16a34a", "#e11d48", "#7c3aed", "#0891b2"];
+      var state = {
+        p: 5,
+        a: 3,
+        step: 0,
+        rotation: 0,
+        auto: false,
+        hideConclusion: false,
+        timer: null
+      };
+
+      var steps = [
+        {
+          title: "观察全体着色",
+          badge: "观察",
+          subtitle: "先把每一种长度为 p 的有序着色都看作一个“带起点的项链”。",
+          question: "如果每颗珠子都有 a 种颜色，长度为 p 的带起点项链一共有多少种？",
+          guide: "先不急着看结论，试着把“每个位置独立选择颜色”翻译成乘法计数。",
+          proof: "每个位置有 a 种选择，p 个位置独立选择，所以全部带起点着色共有 a^p 种。"
+        },
+        {
+          title: "找固定项链",
+          badge: "验证",
+          subtitle: "旋转一格后仍完全相同的项链，只能是所有珠子同一种颜色。",
+          question: "哪些项链旋转后看起来没有变？它们有多少种？",
+          guide: "观察单色项链：不论起点转到哪里，颜色序列都一样。再想想非单色能否做到。",
+          proof: "旋转不变意味着每一颗珠子都等于下一颗珠子，沿着圆走一圈可知全部同色，因此固定项链正好有 a 种。"
+        },
+        {
+          title: "旋转成组",
+          badge: "分组",
+          subtitle: "拿一个非全同色项链连续旋转，会得到 p 个互不相同的带起点着色。",
+          question: "为什么非全同色项链的旋转轨道恰好有 p 个成员？",
+          guide: "点击“旋转”，看同一条项链在 p 个起点下依次出现。p 是质数排除了较短周期。",
+          proof: "若某个 1 到 p-1 格的旋转能让它回到自身，因为 p 是质数，这会迫使所有位置同色，和非全同色矛盾。"
+        },
+        {
+          title: "推出整除",
+          badge: "整除",
+          subtitle: "把 a^p 个着色去掉 a 个固定项链，剩下的全部能按每组 p 个分组。",
+          question: "当剩下对象能全部装进“每盒 p 个”的盒子里，说明了什么整除关系？",
+          guide: "看右侧数据：非全同色数量除以 p 的余数始终是 0。",
+          proof: "全部着色 a^p 种，固定的全同色 a 种。其余 a^p-a 种按旋转轨道每 p 个一组，所以 p 整除 a^p-a。"
+        },
+        {
+          title: "得到小定理",
+          badge: "结论",
+          subtitle: "若 p 不整除 a，则 a 在模 p 下可约去，得到费马小定理。",
+          question: "从 p | a(a^(p-1)-1) 到 a^(p-1) ≡ 1 (mod p)，还需要什么条件？",
+          guide: "条件是 p 不整除 a。此时 a 和 p 互质，才能在模 p 意义下约去 a。",
+          proof: "由 p | (a^p-a) 得 p | a(a^(p-1)-1)。若 gcd(a,p)=1，则 p 不整除 a，只能整除 a^(p-1)-1。"
+        }
+      ];
+
+      var board = document.getElementById("board");
+      var app = document.getElementById("app");
+      var primeSelect = document.getElementById("primeSelect");
+      var colorSelect = document.getElementById("colorSelect");
+      var stepButtons = Array.prototype.slice.call(document.querySelectorAll(".step-btn"));
+
+      function pow(base, exponent) {
+        var result = 1;
+        for (var i = 0; i < exponent; i += 1) result *= base;
+        return result;
+      }
+
+      function mod(n, m) {
+        return ((n % m) + m) % m;
+      }
+
+      function samplePattern() {
+        var p = state.p;
+        var a = state.a;
+        var pattern = [];
+        for (var i = 0; i < p; i += 1) {
+          pattern.push(i % a);
+        }
+        if (p > 3) {
+          pattern[1] = Math.min(a - 1, 1);
+          pattern[p - 1] = Math.min(a - 1, 2);
+        }
+        return pattern;
+      }
+
+      function rotatePattern(pattern, shift) {
+        var p = pattern.length;
+        var out = [];
+        for (var i = 0; i < p; i += 1) {
+          out.push(pattern[mod(i - shift, p)]);
+        }
+        return out;
+      }
+
+      function allSamePattern(color) {
+        var pattern = [];
+        for (var i = 0; i < state.p; i += 1) pattern.push(color);
+        return pattern;
+      }
+
+      function svgEl(name, attrs) {
+        var svgNamespace = "ht" + "tp://www.w3.org/2000/svg";
+        var el = document.createElementNS(svgNamespace, name);
+        Object.keys(attrs || {}).forEach(function (key) {
+          el.setAttribute(key, attrs[key]);
+        });
+        return el;
+      }
+
+      function addText(parent, text, x, y, className, anchor) {
+        var el = svgEl("text", {
+          x: x,
+          y: y,
+          class: className || "svg-label",
+          "text-anchor": anchor || "middle"
+        });
+        el.textContent = text;
+        parent.appendChild(el);
+        return el;
+      }
+
+      function drawNecklace(parent, cx, cy, r, beadR, pattern, options) {
+        var opts = options || {};
+        var p = pattern.length;
+        parent.appendChild(svgEl("circle", {
+          cx: cx,
+          cy: cy,
+          r: r,
+          class: opts.highlight ? "highlight-ring" : "necklace-ring"
+        }));
+
+        for (var i = 0; i < p; i += 1) {
+          var angle = -Math.PI / 2 + (Math.PI * 2 * i) / p;
+          var x = cx + Math.cos(angle) * r;
+          var y = cy + Math.sin(angle) * r;
+          var bead = svgEl("circle", {
+            cx: x.toFixed(2),
+            cy: y.toFixed(2),
+            r: beadR,
+            fill: palette[pattern[i] % palette.length],
+            class: opts.ghost ? "bead ghost" : "bead"
+          });
+          parent.appendChild(bead);
+          if (opts.indexes) {
+            addText(parent, String(i), x, y + 4, "svg-small svg-mono");
+          }
+        }
+
+        if (opts.startMarker) {
+          var sx = cx;
+          var sy = cy - r;
+          parent.appendChild(svgEl("circle", {
+            cx: sx,
+            cy: sy,
+            r: beadR + 8,
+            fill: "none",
+            stroke: "#0f172a",
+            "stroke-width": 3
+          }));
+          addText(parent, "起点", sx, sy - beadR - 13, "svg-small");
+        }
+      }
+
+      function drawMiniNecklace(parent, cx, cy, r, pattern, active) {
+        var group = svgEl("g", {});
+        parent.appendChild(group);
+        drawNecklace(group, cx, cy, r, 8, pattern, { highlight: active });
+        return group;
+      }
+
+      function drawColorLegend(parent, x, y) {
+        addText(parent, "可用颜色", x, y, "svg-small", "start");
+        for (var i = 0; i < state.a; i += 1) {
+          parent.appendChild(svgEl("circle", {
+            cx: x + 18 + i * 28,
+            cy: y + 26,
+            r: 10,
+            fill: palette[i],
+            stroke: "#fff",
+            "stroke-width": 3
+          }));
+        }
+      }
+
+      function drawStepZero() {
+        var p = state.p;
+        var a = state.a;
+        var total = pow(a, p);
+        var pattern = rotatePattern(samplePattern(), state.rotation);
+        drawNecklace(board, 250, 260, 108, 24, pattern, { highlight: true, indexes: true, startMarker: true });
+        addText(board, "一条带起点的长度 " + p + " 着色项链", 250, 430, "svg-label");
+        addText(board, "每个位置都有 " + a + " 种颜色选择", 250, 458, "svg-small");
+
+        drawColorLegend(board, 515, 120);
+        addText(board, "乘法计数", 625, 210, "svg-label");
+        addText(board, "a × a × ... × a", 625, 255, "svg-label svg-mono");
+        addText(board, "共 p 个位置", 625, 285, "svg-small");
+        addText(board, "a^p = " + a + "^" + p + " = " + total, 625, 350, "svg-label svg-mono");
+
+        board.appendChild(svgEl("path", {
+          d: "M 390 260 C 470 235, 505 235, 555 255",
+          class: "arrow",
+          "marker-end": "url(#arrowHead)"
+        }));
+      }
+
+      function drawStepOne() {
+        var a = state.a;
+        addText(board, "旋转后不变：全同色", 450, 62, "svg-label");
+        for (var i = 0; i < a; i += 1) {
+          var cx = 150 + i * Math.min(118, 610 / Math.max(a, 1));
+          drawMiniNecklace(board, cx, 180, 42, allSamePattern(i), true);
+          addText(board, "颜色 " + (i + 1), cx, 252, "svg-small");
+        }
+
+        var pattern = rotatePattern(samplePattern(), state.rotation);
+        var rotated = rotatePattern(samplePattern(), state.rotation + 1);
+        drawNecklace(board, 310, 380, 64, 15, pattern, { highlight: false, startMarker: true });
+        drawNecklace(board, 590, 380, 64, 15, rotated, { highlight: false, startMarker: true });
+        board.appendChild(svgEl("path", {
+          d: "M 400 380 C 455 345, 505 345, 555 380",
+          class: "arrow",
+          "marker-end": "url(#arrowHead)"
+        }));
+        addText(board, "非全同色旋转后通常变成另一种带起点着色", 450, 500, "svg-label");
+      }
+
+      function drawStepTwo() {
+        var p = state.p;
+        var base = samplePattern();
+        drawNecklace(board, 185, 238, 90, 20, rotatePattern(base, state.rotation), {
+          highlight: true,
+          indexes: true,
+          startMarker: true
+        });
+        addText(board, "当前旋转 " + state.rotation + " 格", 185, 370, "svg-label svg-mono");
+        addText(board, "点击“旋转”观察同一组", 185, 402, "svg-small");
+
+        addText(board, "同一条非全同色项链的 p 个旋转", 590, 60, "svg-label");
+        var cols = p <= 5 ? p : 4;
+        var startX = p <= 5 ? 355 : 380;
+        for (var i = 0; i < p; i += 1) {
+          var col = i % cols;
+          var row = Math.floor(i / cols);
+          var x = startX + col * 112;
+          var y = 150 + row * 140;
+          board.appendChild(svgEl("rect", {
+            x: x - 48,
+            y: y - 48,
+            width: 96,
+            height: 100,
+            class: i === state.rotation ? "tray-box active" : "tray-box"
+          }));
+          drawMiniNecklace(board, x, y - 3, 28, rotatePattern(base, i), i === state.rotation);
+          addText(board, "转 " + i + " 格", x, y + 64, "svg-small svg-mono");
+        }
+        addText(board, "p 是质数，所以非全同色不会提前重复", 590, 500, "svg-label");
+      }
+
+      function drawStepThree() {
+        var p = state.p;
+        var a = state.a;
+        var moving = pow(a, p) - a;
+        var groups = moving / p;
+        var base = samplePattern();
+        addText(board, "去掉 a 个固定项链", 190, 70, "svg-label");
+        drawNecklace(board, 190, 220, 76, 17, allSamePattern(0), { highlight: true });
+        addText(board, "a 个", 190, 335, "svg-label svg-mono");
+
+        board.appendChild(svgEl("path", {
+          d: "M 292 220 C 360 190, 408 190, 468 220",
+          class: "arrow",
+          "marker-end": "url(#arrowHead)"
+        }));
+
+        addText(board, "剩下 a^p - a 个", 590, 70, "svg-label");
+        for (var i = 0; i < p; i += 1) {
+          var x = 410 + i * (340 / Math.max(p - 1, 1));
+          var active = i === state.rotation;
+          board.appendChild(svgEl("rect", {
+            x: x - 38,
+            y: 157,
+            width: 76,
+            height: 88,
+            class: active ? "tray-box active" : "tray-box"
+          }));
+          drawMiniNecklace(board, x, 196, 22, rotatePattern(base, i), active);
+          addText(board, String(i + 1), x, 262, "svg-small svg-mono");
+        }
+        board.appendChild(svgEl("rect", {
+          x: 385,
+          y: 310,
+          width: 420,
+          height: 90,
+          class: "tray-box active"
+        }));
+        addText(board, "每组正好 p = " + p + " 个", 595, 350, "svg-label svg-mono");
+        addText(board, "组数 = (" + a + "^" + p + " - " + a + ") / " + p + " = " + groups, 595, 382, "svg-label svg-mono");
+        addText(board, moving + " 个对象可以完整分盒", 450, 502, "svg-label");
+      }
+
+      function drawStepFour() {
+        var p = state.p;
+        var a = state.a;
+        var total = pow(a, p);
+        var moving = total - a;
+        var fermat = pow(a, p - 1);
+        var finalRemainder = mod(fermat, p);
+        board.appendChild(svgEl("rect", {
+          x: 95,
+          y: 74,
+          width: 710,
+          height: 136,
+          class: "tray-box active"
+        }));
+        addText(board, "组合计数已经证明", 450, 120, "svg-label");
+        addText(board, p + " | (" + a + "^" + p + " - " + a + ") = " + moving, 450, 166, "svg-label svg-mono");
+
+        board.appendChild(svgEl("path", {
+          d: "M 450 230 L 450 300",
+          class: "arrow",
+          "marker-end": "url(#arrowHead)"
+        }));
+
+        board.appendChild(svgEl("rect", {
+          x: 95,
+          y: 318,
+          width: 710,
+          height: 150,
+          class: "tray-box"
+        }));
+        addText(board, "若 p 不整除 a，就可以在模 p 中约去 a", 450, 365, "svg-label");
+        addText(board, a + "^" + (p - 1) + " = " + fermat + " ≡ " + finalRemainder + " (mod " + p + ")", 450, 414, "svg-label svg-mono");
+        addText(board, "这就是费马小定理", 450, 448, "svg-label conclusion-only");
+      }
+
+      function defineMarkers() {
+        var defs = svgEl("defs", {});
+        var marker = svgEl("marker", {
+          id: "arrowHead",
+          markerWidth: "10",
+          markerHeight: "10",
+          refX: "8",
+          refY: "3",
+          orient: "auto",
+          markerUnits: "strokeWidth"
+        });
+        marker.appendChild(svgEl("path", {
+          d: "M0,0 L0,6 L9,3 z",
+          fill: "#3b82f6"
+        }));
+        defs.appendChild(marker);
+        board.appendChild(defs);
+      }
+
+      function drawBoard() {
+        board.innerHTML = "";
+        defineMarkers();
+        if (state.step === 0) drawStepZero();
+        if (state.step === 1) drawStepOne();
+        if (state.step === 2) drawStepTwo();
+        if (state.step === 3) drawStepThree();
+        if (state.step === 4) drawStepFour();
+      }
+
+      function updateNumbers() {
+        var p = state.p;
+        var a = state.a;
+        var total = pow(a, p);
+        var moving = total - a;
+        var groups = moving / p;
+        var fermat = pow(a, p - 1);
+        document.getElementById("totalValue").textContent = total;
+        document.getElementById("fixedValue").textContent = a;
+        document.getElementById("movingValue").textContent = moving;
+        document.getElementById("groupValue").textContent = groups;
+        document.getElementById("remainderValue").textContent = moving + " mod " + p + " = " + mod(moving, p);
+        document.getElementById("formulaLine").textContent = p + " | (" + a + "^" + p + " - " + a + ") = " + moving;
+        document.getElementById("finalLine").textContent = a + "^" + (p - 1) + " = " + fermat + " ≡ " + mod(fermat, p) + " (mod " + p + ")";
+      }
+
+      function updateText() {
+        var current = steps[state.step];
+        document.getElementById("stageTitle").textContent = current.title;
+        document.getElementById("stageSubtitle").textContent = current.subtitle;
+        document.getElementById("statusBadge").textContent = current.badge;
+        document.getElementById("promptTag").textContent = current.badge;
+        document.getElementById("promptQuestion").textContent = current.question;
+        document.getElementById("promptGuide").textContent = current.guide;
+        document.getElementById("proofText").textContent = current.proof;
+        stepButtons.forEach(function (btn) {
+          btn.classList.toggle("active", Number(btn.dataset.step) === state.step);
+        });
+        app.classList.toggle("hidden-conclusion", state.hideConclusion);
+        document.getElementById("hideBtn").textContent = state.hideConclusion ? "显示结论" : "隐藏结论";
+        document.getElementById("autoBtn").textContent = state.auto ? "暂停演示" : "自动演示";
+      }
+
+      function render() {
+        state.rotation = mod(state.rotation, state.p);
+        updateNumbers();
+        updateText();
+        drawBoard();
+      }
+
+      function setStep(step) {
+        state.step = Math.max(0, Math.min(steps.length - 1, step));
+        render();
+      }
+
+      function stopAuto() {
+        if (state.timer) {
+          window.clearInterval(state.timer);
+          state.timer = null;
+        }
+        state.auto = false;
+      }
+
+      function startAuto() {
+        stopAuto();
+        state.auto = true;
+        state.timer = window.setInterval(function () {
+          if (state.step < steps.length - 1) {
+            state.step += 1;
+          } else {
+            state.step = 0;
+          }
+          state.rotation = mod(state.rotation + 1, state.p);
+          render();
+        }, 1800);
+        render();
+      }
+
+      primeSelect.addEventListener("change", function () {
+        state.p = Number(primeSelect.value);
+        state.rotation = 0;
+        render();
+      });
+
+      colorSelect.addEventListener("change", function () {
+        state.a = Number(colorSelect.value);
+        state.rotation = 0;
+        render();
+      });
+
+      stepButtons.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          setStep(Number(btn.dataset.step));
+        });
+      });
+
+      document.getElementById("prevBtn").addEventListener("click", function () {
+        setStep(state.step - 1);
+      });
+
+      document.getElementById("nextBtn").addEventListener("click", function () {
+        setStep(state.step + 1);
+      });
+
+      document.getElementById("rotateBackBtn").addEventListener("click", function () {
+        state.rotation = mod(state.rotation - 1, state.p);
+        render();
+      });
+
+      document.getElementById("rotateNextBtn").addEventListener("click", function () {
+        state.rotation = mod(state.rotation + 1, state.p);
+        render();
+      });
+
+      document.getElementById("autoBtn").addEventListener("click", function () {
+        if (state.auto) {
+          stopAuto();
+          render();
+        } else {
+          startAuto();
+        }
+      });
+
+      document.getElementById("hideBtn").addEventListener("click", function () {
+        state.hideConclusion = !state.hideConclusion;
+        render();
+      });
+
+      document.getElementById("resetBtn").addEventListener("click", function () {
+        stopAuto();
+        state.p = 5;
+        state.a = 3;
+        state.step = 0;
+        state.rotation = 0;
+        state.hideConclusion = false;
+        primeSelect.value = "5";
+        colorSelect.value = "3";
+        render();
+      });
+
+      render();
+    }());
+  </script>
+</body>
+</html>

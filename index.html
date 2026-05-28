@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>杨老师的 mathlab</title>
+<meta name="description" content="杨老师的 mathlab — 17 个数学交互课件，按主题分类，动手探究、即点即学。数学不仅是解题，更有大问题、真实的问题与有趣的问题。">
+<meta name="theme-color" content="#312e81">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<!-- Open Graph / 微信·群分享卡片 -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="杨老师的 mathlab">
+<meta property="og:description" content="17 个数学交互课件，按主题分类，动手探究、即点即学。">
+<meta property="og:url" content="https://qyyyx.github.io/">
+<meta property="og:image" content="https://qyyyx.github.io/assets/og-cover.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="杨老师的 mathlab">
+<meta name="twitter:description" content="17 个数学交互课件，按主题分类，动手探究、即点即学。">
+<meta name="twitter:image" content="https://qyyyx.github.io/assets/og-cover.png">
 <style>
   :root{
     --bg:#0f172a; --bg2:#1e293b;
@@ -38,14 +51,20 @@
     border-radius:14px;box-shadow:var(--shadow);outline:none;background:#fff;color:var(--ink);
   }
   #search:focus{border-color:var(--brand);box-shadow:0 0 0 4px rgba(79,70,229,.15)}
-  .search-wrap svg{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--muted)}
+  .search-wrap svg.search-icon{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+  /* 一键清除按钮 */
+  #clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);border:none;background:#e2e8f0;color:#475569;
+    width:26px;height:26px;border-radius:50%;font-size:16px;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center}
+  #clear:hover{background:#cbd5e1}
+  #clear.show{display:flex}
   .filters{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;justify-content:center}
   .chip{
-    border:1px solid var(--line);background:#fff;color:var(--muted);
+    border:1px solid var(--line);background:#fff;color:var(--muted);font-family:inherit;
     padding:7px 16px;border-radius:999px;font-size:14px;cursor:pointer;transition:.15s;user-select:none;
   }
   .chip:hover{border-color:var(--brand);color:var(--brand)}
   .chip.active{background:var(--brand);border-color:var(--brand);color:#fff}
+  .chip:focus-visible{outline:3px solid rgba(79,70,229,.4);outline-offset:2px}
   /* 内容 */
   main{max-width:1080px;margin:0 auto;padding:40px 20px 80px}
   .category{margin-top:44px}
@@ -62,13 +81,29 @@
   }
   .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,var(--brand))}
   .card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(15,23,42,.14)}
-  .card .tag{align-self:flex-start;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;color:#fff;background:var(--accent,var(--brand));margin-bottom:12px}
+  /* 缩略图封面 */
+  .card .thumb{margin:-22px -22px 16px;aspect-ratio:16/10;overflow:hidden;background:#f1f5f9;border-bottom:1px solid var(--line)}
+  .card .thumb img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;transition:transform .25s}
+  .card:hover .thumb img{transform:scale(1.04)}
+  .card .meta-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .card .tag{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;color:#fff;background:var(--accent,var(--brand))}
+  .card .level{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;color:var(--muted);background:#f1f5f9;border:1px solid var(--line)}
+  .card .new-badge{position:absolute;top:12px;right:12px;z-index:1;background:#ef4444;color:#fff;font-size:11px;font-weight:700;
+    padding:3px 9px;border-radius:999px;letter-spacing:.5px;box-shadow:0 2px 8px rgba(239,68,68,.4)}
   .card h3{font-size:18px;font-weight:700;margin-bottom:8px}
   .card p{font-size:14px;color:var(--muted);flex:1}
-  .card .go{margin-top:16px;font-size:14px;font-weight:600;color:var(--accent,var(--brand));display:inline-flex;align-items:center;gap:6px}
+  .card .diff{margin-top:12px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .card .diff .dots{letter-spacing:2px;color:var(--accent,var(--brand));font-size:13px}
+  .card .go{margin-top:14px;font-size:14px;font-weight:600;color:var(--accent,var(--brand));display:inline-flex;align-items:center;gap:6px}
   .card .go svg{transition:transform .18s}
   .card:hover .go svg{transform:translateX(4px)}
   .empty{display:none;text-align:center;color:var(--muted);padding:60px 0;font-size:16px}
+  /* 回到顶部 */
+  #toTop{position:fixed;right:24px;bottom:24px;width:46px;height:46px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--brand);color:#fff;box-shadow:0 6px 20px rgba(79,70,229,.4);display:flex;align-items:center;justify-content:center;
+    opacity:0;visibility:hidden;transform:translateY(10px);transition:.2s;z-index:50}
+  #toTop.show{opacity:1;visibility:visible;transform:translateY(0)}
+  #toTop:hover{background:var(--brand2)}
   footer{text-align:center;padding:30px 20px 50px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)}
   footer a{color:var(--brand);text-decoration:none}
 </style>
@@ -83,14 +118,19 @@
 
 <div class="toolbar">
   <div class="search-wrap">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-    <input id="search" type="search" placeholder="搜索课件标题、知识点或关键词…" autocomplete="off">
+    <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="search" type="search" placeholder="搜索课件标题、知识点或关键词…" autocomplete="off" aria-label="搜索课件">
+    <button id="clear" type="button" aria-label="清除搜索" title="清除（Esc）">×</button>
   </div>
-  <div class="filters" id="filters"></div>
+  <div class="filters" id="filters" role="group" aria-label="按主题筛选"></div>
 </div>
 
 <main id="main"></main>
 <div class="empty" id="empty">没有匹配的课件，换个关键词试试～</div>
+
+<button id="toTop" type="button" aria-label="回到顶部" title="回到顶部">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
+</button>
 
 <footer>
   © <span id="year"></span> 杨老师的 mathlab · 由单文件 HTML 课件构建 ·
@@ -106,78 +146,93 @@ const CATEGORIES = [
   {key:"fun", name:"趣味与思维", color:"var(--fun)"},
 ];
 
+// 字段说明：title 标题 / cat 分类 / file 文件 / desc 简介 / tags 关键词
+//          level 适合年级(可选) / diff 难度1-3(可选) / isNew 新课件(可选) / thumb 缩略图(可选)
+// level 与 diff 为初值，杨老师可按教学经验自行调整。
 const COURSEWARE = [
   // 几何与图形
-  {title:"圆柱与圆锥", cat:"geo", file:"cylinder-cone.html",
+  {title:"圆柱与圆锥", cat:"geo", file:"cylinder-cone.html", level:"六年级", diff:2,
    desc:"动态展开与切割圆柱、圆锥，直观理解体积与表面积公式的来历。", tags:["立体几何","体积","表面积"]},
-  {title:"燕尾模型", cat:"geo", file:"swallowtail-model.html",
+  {title:"燕尾模型", cat:"geo", file:"swallowtail-model.html", level:"五～六年级", diff:3,
    desc:"经典面积模型：通过燕尾定理探究三角形内线段与面积之比。", tags:["面积模型","三角形","比例"]},
-  {title:"鸟头模型", cat:"geo", file:"birdhead-model.html",
+  {title:"鸟头模型", cat:"geo", file:"birdhead-model.html", level:"五～六年级", diff:3,
    desc:"自学探究实验室，拖动顶点感受共角三角形的面积关系。", tags:["面积模型","共角","三角形"]},
-  {title:"风筝与蝴蝶模型", cat:"geo", file:"kite-butterfly.html",
+  {title:"风筝与蝴蝶模型", cat:"geo", file:"kite-butterfly.html", level:"五～六年级", diff:3,
    desc:"梯形中的风筝模型与蝴蝶模型，可视化对应线段与面积的转化。", tags:["面积模型","梯形","相似"]},
-  {title:"立方体打洞", cat:"geo", file:"drilled-cube-volume.html",
+  {title:"立方体打洞", cat:"geo", file:"drilled-cube-volume.html", level:"五～六年级", diff:2, isNew:true,
    desc:"在立方体上打洞，三维可视化求剩余体积与表面积的变化。", tags:["立体几何","体积","表面积"]},
-  {title:"等高模型", cat:"geo", file:"equal-height-model.html",
+  {title:"等高模型", cat:"geo", file:"equal-height-model.html", level:"四～五年级", diff:2, isNew:true,
    desc:"等高的三角形面积之比等于底之比，交互演示这一经典面积模型。", tags:["面积模型","三角形","等高"]},
 
   // 代数与函数
-  {title:"二次函数", cat:"alg", file:"quadratic-function.html",
+  {title:"二次函数", cat:"alg", file:"quadratic-function.html", level:"初中", diff:2,
    desc:"数学实验室：调节系数实时观察抛物线开口、顶点与对称轴的变化。", tags:["函数","抛物线","参数"]},
-  {title:"正反比例图像", cat:"alg", file:"proportion-graphs.html",
+  {title:"正反比例图像", cat:"alg", file:"proportion-graphs.html", level:"六年级～初一", diff:2,
    desc:"探究正比例与反比例函数的图像特征及其在生活中的对应关系。", tags:["函数","比例","图像"]},
-  {title:"最值原理", cat:"alg", file:"extremum-principle.html",
+  {title:"最值原理", cat:"alg", file:"extremum-principle.html", level:"初中", diff:3,
    desc:"通过交互模型理解最大值与最小值的几何与代数求解思路。", tags:["最值","优化","几何"]},
-  {title:"运动图像（S-T 与 V-T 图）", cat:"alg", file:"motion-graphs.html",
+  {title:"运动图像（S-T 与 V-T 图）", cat:"alg", file:"motion-graphs.html", level:"初中", diff:2,
    desc:"拖动小车实时生成位移—时间、速度—时间图像，建立图像与运动的联系。", tags:["函数图像","运动","物理"]},
 
   // 数论与组合
-  {title:"费马小定理", cat:"num", file:"fermat-little.html",
+  {title:"费马小定理", cat:"num", file:"fermat-little.html", level:"初中以上", diff:3,
    desc:"用项链着色的组合证明，直观感受费马小定理背后的对称之美。", tags:["数论","组合证明","同余"]},
-  {title:"关灯游戏", cat:"num", file:"lights-out.html",
+  {title:"关灯游戏", cat:"num", file:"lights-out.html", level:"初中以上", diff:3,
    desc:"灯阵里的奇偶与方程：用线性代数破解经典 Lights Out 谜题。", tags:["线性代数","奇偶","谜题"]},
-  {title:"多格骨牌铺砖", cat:"num", file:"polyomino-tiling.html",
+  {title:"多格骨牌铺砖", cat:"num", file:"polyomino-tiling.html", level:"四～六年级", diff:2, thumb:"assets/thumbs/polyomino-tiling.png",
    desc:"能不能刚好铺满？动手摆放多格骨牌，体会铺砖问题中的染色论证。", tags:["组合","铺砖","染色"]},
-  {title:"骑士巡游问题", cat:"num", file:"knights-tour.html",
+  {title:"骑士巡游问题", cat:"num", file:"knights-tour.html", level:"五年级以上", diff:3, thumb:"assets/thumbs/knights-tour.png",
    desc:"在棋盘上让骑士走遍每一格，探索图论与回溯的奇妙路径。", tags:["图论","回溯","棋盘"]},
-  {title:"完全平方数", cat:"num", file:"perfect-squares.html",
+  {title:"完全平方数", cat:"num", file:"perfect-squares.html", level:"五～六年级", diff:2, isNew:true,
    desc:"探究完全平方数的规律与判定，感受平方数背后的数论结构。", tags:["数论","平方数","规律"]},
 
   // 应用问题
-  {title:"经济问题", cat:"app", file:"economics.html",
+  {title:"经济问题", cat:"app", file:"economics.html", level:"六年级～初中", diff:2,
    desc:"交互实验课件，用数学模型分析利润、成本与定价等经济情境。", tags:["应用","建模","利润"]},
 
   // 趣味与思维
-  {title:"工作记忆训练游戏", cat:"fun", file:"working-memory-game.html",
+  {title:"工作记忆训练游戏", cat:"fun", file:"working-memory-game.html", level:"全年龄", diff:1, isNew:true,
    desc:"通过记忆广度小游戏训练工作记忆，挑战你的专注与短时记忆容量。", tags:["思维","记忆","游戏"]},
 ];
 
 const main = document.getElementById("main");
 const filtersEl = document.getElementById("filters");
 const searchEl = document.getElementById("search");
+const clearBtn = document.getElementById("clear");
 const emptyEl = document.getElementById("empty");
+const statEl = document.getElementById("stat");
+const toTop = document.getElementById("toTop");
+const catMap = Object.fromEntries(CATEGORIES.map(c => [c.key, c]));
 
 document.getElementById("year").textContent = new Date().getFullYear();
-document.getElementById("stat").textContent = `共 ${COURSEWARE.length} 个交互课件 · ${CATEGORIES.length} 个主题分类`;
 
 let activeCat = "all";
 
-// 筛选标签
-const allChip = chip("全部", "all", true);
-filtersEl.appendChild(allChip);
+// 筛选标签（用 button，天然可键盘 Tab / 回车操作）
+filtersEl.appendChild(chip("全部", "all", true));
 CATEGORIES.forEach(c => filtersEl.appendChild(chip(c.name, c.key, false)));
 
 function chip(label, key, active){
-  const el = document.createElement("span");
+  const el = document.createElement("button");
+  el.type = "button";
   el.className = "chip" + (active ? " active" : "");
   el.textContent = label;
   el.dataset.key = key;
-  el.onclick = () => {
+  el.setAttribute("aria-pressed", active ? "true" : "false");
+  el.addEventListener("click", () => {
     activeCat = key;
-    [...filtersEl.children].forEach(c => c.classList.toggle("active", c.dataset.key === key));
+    [...filtersEl.children].forEach(c => {
+      const on = c.dataset.key === key;
+      c.classList.toggle("active", on);
+      c.setAttribute("aria-pressed", on ? "true" : "false");
+    });
     render();
-  };
+  });
   return el;
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
 function render(){
@@ -207,11 +262,16 @@ function render(){
   });
 
   emptyEl.style.display = total ? "none" : "block";
+  clearBtn.classList.toggle("show", !!q);
+  // 统计文案：搜索时显示结果数，否则显示总览
+  statEl.textContent = q
+    ? `找到 ${total} 个课件`
+    : `共 ${COURSEWARE.length} 个交互课件 · ${CATEGORIES.length} 个主题分类`;
 }
 
 function matches(c, q){
   if (!q) return true;
-  return (c.title + " " + c.desc + " " + c.tags.join(" ")).toLowerCase().includes(q);
+  return (c.title + " " + c.desc + " " + c.tags.join(" ") + " " + (c.level||"")).toLowerCase().includes(q);
 }
 
 function card(c, cat){
@@ -221,17 +281,38 @@ function card(c, cat){
   a.target = "_blank";
   a.rel = "noopener";
   a.style.setProperty("--accent", cat.color);
+
+  const thumbHtml = c.thumb
+    ? `<div class="thumb"><img src="${c.thumb}" alt="${escapeHtml(c.title)} 预览" loading="lazy"></div>` : "";
+  const newHtml = c.isNew ? `<span class="new-badge">NEW</span>` : "";
+  const levelHtml = c.level ? `<span class="level">${escapeHtml(c.level)}</span>` : "";
+  const diffHtml = c.diff
+    ? `<div class="diff">难度 <span class="dots">${"●".repeat(c.diff)}${"○".repeat(3 - c.diff)}</span></div>` : "";
+
   a.innerHTML =
-    `<span class="tag">${cat.name}</span>
-     <h3>${c.title}</h3>
-     <p>${c.desc}</p>
+    `${newHtml}${thumbHtml}
+     <div class="meta-row"><span class="tag">${cat.name}</span>${levelHtml}</div>
+     <h3>${escapeHtml(c.title)}</h3>
+     <p>${escapeHtml(c.desc)}</p>
+     ${diffHtml}
      <span class="go">打开课件
        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
      </span>`;
   return a;
 }
 
+// 搜索：输入即过滤 + 清除按钮 + Esc 清空
 searchEl.addEventListener("input", render);
+searchEl.addEventListener("keydown", e => { if (e.key === "Escape") clearSearch(); });
+clearBtn.addEventListener("click", clearSearch);
+function clearSearch(){ searchEl.value = ""; searchEl.focus(); render(); }
+
+// 回到顶部
+window.addEventListener("scroll", () => {
+  toTop.classList.toggle("show", window.scrollY > window.innerHeight * 0.6);
+});
+toTop.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+
 render();
 </script>
 </body>

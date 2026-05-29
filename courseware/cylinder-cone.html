@@ -826,7 +826,11 @@ button { font: inherit; }
           <h1>圆柱与圆锥</h1>
         </div>
         <nav class="module-list" id="module-list">
-          <button class="module-item active" type="button" data-module="m1">
+          <button class="module-item active" type="button" data-module="m0">
+            <span class="module-index">00</span>
+            <span>立体图形识别</span>
+          </button>
+          <button class="module-item" type="button" data-module="m1">
             <span class="module-index">01</span>
             <span>旋转生成</span>
           </button>
@@ -2330,6 +2334,11 @@ button { font: inherit; }
  * - prove: 给出推理方向但不直接说结论
  */
 window.CWPromptBank = {
+  m0: {
+    observe: "切换三个对比组，每组同时展示 4-5 个立体图形。再点「高 h / 半径·边长 / 母线·侧棱」按钮，看三种关键线同时出现在每个图形的什么位置。",
+    verify: "棱柱和棱锥的侧棱位置一样吗？三棱锥有几条侧棱、三棱柱有几条？圆柱、圆锥、圆台的母线分别长什么样？",
+    prove: "棱柱侧棱平行且相等；棱锥所有侧棱交于顶点。把棱数 n 不断增大，正 n 棱柱/锥/台就逼近圆柱/锥/台——圆就是「无穷多条边的正多边形」。",
+  },
   m1: {
     observe: "拖动「旋转角度」滑块，让 2D 图形绕轴扫一圈。试切换不同图形和旋转轴，看会扫出什么立体？",
     verify: "矩形绕长边和绕短边，扫出的圆柱是否一样？直角三角形绕直角边和绕斜边，得到的立体相同吗？",
@@ -2502,6 +2511,8 @@ window.CWPromptBank = {
       controls.update();
     }
 
+    function setGridVisible(v) { grid.visible = v; }
+
     return {
       THREE,
       scene,
@@ -2516,12 +2527,322 @@ window.CWPromptBank = {
       disposeObject,
       registerAnimator: (fn) => { animators.add(fn); return () => animators.delete(fn); },
       setCamera,
+      setGridVisible,
       resize,
     };
   }
 
   global.CWThreeStage = { create };
 })(window);
+
+
+;
+
+/* === src/modules/m0-shapes.js === */
+/**
+ * M0 · 立体图形识别
+ *
+ * 每次同时呈现一组（4-5 个）立体图形，便于横向辨析。
+ * 不显示地面网格；图形只描真实棱线（EdgesGeometry），不显示网格化曲面。
+ * 点关键线按钮可统一高亮：高 h（红）、半径/边长（绿）、母线/侧棱（橙）。
+ *
+ * 关键：棱线/母线端点用与 THREE.CylinderGeometry 完全一致的顶点公式
+ *   局部顶点 = (radius·sinθ, y, radius·cosθ)，θ = i/n·2π
+ *   再套用与几何体相同的 rotateY，保证关键线与真实棱完全重合（不再错位）。
+ */
+(function () {
+  "use strict";
+  const M = (window.CWModules = window.CWModules || {});
+
+  // 通用尺寸
+  const R = 1.0, R2 = 1.3, Rt = 0.6, H = 2.2;
+
+  // id · name · n(radialSegs; -1=球) · tR(顶半径) · bR(底半径)
+  const SHAPES = {
+    prism3: { name: "三棱柱", n: 3,  tR: R,  bR: R  },
+    prism4: { name: "四棱柱", n: 4,  tR: R,  bR: R  },
+    pyr3:   { name: "三棱锥", n: 3,  tR: 0,  bR: R  },
+    pyr4:   { name: "四棱锥", n: 4,  tR: 0,  bR: R  },
+    frus4:  { name: "四棱台", n: 4,  tR: Rt, bR: R2 },
+    cyl:    { name: "圆柱",   n: 64, tR: R,  bR: R  },
+    cone:   { name: "圆锥",   n: 64, tR: 0,  bR: R  },
+    frusR:  { name: "圆台",   n: 64, tR: Rt, bR: R2 },
+    sphere: { name: "球体",   n: -1, tR: R,  bR: R  },
+  };
+
+  // 比较组：每组同屏 4-5 个图形
+  const GROUPS = [
+    { id: "g1", label: "棱柱 vs 棱锥", ids: ["prism3", "prism4", "pyr3", "pyr4"] },
+    { id: "g2", label: "圆柱·圆锥·圆台·球", ids: ["cyl", "cone", "frusR", "sphere"] },
+    { id: "g3", label: "棱与圆 · 对照", ids: ["prism4", "cyl", "pyr4", "cone", "frusR"] },
+  ];
+
+  const state = {
+    groupId: "g1",
+    showH: false, showR: false, showS: false,
+    objs: [],
+    hRefs: [], rRefs: [], sRefs: [],
+    cleanup: null,
+  };
+
+  M.m0 = {
+    init(ctx) {
+      const THREE = window.THREE;
+      const stage = ctx.threeStage;
+      stage.clearDynamic();
+      stage.setGridVisible(false);          // 去除地面网格线
+      ctx.showThree(true);
+      ctx.showJxg(false);
+
+      // ---- 材质 ----
+      const matSolid = new THREE.MeshStandardMaterial({
+        color: 0x93c5fd, transparent: true, opacity: 0.5,
+        side: THREE.DoubleSide, metalness: 0.05, roughness: 0.6,
+      });
+      const matEdgeLine = new THREE.LineBasicMaterial({ color: 0x1e40af });
+      const matH = new THREE.LineBasicMaterial({ color: 0xef4444 });   // 高线：红
+      const matR = new THREE.LineBasicMaterial({ color: 0x16a34a });   // 半径/边：绿
+      const matS = new THREE.LineBasicMaterial({ color: 0xea580c });   // 母线/侧棱：橙
+
+      // ---- 与 CylinderGeometry 完全一致的径向顶点 ----
+      // 局部: (radius·sinθ, y, radius·cosθ)；再套 rotateY(rotY)
+      function radialVertex(radius, y, i, n, rotY, ox) {
+        const theta = (i / n) * Math.PI * 2;
+        let x = radius * Math.sin(theta);
+        let z = radius * Math.cos(theta);
+        if (rotY) {
+          const c = Math.cos(rotY), s = Math.sin(rotY);
+          const nx = x * c + z * s;
+          const nz = -x * s + z * c;
+          x = nx; z = nz;
+        }
+        return [x + ox, y, z];
+      }
+
+      function mkLine(a, b, mat) {
+        return new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(...a), new THREE.Vector3(...b),
+          ]),
+          mat
+        );
+      }
+
+      // ---- 单个图形（在 x = ox 处）----
+      function buildShape(id, ox) {
+        const sh = SHAPES[id];
+        const { n, tR, bR } = sh;
+        const isSphere = n === -1;
+        const isRound  = n >= 32;
+        const isFrust  = tR > 0 && tR < bR;
+        const rotY = n === 4 ? Math.PI / 4 : 0;
+
+        // 主几何体（中心在 y=0；不平移）
+        let geom;
+        if (isSphere) {
+          geom = new THREE.SphereGeometry(R, 48, 32);
+        } else {
+          geom = new THREE.CylinderGeometry(tR, bR, H, n, 1, false);
+          if (rotY) geom.rotateY(rotY);
+        }
+        const mesh = new THREE.Mesh(geom, matSolid);
+        mesh.position.x = ox;
+        stage.add(mesh); state.objs.push(mesh);
+
+        // 真实棱线（圆滑面阈值 15° → 只剩顶/底圈）
+        if (!isSphere) {
+          const edgeSeg = new THREE.LineSegments(new THREE.EdgesGeometry(geom, 15), matEdgeLine);
+          edgeSeg.position.x = ox;
+          stage.add(edgeSeg); state.objs.push(edgeSeg);
+        }
+
+        const yTop = isSphere ? 0 : H / 2;
+        const yBot = isSphere ? 0 : -H / 2;
+
+        // ---- 高线 ----
+        if (isSphere) {
+          state.hRefs.push(mkLine([ox, -R, 0], [ox, R, 0], matH));
+        } else {
+          state.hRefs.push(mkLine([ox, yBot, 0], [ox, yTop, 0], matH));
+        }
+
+        // ---- 半径 / 边长 ----
+        if (isSphere) {
+          state.rRefs.push(mkLine([ox, 0, 0], [ox + R, 0, 0], matR));
+        } else if (isRound) {
+          state.rRefs.push(mkLine([ox, yBot, 0], [ox + bR, yBot, 0], matR));
+          if (isFrust) state.rRefs.push(mkLine([ox, yTop, 0], [ox + tR, yTop, 0], matR));
+        } else {
+          for (let i = 0; i < n; i++) {
+            state.rRefs.push(mkLine([ox, yBot, 0], radialVertex(bR, yBot, i, n, rotY, ox), matR));
+          }
+          if (isFrust) for (let i = 0; i < n; i++) {
+            state.rRefs.push(mkLine([ox, yTop, 0], radialVertex(tR, yTop, i, n, rotY, ox), matR));
+          }
+        }
+
+        // ---- 母线 / 侧棱 ----
+        if (isSphere) {
+          // 正对镜头的大圆（经线）
+          const pts = Array.from({ length: 65 }, (_, i) => {
+            const a = (i / 64) * Math.PI * 2;
+            return new THREE.Vector3(ox + R * Math.cos(a), R * Math.sin(a), 0);
+          });
+          state.sRefs.push(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), matS));
+        } else if (isRound) {
+          // 一条正对镜头的母线（θ=0 → 局部 (0,y,r)，在 +z 面朝观众）
+          state.sRefs.push(mkLine([ox, yTop, tR], [ox, yBot, bR], matS));
+        } else {
+          // 每条侧棱：顶顶点 ↔ 底顶点（同一 i），端点与真实棱重合
+          for (let i = 0; i < n; i++) {
+            state.sRefs.push(mkLine(
+              radialVertex(tR, yTop, i, n, rotY, ox),
+              radialVertex(bR, yBot, i, n, rotY, ox),
+              matS
+            ));
+          }
+        }
+      }
+
+      // ---- 建组 ----
+      function buildScene() {
+        // 释放（含 Sprite 贴图）
+        state.objs.forEach(o => {
+          if (o.material && o.material.map) o.material.map.dispose();
+          stage.dynamicGroup.remove(o);
+          stage.disposeObject(o);
+        });
+        state.objs = [];
+        state.hRefs = []; state.rRefs = []; state.sRefs = [];
+
+        const group = GROUPS.find(g => g.id === state.groupId);
+        const ids = group.ids;
+        const count = ids.length;
+        const spacing = 3.0;
+        const total = (count - 1) * spacing;
+        const x0 = -total / 2;
+        ids.forEach((id, i) => buildShape(id, x0 + i * spacing));
+
+        // 把关键线加入场景并按当前显隐状态
+        const addRefs = (refs, show) => refs.forEach(l => {
+          l.visible = show; stage.add(l); state.objs.push(l);
+        });
+        addRefs(state.hRefs, state.showH);
+        addRefs(state.rRefs, state.showR);
+        addRefs(state.sRefs, state.showS);
+
+        // 相机随组宽自适应
+        const dist = Math.max(11, total * 1.05 + 6);
+        stage.setCamera([0, 2.5, dist], [0, 0, 0]);
+
+        updateMetrics(group);
+      }
+
+      // ---- 数据面板 ----
+      function updateMetrics(group) {
+        const euler = {
+          prism3: [6, 9, 5], prism4: [8, 12, 6],
+          pyr3:   [4, 6, 4], pyr4:   [5, 8, 5],
+          frus4:  [8, 12, 6],
+        };
+        const rows = [["对比组", `<b>${group.label}</b>`], ["图形数", group.ids.length + ""]];
+        group.ids.forEach(id => {
+          const sh = SHAPES[id];
+          let info;
+          if (sh.n === -1) info = "1 个曲面，无棱无顶点";
+          else if (sh.n >= 32) {
+            if (sh.tR === 0) info = "1 母线 + 1 底圆（圆锥）";
+            else if (sh.tR === sh.bR) info = "1 母线 + 2 底圆（圆柱）";
+            else info = "1 母线 + 上下底圆（圆台）";
+          } else {
+            const [V, E, F] = euler[id] || [0, 0, 0];
+            info = `面${F} · 棱${E} · 顶点${V}`;
+          }
+          rows.push([sh.name, info]);
+        });
+        ctx.setMetric(rows);
+
+        ctx.setFormula(`
+          <span class="row">柱 V = B·<span class="mvar">h</span></span>
+          <span class="row">锥 V = ⅓B·<span class="mvar">h</span></span>
+          <span class="row hl">球 V = <span style="font-size:11px">4/3</span><span class="pi">π</span><span class="mvar">r</span>³</span>
+        `);
+
+        const resultMap = {
+          g1: "棱柱：上下底全等、侧面是矩形（直棱柱），侧棱平行且相等。棱锥：底面一个，侧面都是三角形，所有侧棱交于一个顶点。<b>n 棱柱有 2n 个顶点，n 棱锥有 n+1 个顶点</b>。",
+          g2: "圆柱、圆锥、圆台都是<b>旋转体</b>：分别由矩形、直角三角形、直角梯形绕一条边旋转而成。球由半圆绕直径旋转而成，表面处处到球心等距。",
+          g3: "把「棱」换成「圆」：四棱柱↔圆柱、四棱锥↔圆锥、四棱台↔圆台。当棱数 n→∞，正 n 棱柱/锥/台就<b>逼近</b>对应的圆柱/锥/台——这正是圆面积、圆柱体积公式的由来。",
+        };
+        ctx.setResult(resultMap[group.id] || "");
+      }
+
+      // ---- 参数面板 ----
+      ctx.paramRack.innerHTML = `
+        <div class="param-group compact">
+          <label>对比组</label>
+          <div class="param-actions" id="m0-group-btns">
+            ${GROUPS.map(g => `<button class="tool-button${g.id === state.groupId ? " primary" : ""}" type="button" data-group="${g.id}">${g.label}</button>`).join("")}
+          </div>
+        </div>
+        <div class="param-group compact">
+          <label>关键线（统一高亮）</label>
+          <div class="param-actions">
+            <button class="tool-button${state.showH ? " primary" : ""}" type="button" id="m0-tog-h">高 h</button>
+            <button class="tool-button${state.showR ? " primary" : ""}" type="button" id="m0-tog-r">半径/边长</button>
+            <button class="tool-button${state.showS ? " primary" : ""}" type="button" id="m0-tog-s">母线/侧棱</button>
+          </div>
+        </div>
+      `;
+
+      // 组切换
+      document.querySelector("#m0-group-btns").addEventListener("click", e => {
+        const btn = e.target.closest("[data-group]");
+        if (!btn) return;
+        state.groupId = btn.dataset.group;
+        document.querySelectorAll("#m0-group-btns [data-group]").forEach(b =>
+          b.classList.toggle("primary", b.dataset.group === state.groupId));
+        buildScene();
+      });
+
+      // 关键线切换（仅改可见性）
+      function bindToggle(btnId, key, refsKey) {
+        const btn = document.querySelector(btnId);
+        if (!btn) return;
+        btn.addEventListener("click", () => {
+          state[key] = !state[key];
+          btn.classList.toggle("primary", state[key]);
+          state[refsKey].forEach(l => { l.visible = state[key]; });
+        });
+      }
+      bindToggle("#m0-tog-h", "showH", "hRefs");
+      bindToggle("#m0-tog-r", "showR", "rRefs");
+      bindToggle("#m0-tog-s", "showS", "sRefs");
+
+      state.cleanup = () => {
+        stage.setGridVisible(true);   // 还原网格供其它模块使用
+        [matSolid, matEdgeLine, matH, matR, matS].forEach(m => m.dispose && m.dispose());
+      };
+
+      buildScene();
+    },
+
+    reset() {
+      state.showH = false; state.showR = false; state.showS = false;
+      ["#m0-tog-h", "#m0-tog-r", "#m0-tog-s"].forEach(id => {
+        const b = document.querySelector(id);
+        if (b) b.classList.remove("primary");
+      });
+      state.hRefs.forEach(l => { l.visible = false; });
+      state.rRefs.forEach(l => { l.visible = false; });
+      state.sRefs.forEach(l => { l.visible = false; });
+    },
+
+    destroy() {
+      if (state.cleanup) { state.cleanup(); state.cleanup = null; }
+      state.objs = [];
+    },
+  };
+})();
 
 
 ;
@@ -2605,6 +2926,67 @@ window.CWPromptBank = {
         params: { R, r: rt, h },
       };
     }
+    if (key === "trihyp") {
+      // 直角三角形绕斜边 → 两个同底圆锥（共底面，底半径 = 斜边上的高）
+      const a = 1.4, b = 2.4;          // 两直角边
+      const c = Math.hypot(a, b);      // 斜边（= 旋转轴长）
+      const e = (a * b) / c;           // 斜边上的高 = 公共底半径
+      const p = (a * a) / c;           // 直角顶点在斜边上的垂足位置
+      const v1 = (1 / 3) * Math.PI * e * e * p;
+      const v2 = (1 / 3) * Math.PI * e * e * (c - p);
+      return {
+        name: "直角三角形（绕斜边）",
+        axisLabel: "绕斜边（Y 轴）",
+        // 三角形三顶点：斜边两端 (0,0)、(0,c)，直角顶点 (e,p)
+        profile2D: [{ x: 0, y: 0 }, { x: e, y: p }, { x: 0, y: c }],
+        lathePts: [{ x: 0.0001, y: 0 }, { x: e, y: p }, { x: 0.0001, y: c }],
+        capsBottom: null,
+        capsTop: null,
+        equiv: "两个共底圆锥（底半径 = 斜边上的高）",
+        formulas: `
+          <span class="row">斜边 c = √(a²+b²) = <b>${c.toFixed(2)}</b></span>
+          <span class="row">公共底半径 = ab/c = <b>${e.toFixed(2)}</b></span>
+          <span class="row hl">V = ⅓<span class="pi">π</span>(ab/c)²·c = <b>${(v1 + v2).toFixed(2)}</b></span>
+        `,
+        params: { a, b, c, e },
+      };
+    }
+    if (key === "rectdiag") {
+      // 长方形绕对角线 → 带腰的纺锤体（两端圆锥 + 中间收腰）
+      const aw = 1.3, bw = 2.1;        // 长方形两边
+      const d = Math.hypot(aw, bw);    // 对角线（= 旋转轴长）
+      const e = (aw * bw) / d;         // 对角线上的高（顶点到轴距离）
+      const p = (aw * aw) / d;         // 一个非轴顶点的垂足位置
+      const q = d - p;                 // 另一个非轴顶点的垂足位置（= bw²/d）
+      const mid = e * (d / 2) / q;     // 腰部（中点）半径
+      // 旋转体外缘（上包络）的轮廓点
+      const env = [
+        { x: 0.0001, y: 0 }, { x: e, y: p }, { x: mid, y: d / 2 },
+        { x: e, y: q }, { x: 0.0001, y: d },
+      ];
+      // 数值积分体积（圆台叠加）
+      let vol = 0;
+      for (let i = 0; i < env.length - 1; i++) {
+        const r1 = env[i].x, r2 = env[i + 1].x, dy = env[i + 1].y - env[i].y;
+        vol += (Math.PI / 3) * (r1 * r1 + r1 * r2 + r2 * r2) * dy;
+      }
+      return {
+        name: "长方形（绕对角线）",
+        axisLabel: "绕对角线（Y 轴）",
+        // 矩形四顶点：对角线两端 (0,0)、(0,d)，另两顶点在轴两侧 (e,p)、(−e,q)
+        profile2D: [{ x: 0, y: 0 }, { x: e, y: p }, { x: 0, y: d }, { x: -e, y: q }],
+        lathePts: env,
+        capsBottom: null,
+        capsTop: null,
+        equiv: "纺锤体（两端圆锥 + 中间收腰）",
+        formulas: `
+          <span class="row">对角线 d = √(a²+b²) = <b>${d.toFixed(2)}</b></span>
+          <span class="row">最大半径 = ab/d = <b>${e.toFixed(2)}</b></span>
+          <span class="row hl">V（数值）≈ <b>${vol.toFixed(2)}</b></span>
+        `,
+        params: { aw, bw, d, e },
+      };
+    }
     // square diag → 正方形绕对角线 → 双圆锥
     const s = 1.6;
     const a = s / Math.SQRT2;
@@ -2647,10 +3029,12 @@ window.CWPromptBank = {
         <div class="param-group compact">
           <label>2D 图形
             <select id="m1-shape">
-              <option value="rect">矩形 → 圆柱</option>
-              <option value="tri">直角三角形 → 圆锥</option>
+              <option value="rect">矩形绕长边 → 圆柱</option>
+              <option value="tri">直角三角形绕直角边 → 圆锥</option>
+              <option value="trihyp">直角三角形绕斜边 → 双圆锥</option>
               <option value="trap">直角梯形 → 圆台</option>
               <option value="sqdiag">正方形绕对角线 → 双圆锥</option>
+              <option value="rectdiag">长方形绕对角线 → 纺锤体</option>
             </select>
           </label>
         </div>
@@ -4318,10 +4702,11 @@ window.CWPromptBank = {
 /**
  * M7 · 圆柱 / 圆锥截面
  *
- * 三种截法切换（切换按钮）：
+ * 四种截法切换（切换按钮）：
  *   0 — 圆柱沿直径竖切   → 截面：矩形（2r × h）
  *   1 — 圆柱平行底面切   → 截面：圆（半径 r）
- *   2 — 圆锥平行底面切   → 截面：较小的圆（半径 r·(1−k)）
+ *   2 — 圆锥平行底面切   → 截面：较小的圆（半径 r·(h−y)/h）
+ *   3 — 圆柱斜切         → 截面：椭圆（短半轴 r，长半轴 r/cosα）
  *
  * 用 THREE.ClippingPlane 把立体切开，截面用单独的面片网格高亮。
  */
@@ -4329,9 +4714,9 @@ window.CWPromptBank = {
   "use strict";
   const M = (window.CWModules = window.CWModules || {});
 
-  const state = { mode: 0, r: 1.4, h: 2.8, cutFrac: 0.5, objs: [], cleanup: null };
+  const state = { mode: 0, r: 1.4, h: 2.8, cutFrac: 0.5, tiltDeg: 30, objs: [], cleanup: null };
 
-  const MODES = ["沿直径竖切", "平行底面切", "圆锥平行切"];
+  const MODES = ["沿直径竖切", "平行底面切", "圆锥平行切", "圆柱斜切"];
 
   M.m7 = {
     init(ctx) {
@@ -4361,16 +4746,23 @@ window.CWPromptBank = {
           <label>截面位置 <span class="value" id="m7-cut-v">50%</span></label>
           <input type="range" id="m7-cut" min="5" max="95" value="50" step="1" aria-label="截面位置">
         </div>
+        <div class="param-group" id="m7-tilt-group" hidden>
+          <label>倾斜角 α = <span class="value" id="m7-alpha-v">30</span>°</label>
+          <input type="range" id="m7-alpha" min="0" max="65" value="30" step="1" aria-label="倾斜角">
+        </div>
       `;
 
-      const elR = document.querySelector("#m7-r");
-      const elRV = document.querySelector("#m7-r-v");
-      const elH = document.querySelector("#m7-h");
-      const elHV = document.querySelector("#m7-h-v");
-      const elCut = document.querySelector("#m7-cut");
-      const elCutV = document.querySelector("#m7-cut-v");
-      const elCutGroup = document.querySelector("#m7-cut-group");
-      const modeBtns = document.querySelector("#m7-mode-btns");
+      const elR       = document.querySelector("#m7-r");
+      const elRV      = document.querySelector("#m7-r-v");
+      const elH       = document.querySelector("#m7-h");
+      const elHV      = document.querySelector("#m7-h-v");
+      const elCut     = document.querySelector("#m7-cut");
+      const elCutV    = document.querySelector("#m7-cut-v");
+      const elCutGroup  = document.querySelector("#m7-cut-group");
+      const elAlpha   = document.querySelector("#m7-alpha");
+      const elAlphaV  = document.querySelector("#m7-alpha-v");
+      const elTiltGroup = document.querySelector("#m7-tilt-group");
+      const modeBtns  = document.querySelector("#m7-mode-btns");
 
       const matShell = new THREE.MeshStandardMaterial({
         color: 0x93c5fd, transparent: true, opacity: 0.28,
@@ -4380,21 +4772,20 @@ window.CWPromptBank = {
         color: 0xef4444, transparent: true, opacity: 0.85,
         side: THREE.DoubleSide, metalness: 0, roughness: 0.5,
       });
-      const matEdge = new THREE.LineBasicMaterial({ color: 0x2563eb });
+      const matEdge    = new THREE.LineBasicMaterial({ color: 0x2563eb });
       const matSecEdge = new THREE.LineBasicMaterial({ color: 0xb91c1c, linewidth: 2 });
 
       function buildScene() {
         state.objs.forEach(o => { stage.dynamicGroup.remove(o); stage.disposeObject(o); });
         state.objs = [];
 
-        const { mode, r, h, cutFrac } = state;
+        const { mode, r, h, cutFrac, tiltDeg } = state;
 
-        // 截面高度（仅 mode=1/2 用到）
+        // 截面高度（mode 1/2/3 用到）
         const cutY = cutFrac * h;
 
         if (mode === 0) {
           // ---- 沿直径竖切（保留 z < 0 的半边）----
-          // 裁剪面：法向 (0,0,1)，常数 0 → clip z < 0
           const clipPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
           const matHalf = matShell.clone();
           matHalf.clippingPlanes = [clipPlane];
@@ -4404,14 +4795,13 @@ window.CWPromptBank = {
           const cyl = new THREE.Mesh(cylG, matHalf);
           stage.add(cyl); state.objs.push(cyl);
 
-          // 截面：矩形（在 z=0 平面，x ∈ [−r, r]，y ∈ [0, h]）
+          // 截面：矩形（在 z=0 平面）
           const secG = new THREE.PlaneGeometry(2 * r, h);
-          secG.rotateY(Math.PI / 2); // 法向 → Z
+          secG.rotateY(Math.PI / 2);
           secG.translate(0, h / 2, 0);
           const sec = new THREE.Mesh(secG, matSection);
           stage.add(sec); state.objs.push(sec);
 
-          // 截面边框
           const pts = [
             new THREE.Vector3(-r, 0, 0), new THREE.Vector3(r, 0, 0),
             new THREE.Vector3(r, h, 0), new THREE.Vector3(-r, h, 0),
@@ -4420,7 +4810,7 @@ window.CWPromptBank = {
           const secEdge = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), matSecEdge);
           stage.add(secEdge); state.objs.push(secEdge);
 
-          elCutGroup.hidden = true;
+          elCutGroup.hidden = true; elTiltGroup.hidden = true;
           ctx.setMetric([
             ["截面类型", "矩形"],
             ["宽 = 2r", `${(2 * r).toFixed(2)}`],
@@ -4442,14 +4832,12 @@ window.CWPromptBank = {
           const cyl = new THREE.Mesh(cylG, matTop);
           stage.add(cyl); state.objs.push(cyl);
 
-          // 截面：圆（在 y = cutY）
           const secG = new THREE.CircleGeometry(r, 64);
           secG.rotateX(-Math.PI / 2);
           const sec = new THREE.Mesh(secG, matSection);
           sec.position.y = cutY;
           stage.add(sec); state.objs.push(sec);
 
-          // 截面边圈
           const edgePts = Array.from({ length: 65 }, (_, i) => {
             const a = (i / 64) * Math.PI * 2;
             return new THREE.Vector3(r * Math.cos(a), cutY, r * Math.sin(a));
@@ -4457,7 +4845,7 @@ window.CWPromptBank = {
           const secEdge = new THREE.Line(new THREE.BufferGeometry().setFromPoints(edgePts), matSecEdge);
           stage.add(secEdge); state.objs.push(secEdge);
 
-          elCutGroup.hidden = false;
+          elCutGroup.hidden = false; elTiltGroup.hidden = true;
           ctx.setMetric([
             ["截面类型", "圆"],
             ["截面半径", r.toFixed(2)],
@@ -4468,20 +4856,18 @@ window.CWPromptBank = {
             <span class="row hl">面积 = <span class="pi">π</span><span class="mvar">r</span>²</span>`);
           ctx.setResult(`圆柱平行底面截面始终是半径为 r = ${r.toFixed(2)} 的<b>等大的圆</b>，无论切在哪个高度。`);
 
-        } else {
+        } else if (mode === 2) {
           // ---- 圆锥平行底面切 ----
-          // 圆锥：顶在 y=h，底圆在 y=0，半径 R=r
           const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -cutY);
           const matConeTop = matShell.clone();
           matConeTop.clippingPlanes = [clipPlane];
           matConeTop.color = new THREE.Color(0xfcd34d);
 
           const coneG = new THREE.ConeGeometry(r, h, 48);
-          coneG.translate(0, h / 2, 0); // 顶在 y=h，底圆在 y=0
+          coneG.translate(0, h / 2, 0);
           const cone = new THREE.Mesh(coneG, matConeTop);
           stage.add(cone); state.objs.push(cone);
 
-          // 截面圆半径（相似三角形：截面处半径 = r * (h - cutY) / h）
           const secR = r * (h - cutY) / h;
 
           const secG = new THREE.CircleGeometry(secR, 64);
@@ -4497,7 +4883,7 @@ window.CWPromptBank = {
           const secEdge = new THREE.Line(new THREE.BufferGeometry().setFromPoints(edgePts), matSecEdge);
           stage.add(secEdge); state.objs.push(secEdge);
 
-          elCutGroup.hidden = false;
+          elCutGroup.hidden = false; elTiltGroup.hidden = true;
           ctx.setMetric([
             ["截面类型", "圆"],
             ["截面高度 y", cutY.toFixed(2)],
@@ -4508,6 +4894,88 @@ window.CWPromptBank = {
             <span class="row hl">截面 <span class="mvar">r</span>' = <span class="mvar">r</span>(h − y) / h</span>`);
           ctx.setResult(`圆锥平行底面截面也是<b>圆</b>，但随高度增大半径缩小（相似三角形），` +
             `在 y = ${cutY.toFixed(2)} 处截面半径 = ${secR.toFixed(3)}。`);
+
+        } else {
+          // ---- 圆柱斜切（mode 3）----
+          // 切面倾角 α（与水平面夹角），切面过点 (0, cutY, 0)
+          // 切面法向量 n = (sinα, cosα, 0)，方程：sinα·x + cosα·y = cosα·cutY
+          // 保留下半段（y < cutY 侧）的 ClippingPlane：
+          //   clip where n_neg·v + d < 0, n_neg = (-sinα,-cosα,0), d = cosα·cutY
+          const alpha = (tiltDeg * Math.PI) / 180;
+          const sinA = Math.sin(alpha), cosA = Math.cos(alpha), tanA = Math.tan(alpha);
+
+          const clipPlane = new THREE.Plane(
+            new THREE.Vector3(-sinA, -cosA, 0),
+            cosA * cutY
+          );
+          const matOblique = matShell.clone();
+          matOblique.clippingPlanes = [clipPlane];
+
+          // 圆柱体（下半，被斜面截断）
+          const cylG = new THREE.CylinderGeometry(r, r, h, 64, 1, false);
+          cylG.translate(0, h / 2, 0);
+          const cyl = new THREE.Mesh(cylG, matOblique);
+          stage.add(cyl); state.objs.push(cyl);
+
+          // 椭圆截面（参数化：x=r cosφ, z=r sinφ, y=cutY − r cosφ tanα）
+          const N = 64;
+          // 扇形三角剖分：中心 + N 个边缘点
+          const posArr = new Float32Array((N + 2) * 3);
+          // 中心点（顶点0）
+          posArr[0] = 0; posArr[1] = cutY; posArr[2] = 0;
+          for (let i = 0; i <= N; i++) {
+            const phi = (i / N) * 2 * Math.PI;
+            const idx = (i + 1) * 3;
+            posArr[idx]     = r * Math.cos(phi);
+            posArr[idx + 1] = cutY - r * Math.cos(phi) * tanA;
+            posArr[idx + 2] = r * Math.sin(phi);
+          }
+          const idxArr = [];
+          for (let i = 0; i < N; i++) idxArr.push(0, i + 1, i + 2);
+
+          const secG = new THREE.BufferGeometry();
+          secG.setAttribute("position", new THREE.BufferAttribute(posArr, 3));
+          secG.setIndex(idxArr);
+          secG.computeVertexNormals();
+          const sec = new THREE.Mesh(secG, matSection);
+          stage.add(sec); state.objs.push(sec);
+
+          // 椭圆边圈
+          const edgePts = Array.from({ length: 65 }, (_, i) => {
+            const phi = (i / 64) * 2 * Math.PI;
+            return new THREE.Vector3(
+              r * Math.cos(phi),
+              cutY - r * Math.cos(phi) * tanA,
+              r * Math.sin(phi)
+            );
+          });
+          const secEdge = new THREE.Line(new THREE.BufferGeometry().setFromPoints(edgePts), matSecEdge);
+          stage.add(secEdge); state.objs.push(secEdge);
+
+          elCutGroup.hidden = false; elTiltGroup.hidden = false;
+
+          // 椭圆半轴
+          const a_short = r;
+          const a_long  = cosA > 0.001 ? r / cosA : 999;
+          const area    = Math.PI * a_short * a_long;
+
+          ctx.setMetric([
+            ["截面类型", "<b>椭圆</b>"],
+            ["倾斜角 α", `${tiltDeg}°`],
+            ["短半轴 a = r", a_short.toFixed(2)],
+            ["长半轴 b = r/cosα", `<b>${a_long.toFixed(3)}</b>`],
+            ["截面面积 πab", `<b>${area.toFixed(3)}</b>`],
+          ]);
+          ctx.setFormula(`
+            <span class="row">斜切圆柱 → 椭圆</span>
+            <span class="row">短半轴 <span class="mvar">a</span> = <span class="mvar">r</span></span>
+            <span class="row hl">长半轴 <span class="mvar">b</span> = <span class="mvar">r</span> / cos<span class="mvar">α</span></span>
+          `);
+          ctx.setResult(
+            `圆柱斜切（倾角 α = ${tiltDeg}°）截面为<b>椭圆</b>：` +
+            `短半轴 = r = ${a_short.toFixed(2)}，长半轴 = r/cosα = ${a_long.toFixed(3)}。` +
+            `当 α = 0° 时退化为圆；倾角越大椭圆越扁。面积 = πab = ${area.toFixed(3)}。`
+          );
         }
       }
 
@@ -4535,6 +5003,11 @@ window.CWPromptBank = {
         elCutV.textContent = elCut.value + "%";
         buildScene();
       });
+      elAlpha.addEventListener("input", () => {
+        state.tiltDeg = parseInt(elAlpha.value, 10);
+        elAlphaV.textContent = state.tiltDeg + "";
+        buildScene();
+      });
 
       state.cleanup = () => {
         [matShell, matSection, matEdge, matSecEdge].forEach(m => m.dispose && m.dispose());
@@ -4546,6 +5019,7 @@ window.CWPromptBank = {
     reset() {
       state.mode = 0;
       state.cutFrac = 0.5;
+      state.tiltDeg = 30;
       const btn0 = document.querySelector("[data-mode='0']");
       if (btn0) btn0.click();
     },
@@ -4730,6 +5204,7 @@ window.CWPromptBank = {
   "use strict";
 
   const MODULE_TITLES = {
+    m0: "立体图形识别",
     m1: "旋转生成",
     m2: "圆柱表面积",
     m3: "庖丁解牛 · 圆柱体积",
@@ -4760,7 +5235,7 @@ window.CWPromptBank = {
   };
 
   const state = {
-    moduleId: "m1",
+    moduleId: "m0",
     showResult: false,
     currentModule: null,
     threeStage: null,
@@ -4917,7 +5392,7 @@ window.CWPromptBank = {
       return;
     }
     state.threeStage = window.CWThreeStage.create(els.threeCanvas, els.boardWrap);
-    switchModule("m1");
+    switchModule("m0");
   }
 
   // 等待所有 script 加载（脚本是顺序加载的，DOMContentLoaded 时已可用）

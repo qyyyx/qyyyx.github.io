@@ -98,9 +98,28 @@
   #toTop:hover{background:var(--brand2)}
   footer{text-align:center;padding:30px 20px 50px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)}
   footer a{color:var(--brand);text-decoration:none}
+  /* 站点级账号入口（昵称+班级码，登录态与认知实验课件同源共享） */
+  .acctbar{position:fixed;top:14px;right:16px;z-index:40;display:flex;gap:8px;align-items:center;font-size:13px}
+  .acctbar .lbl{color:#e0e7ff;background:rgba(0,0,0,.28);padding:7px 12px;border-radius:999px}
+  .acctbar button{border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.14);color:#fff;padding:7px 13px;border-radius:999px;font:inherit;font-size:13px;cursor:pointer}
+  .acctbar button:hover{background:rgba(255,255,255,.26)}
+  .acct-modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
+  .acct-modal{background:#fff;border-radius:16px;max-width:420px;width:100%;padding:22px;box-shadow:var(--shadow)}
+  .acct-modal h2{font-size:20px;margin-bottom:4px}
+  .acct-modal p{font-size:13px;color:var(--muted);margin-bottom:6px}
+  .acct-modal label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  .acct-modal input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:15px}
+  .acct-modal .acts{display:flex;gap:10px;margin-top:16px}
+  .acct-modal .acts button{flex:1;padding:11px;border-radius:10px;border:none;font-size:15px;font-weight:600;cursor:pointer}
+  .acct-modal .save{background:var(--brand);color:#fff}
+  .acct-modal .cancel{background:#e2e8f0;color:#475569}
 </style>
 </head>
 <body>
+<div class="acctbar" id="acctbar">
+  <span class="lbl" id="acctLbl">游客</span>
+  <button id="acctBtn" type="button">登录 / 注册</button>
+</div>
 <header>
   <h1>杨老师的 mathlab</h1>
   <p class="motto-en">Math for big questions, math for real questions, math for funny questions.</p>
@@ -183,6 +202,8 @@ const COURSEWARE = [
   // 趣味与思维
   {title:"工作记忆训练游戏", cat:"fun", file:"working-memory-game.html", isNew:true,
    desc:"通过记忆广度小游戏训练工作记忆，挑战你的专注与短时记忆容量。", tags:["思维","记忆","游戏"]},
+  {title:"测测你的反应有多快！", cat:"fun", file:"reaction-time.html", isNew:true,
+   desc:"F1 起跑灯式反应时实验：测反应极限、亲手画出 Hick 对数曲线、登录后上榜与同学比拼。", tags:["反应时","认知","Hick","游戏","榜单"]},
 ];
 
 const main = document.getElementById("main");
@@ -298,6 +319,38 @@ window.addEventListener("scroll", () => {
 toTop.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
 
 render();
+</script>
+
+<!-- 站点级账号：昵称+班级码，写入 localStorage 'rt:profile'（与认知实验课件同源共享登录态） -->
+<script>
+(function(){
+  var KEY='rt:profile';
+  function read(){try{return JSON.parse(localStorage.getItem(KEY));}catch(e){return null;}}
+  function write(p){try{localStorage.setItem(KEY,JSON.stringify(p));}catch(e){}}
+  var lbl=document.getElementById('acctLbl'), btn=document.getElementById('acctBtn');
+  function refresh(){var p=read(); if(p){lbl.textContent=p.nickname+'@'+p.classCode; btn.textContent='切换 / 退出';} else {lbl.textContent='游客'; btn.textContent='登录 / 注册';}}
+  function esc(s){return (s||'').replace(/[&<>"']/g,function(m){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);});}
+  btn.addEventListener('click',function(){
+    var p=read();
+    var bg=document.createElement('div'); bg.className='acct-modal-bg';
+    bg.innerHTML='<div class="acct-modal"><h2>登录 / 注册</h2>'+
+      '<p>仅需昵称 + 班级码（不收集真实姓名 / 手机 / 邮箱）。登录后在「测测你的反应有多快」等认知课件里记录成绩、上榜并与同学比拼。班级码由老师统一发放。</p>'+
+      '<label>昵称（2–12 字）</label><input id="amName" maxlength="12" value="'+esc(p?p.nickname:'')+'" placeholder="如：小闪电">'+
+      '<label>班级码</label><input id="amClass" maxlength="16" value="'+esc(p?p.classCode:'')+'" placeholder="如：5年2班">'+
+      '<div class="acts"><button class="save" id="amSave">保存</button>'+(p?'<button class="cancel" id="amOut">退出登录</button>':'<button class="cancel" id="amCancel">取消</button>')+'</div></div>';
+    document.body.appendChild(bg);
+    bg.addEventListener('click',function(e){if(e.target===bg)bg.remove();});
+    document.getElementById('amSave').addEventListener('click',function(){
+      var nm=document.getElementById('amName').value.trim(), cl=document.getElementById('amClass').value.trim();
+      if(!nm){document.getElementById('amName').focus();return;}
+      var prev=read(); var uid=(prev&&prev.uid)||'u_'+Math.random().toString(36).slice(2,10);
+      write({uid:uid,nickname:nm.slice(0,12),classCode:(cl||'未分班').slice(0,16)}); refresh(); bg.remove();
+    });
+    var out=document.getElementById('amOut'); if(out)out.addEventListener('click',function(){localStorage.removeItem(KEY);refresh();bg.remove();});
+    var cc=document.getElementById('amCancel'); if(cc)cc.addEventListener('click',function(){bg.remove();});
+  });
+  refresh();
+})();
 </script>
 </body>
 </html>

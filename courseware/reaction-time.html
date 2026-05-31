@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>测测你的反应有多快！</title>
+<style>
+:root{
+  --bg:#0a0e1a; --bg2:#111a2e; --card:#16203a; --card2:#1d2a47;
+  --ink:#eaf0ff; --muted:#93a4c8; --line:#26344f;
+  --go:#22c55e; --stop:#ef4444; --warn:#f59e0b; --brand:#3b82f6; --brand2:#60a5fa;
+  --lightoff:#3a1414; --lighton:#ff2a2a;
+  --shadow:0 10px 40px rgba(0,0,0,.45);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,-apple-system,sans-serif;
+  background:radial-gradient(1200px 600px at 50% -10%,#1a2745 0%,var(--bg) 55%);
+  color:var(--ink); min-height:100vh; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+button{font-family:inherit;cursor:pointer;color:inherit}
+.hidden{display:none!important}
+.wrap{max-width:760px;margin:0 auto;padding:16px 16px 80px}
+
+/* header */
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;max-width:760px;margin:0 auto}
+header .logo{font-weight:800;font-size:18px;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+header .logo .dot{width:12px;height:12px;border-radius:50%;background:var(--go);box-shadow:0 0 12px var(--go)}
+.acct{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:10px;font-size:14px;font-weight:600;transition:.15s}
+.btn:hover{border-color:var(--brand);color:var(--brand2)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:#2563eb}
+.btn.ghost{background:transparent}
+.btn.lg{padding:14px 20px;font-size:16px;border-radius:14px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* home */
+h1.title{font-size:clamp(24px,6vw,38px);font-weight:800;text-align:center;margin:8px 0 4px;
+  background:linear-gradient(90deg,#fff,#9ec5ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sub{text-align:center;color:var(--muted);font-size:14px;margin-bottom:18px}
+.stage-toggle{display:flex;gap:6px;justify-content:center;margin:0 auto 20px;background:var(--card);padding:5px;border-radius:12px;width:max-content;border:1px solid var(--line)}
+.stage-toggle button{border:none;background:transparent;color:var(--muted);padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600}
+.stage-toggle button.on{background:var(--brand);color:#fff}
+.single-cat{text-align:center;font-size:15px;color:var(--brand2);font-weight:700;margin:0 auto 18px;letter-spacing:2px;border:1px solid var(--line);background:var(--card);padding:8px 18px;border-radius:999px;width:max-content}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.mode-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;text-align:left;transition:.18s;position:relative;overflow:hidden}
+.mode-card:hover{transform:translateY(-3px);border-color:var(--brand);box-shadow:var(--shadow)}
+.mode-card .ic{font-size:30px}
+.mode-card h3{font-size:17px;margin:8px 0 4px;color:#fff}
+.mode-card p{font-size:13px;color:var(--muted);line-height:1.5}
+.mode-card .tag{position:absolute;top:12px;right:12px;font-size:11px;color:var(--muted);border:1px solid var(--line);padding:2px 8px;border-radius:999px}
+.row-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:18px}
+
+/* play area */
+.play{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center}
+.lights{display:flex;gap:14px;margin:10px 0}
+.light{width:clamp(34px,10vw,56px);height:clamp(34px,10vw,56px);border-radius:50%;background:var(--lightoff);
+  border:3px solid #000;box-shadow:inset 0 0 14px rgba(0,0,0,.7);transition:background .05s, box-shadow .05s}
+.light.on{background:var(--lighton);box-shadow:0 0 24px var(--lighton),inset 0 0 10px #ffd0d0}
+#signalArea{width:100%;max-width:560px;min-height:240px;border-radius:20px;border:2px solid var(--line);
+  background:var(--card);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;
+  font-size:22px;font-weight:700;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:background .06s}
+#signalArea.go{background:var(--go);color:#04210f;box-shadow:0 0 50px rgba(34,197,94,.5)}
+#signalArea.stop{background:var(--stop);color:#2a0606}
+#signalArea.wait{background:var(--card)}
+#signalArea.flash{background:#fde68a;color:#3a2c00}
+#signalArea .big{font-size:clamp(40px,12vw,72px);line-height:1}
+#signalArea .hint{font-size:14px;color:rgba(255,255,255,.75);font-weight:500}
+/* lanes for CRT */
+.lanes{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
+.lane{width:64px;height:64px;border-radius:14px;background:#0e1830;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--muted)}
+.lane.lit{background:var(--go);color:#04210f;border-color:#16a34a;box-shadow:0 0 26px rgba(34,197,94,.6);transform:scale(1.06)}
+.lanes.n8{max-width:300px}
+#crtPick{display:flex;flex-direction:column;gap:10px;align-items:center;margin:4px 0}
+.pick-label{font-size:13px;color:var(--muted)}
+.pick-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.pick-chips button{border:1px solid var(--line);background:var(--card2);color:var(--ink);padding:9px 18px;border-radius:999px;font-size:15px;font-weight:700}
+.pick-chips button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.live{font-size:15px;color:var(--muted);min-height:22px}
+.rtbig{font-size:clamp(34px,10vw,60px);font-weight:800}
+.rating{font-size:20px;font-weight:700}
+.prog{font-size:13px;color:var(--muted)}
+
+/* result & panels */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin:14px 0}
+.panel h2{font-size:18px;margin-bottom:10px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px;text-align:center}
+.stat{background:var(--card2);border-radius:12px;padding:12px 8px}
+.stat .v{font-size:22px;font-weight:800}
+.stat .k{font-size:12px;color:var(--muted);margin-top:2px}
+.norm{margin-top:12px;font-size:15px;text-align:center}
+.norm b{color:var(--brand2)}
+canvas{width:100%;max-width:100%;background:var(--bg2);border-radius:12px;border:1px solid var(--line);display:block;margin-top:8px}
+.mathpanel.collapsed .mathbody{display:none}
+.reveal-toggle{font-size:13px}
+.lb-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.lb-tabs button{border:1px solid var(--line);background:var(--card2);color:var(--muted);padding:6px 12px;border-radius:999px;font-size:12px}
+.lb-tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.lb-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;font-size:14px}
+.lb-row+.lb-row{margin-top:6px}
+.lb-row.me{background:rgba(59,130,246,.18);border:1px solid var(--brand)}
+.lb-rank{width:28px;font-weight:800;text-align:center;color:var(--muted)}
+.lb-rank.top{color:var(--warn)}
+.lb-name{flex:1}
+.lb-score{font-weight:700;color:var(--brand2)}
+.lb-bot{font-size:11px;color:var(--muted)}
+
+/* predict / discovery */
+.opt{display:block;width:100%;text-align:left;background:var(--card2);border:1px solid var(--line);color:var(--ink);
+  padding:12px 14px;border-radius:12px;margin-top:8px;font-size:14px}
+.opt:hover{border-color:var(--brand)}
+.opt.sel{border-color:var(--brand);background:rgba(59,130,246,.18)}
+.opt.correct{border-color:var(--go);background:rgba(34,197,94,.18)}
+.opt.wrong{border-color:var(--stop);background:rgba(239,68,68,.14)}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(4,8,18,.72);display:flex;align-items:center;justify-content:center;padding:16px;z-index:60}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:18px;max-width:520px;width:100%;max-height:86vh;overflow:auto;padding:20px;box-shadow:var(--shadow)}
+.modal h2{font-size:20px;margin-bottom:6px}
+.modal .close{float:right;border:none;background:transparent;color:var(--muted);font-size:24px;line-height:1}
+.field{margin-top:12px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+.field input{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);font-size:15px}
+.sci-card{background:var(--card2);border-radius:12px;padding:12px 14px;margin-top:10px;font-size:14px;line-height:1.6}
+.sci-card b{color:var(--brand2)}
+
+/* achievements (compatible with achievements.js class names) */
+.ach-toast-stack{position:fixed;right:14px;bottom:14px;display:flex;flex-direction:column;gap:8px;z-index:80}
+.ach-toast{background:var(--card);border:1px solid var(--warn);border-left:4px solid var(--warn);border-radius:12px;padding:10px 14px;min-width:220px;box-shadow:var(--shadow);animation:slidein .25s ease}
+@keyframes slidein{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+.ach-toast-title{font-size:11px;color:var(--warn);font-weight:700;display:flex;gap:5px;align-items:center}
+.ach-toast-name{font-size:15px;font-weight:700;margin-top:2px}
+.ach-toast-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.ach-row{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;background:var(--card2);margin-top:8px;opacity:.55}
+.ach-row.is-unlocked{opacity:1;border:1px solid var(--warn)}
+.ach-icon{font-size:24px;width:34px;text-align:center}
+.ach-meta{flex:1}
+.ach-name{font-weight:700;font-size:14px}
+.ach-desc{font-size:12px;color:var(--muted)}
+.ach-status{font-size:12px;color:var(--muted)}
+.progress-wrap{height:8px;background:var(--card2);border-radius:999px;overflow:hidden;margin:8px 0}
+.progress-wrap>div{height:100%;background:linear-gradient(90deg,var(--brand),var(--warn));width:0;transition:width .3s}
+
+footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+.notice{font-size:12px;color:var(--warn);text-align:center;margin-top:6px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="dot"></span>反应时实验室</div>
+  <div class="acct">
+    <span id="acctLabel">游客</span>
+    <button class="btn ghost" id="acctBtn" style="padding:6px 10px">登录/昵称</button>
+    <button class="btn ghost" id="trophyBtn" title="成就" style="padding:6px 10px">🏆 <span data-ach-count>0</span>/<span data-ach-total>0</span></button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- HOME -->
+  <section id="screen-home">
+    <h1 class="title">测测你的反应有多快！</h1>
+    <p class="sub">F1 起跑灯实验 · 测你的极限、画出 Hick 对数曲线、上榜比拼。先预测，再揭晓。</p>
+    <div class="single-cat">🏁 反应时测试</div>
+    <div class="cards" id="modeCards"></div>
+    <div class="row-actions">
+      <button class="btn lg" id="goDiscovery">🔬 发现之旅</button>
+      <button class="btn lg" id="goLeaderboard">🏁 排行榜</button>
+      <button class="btn lg ghost" id="goScience">📖 科学原理</button>
+    </div>
+  </section>
+
+  <!-- PLAY -->
+  <section id="screen-play" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <button class="btn ghost" id="playBack">← 返回</button>
+      <div class="prog" id="playProg"></div>
+    </div>
+    <div class="play">
+      <div class="lights" id="lights"></div>
+      <div id="signalArea" class="wait"><div class="big" id="signalBig">准备</div><div class="hint" id="signalHint"></div></div>
+      <div class="live" id="liveFeedback"></div>
+      <div class="lanes hidden" id="lanes"></div>
+      <div id="crtPick" class="hidden">
+        <div class="pick-label">选道数（可多选；选 2 个以上会画出 Hick 对数曲线）</div>
+        <div class="pick-chips" id="pickChips"></div>
+      </div>
+      <button class="btn primary lg" id="startBlockBtn">开始</button>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section id="screen-result" class="hidden"></section>
+
+  <!-- DISCOVERY -->
+  <section id="screen-discovery" class="hidden"></section>
+
+  <!-- LEADERBOARD -->
+  <section id="screen-leaderboard" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <button class="btn ghost" id="lbBack">← 返回</button>
+      <h2 style="font-size:18px">🏁 排行榜</h2><span></span>
+    </div>
+    <div class="panel">
+      <div class="lb-tabs" id="lbModeTabs"></div>
+      <div class="lb-tabs" id="lbScopeTabs">
+        <button data-scope="class" class="on">班内</button>
+        <button data-scope="global">全站</button>
+        <button data-period="today">今日</button>
+        <button data-period="all" class="on">总榜</button>
+      </div>
+      <div id="lbList"></div>
+      <div class="notice" id="lbNotice"></div>
+    </div>
+  </section>
+</div>
+
+<footer>杨老师的 mathlab · 反应时与选择（认知实验底座）· 单文件离线版</footer>
+
+<!-- ============ achievements.js (内联复用工坊底座) ============ -->
+<script>
+(function (global) {
+  'use strict';
+  function createAchievements(options) {
+    options = options || {};
+    var defs = options.defs || [], storageKey = options.storageKey || 'ach-v1';
+    var toastDuration = options.toastDuration || 4200;
+    var onUnlock = typeof options.onUnlock === 'function' ? options.onUnlock : null;
+    var unlocked = new Set();
+    function findDef(id){for(var i=0;i<defs.length;i++){if(defs[i].id===id)return defs[i];}return null;}
+    function load(){try{var raw=global.localStorage.getItem(storageKey);if(raw)JSON.parse(raw).forEach(function(id){unlocked.add(id);});}catch(e){}}
+    function save(){try{global.localStorage.setItem(storageKey,JSON.stringify(Array.from(unlocked)));}catch(e){}}
+    function toastStack(){var el=document.getElementById('achToastStack');if(!el){el=document.createElement('div');el.id='achToastStack';el.className='ach-toast-stack';document.body.appendChild(el);}return el;}
+    function showToast(def){var el=document.createElement('div');el.className='ach-toast';el.innerHTML='<div class="ach-toast-title"><span>🏆</span>解锁成就</div><div class="ach-toast-name">'+(def.icon||'')+' '+def.name+'</div><div class="ach-toast-desc">'+(def.desc||'')+'</div>';toastStack().appendChild(el);setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},toastDuration);}
+    function updateProgress(){var got=count(),tot=Math.max(1,total());var bar=document.querySelector('[data-ach-progress]');if(bar)bar.style.width=Math.round(got/tot*100)+'%';var c=document.querySelector('[data-ach-count]');if(c)c.textContent=count();var t=document.querySelector('[data-ach-total]');if(t)t.textContent=total();}
+    function fire(def){save();showToast(def);updateProgress();if(onUnlock)onUnlock(def);}
+    function unlock(id){if(unlocked.has(id))return false;var def=findDef(id);if(!def)return false;unlocked.add(id);fire(def);return true;}
+    function check(state){var fresh=[];for(var i=0;i<defs.length;i++){var def=defs[i];if(def.check&&!unlocked.has(def.id)&&def.check(state)){unlocked.add(def.id);fresh.push(def);}}if(fresh.length){fresh.forEach(fire);}return fresh;}
+    function has(id){return unlocked.has(id);}
+    function count(){return defs.filter(function(d){return unlocked.has(d.id);}).length;}
+    function total(){return defs.length;}
+    function reset(){unlocked.clear();save();updateProgress();}
+    function renderList(container){if(!container)return;container.innerHTML='';defs.forEach(function(def){var got=unlocked.has(def.id);var row=document.createElement('div');row.className='ach-row'+(got?' is-unlocked':'');row.innerHTML='<div class="ach-icon">'+(got?(def.icon||'🏆'):'🔒')+'</div><div class="ach-meta"><div class="ach-name">'+def.name+'</div><div class="ach-desc">'+(def.desc||'')+'</div></div><div class="ach-status">'+(got?'✓ 已解锁':'未解锁')+'</div>';container.appendChild(row);});updateProgress();}
+    load();updateProgress();
+    return {check:check,unlock:unlock,has:has,count:count,total:total,reset:reset,renderList:renderList,unlockedCount:function(){return count();}};
+  }
+  global.createAchievements = createAchievements;
+})(window);
+</script>
+
+<!-- ============ 认知实验底座 + 游戏逻辑 ============ -->
+<script>
+"use strict";
+const RT = {};
+
+/* ---------- config ---------- */
+RT.config = { backend: 'local', envId: '' };  // 画廊版构建时切 'cloud' 并填 envId
+
+/* ---------- stats ---------- */
+RT.Stats = (function(){
+  const sum = a => a.reduce((x,y)=>x+y,0);
+  const mean = a => a.length ? sum(a)/a.length : 0;
+  function median(a){ if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y); const m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+  function sd(a){ if(a.length<2) return 0; const m=mean(a); return Math.sqrt(sum(a.map(x=>(x-m)**2))/(a.length-1)); }
+  function rejectOutliers(rts,{minRT=120,maxRT=800}={}){ const valid=[],rej=[]; rts.forEach(r=>{ (r>=minRT&&r<=maxRT)?valid.push(r):rej.push(r); }); return {valid,rej}; }
+  // 线性拟合 y=a+b*log2(x)；points=[{n,rt}]
+  function linregLog2(points){
+    const xs=points.map(p=>Math.log2(p.n)), ys=points.map(p=>p.rt), n=xs.length;
+    const mx=mean(xs),my=mean(ys);
+    let num=0,den=0; for(let i=0;i<n;i++){num+=(xs[i]-mx)*(ys[i]-my);den+=(xs[i]-mx)**2;}
+    const b=den?num/den:0, a=my-b*mx;
+    let ssRes=0,ssTot=0; for(let i=0;i<n;i++){const pred=a+b*xs[i];ssRes+=(ys[i]-pred)**2;ssTot+=(ys[i]-my)**2;}
+    const r2=ssTot?1-ssRes/ssTot:0;
+    return {a,b,r2};
+  }
+  return {sum,mean,median,sd,rejectOutliers,linregLog2};
+})();
+
+/* ---------- engine：计时 / 单试次 / 区组 ---------- */
+RT.Engine = (function(){
+  const now = ()=>performance.now();
+  function presentAndStamp(renderFn){
+    return new Promise(res=>{
+      let rendered=false, settled=false;
+      const render=()=>{ if(!rendered){ rendered=true; renderFn(); } };
+      const settle=()=>{ if(!settled){ settled=true; res(now()); } };
+      requestAnimationFrame(()=>{ render(); requestAnimationFrame(settle); }); // 焦点标签：对齐绘制帧
+      setTimeout(()=>{ render(); settle(); }, 150); // 兜底：后台标签 rAF 被暂停时也不会卡死试次
+    });
+  }
+  // 单试次：kind 'go' 期待响应；kind 'nogo' 期待克制（不响应）
+  function runTrial(opts){
+    const area = opts.area || document;
+    return new Promise(resolve=>{
+      let phase='wait', onset=0, done=false, invalid=false, fpTimer=null, endTimer=null;
+      function cleanup(){ document.removeEventListener('keydown',onKey,true); area.removeEventListener('pointerdown',onPointer,true); document.removeEventListener('visibilitychange',onVis); clearTimeout(fpTimer); clearTimeout(endTimer); }
+      function finish(r){ if(done)return; done=true; cleanup(); r.invalid=invalid; resolve(r); }
+      if(opts.signal){ opts.signal.cancel = ()=>finish({outcome:'aborted',rt:null,response:null,correct:false,falseStart:false,aborted:true}); }
+      function respond(ev){
+        if(done) return;
+        if(phase==='wait'){ finish({outcome:'jumpStart',rt:null,response:null,correct:false,falseStart:true}); return; }
+        if(phase==='signal'){
+          const code = opts.resolveResponse ? opts.resolveResponse(ev) : 'go';
+          if(code===null||code===undefined) return; // 无效响应忽略（同 jsPsych valid_responses）
+          const rt = now()-onset;
+          if(opts.kind==='nogo'){ finish({outcome:'falseAlarm',rt,response:code,correct:false,falseStart:false}); return; }
+          const correct = opts.isCorrectCode ? !!opts.isCorrectCode(code) : true;
+          finish({outcome:'hit',rt,response:code,correct,falseStart:false});
+        }
+      }
+      function onKey(e){ if(e.repeat) return; respond({type:'key',key:e.key,code:e.code}); }
+      function onPointer(e){ respond({type:'pointer',target:e.target}); }
+      function onVis(){ if(document.hidden) invalid=true; }
+      document.addEventListener('keydown',onKey,true);
+      area.addEventListener('pointerdown',onPointer,true);
+      document.addEventListener('visibilitychange',onVis);
+      opts.onWaitStart && opts.onWaitStart();
+      fpTimer = setTimeout(async ()=>{
+        if(done) return;
+        phase='signal';
+        onset = await presentAndStamp(()=>opts.render && opts.render());
+        if(done) return;
+        const win = opts.kind==='nogo' ? (opts.nogoWindowMs||900) : (opts.timeoutMs||1500);
+        endTimer = setTimeout(()=>{
+          if(opts.kind==='nogo') finish({outcome:'correctReject',rt:null,response:null,correct:true,falseStart:false});
+          else finish({outcome:'timeout',rt:null,response:null,correct:false,falseStart:false,timedOut:true});
+        }, win);
+      }, opts.foreperiod);
+    });
+  }
+  const rand=(lo,hi)=>lo+Math.random()*(hi-lo);
+  return {now,presentAndStamp,runTrial,rand};
+})();
+
+/* ---------- norms：年龄段常模（示意，待真实数据自校准） ---------- */
+RT.Norms = (function(){
+  // 视觉简单反应时 median 近似（ms），p10=快/p90=慢（示意值）
+  const N = {
+    SRT:    {p10:230,p50:300,p90:420},
+    AUDIO:  {p10:190,p50:260,p90:380},
+    CRT2:   {p10:330,p50:420,p90:560},
+    CRT4:   {p10:400,p50:500,p90:660},
+    CRT8:   {p10:470,p50:600,p90:780},
+    GONOGO: {p10:330,p50:420,p90:560},
+    FALSESTART:{p10:240,p50:310,p90:430}
+  };
+  // 由 median 估计"比 X% 同龄人快"（线性插值，越快百分位越高）
+  function percentFaster(rt,mode){
+    const n=N[mode]; if(!n||!rt) return null;
+    // 映射：p10->90%快, p50->50%, p90->10%
+    let pct;
+    if(rt<=n.p10) pct=90+ Math.min(9,(n.p10-rt)/n.p10*40);
+    else if(rt<=n.p50) pct=50+ (n.p50-rt)/(n.p50-n.p10)*40;
+    else if(rt<=n.p90) pct=10+ (n.p90-rt)/(n.p90-n.p50)*40;
+    else pct=Math.max(1,10-(rt-n.p90)/n.p90*20);
+    return Math.round(Math.max(1,Math.min(99,pct)));
+  }
+  return {N,percentFaster};
+})();
+
+/* ---------- DataStore：local 实现 + cloud 适配器接口 ---------- */
+RT.DataStore = (function(){
+  const K_SESS='rt:sessions', K_PROFILE='rt:profile', K_QUEUE='rt:queue', K_SEED='rt:seeded';
+  function read(k,def){try{return JSON.parse(localStorage.getItem(k))||def;}catch(e){return def;}}
+  function write(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+  // —— 本地后端 ——
+  const local = {
+    async init(){ seedGhosts(); },
+    online(){ return true; },
+    async saveSession(s){ const all=read(K_SESS,[]); all.push(s); write(K_SESS,all); return {id:s.ts,queued:false}; },
+    async getLeaderboard({mode,scope,period,classCode,myUid,limit=20}){
+      let all=read(K_SESS,[]);
+      all=all.filter(s=>s.mode===mode);
+      if(period==='today'){ const d=dayKey(); all=all.filter(s=>s.dayKey===d); }
+      if(scope==='class'&&classCode){ all=all.filter(s=>s.classCode===classCode||s.ghost); }
+      // 每个用户取最好成绩
+      const best={}; all.forEach(s=>{ const key=s.uid||s.nickname; if(!best[key]||s.scoreRT<best[key].scoreRT) best[key]=s; });
+      let rows=Object.values(best).sort((a,b)=>a.scoreRT-b.scoreRT).slice(0,limit);
+      return rows;
+    },
+    async getMyHistory({mode,uid,limit=30}){ return read(K_SESS,[]).filter(s=>s.mode===mode&&(s.uid===uid)).slice(-limit); },
+    async flushQueue(){ /* local 无需补传 */ }
+  };
+
+  // —— 云后端（CloudBase）适配器：接口就位，需 SDK + envId + 控制台配置 ——
+  const cloud = {
+    app:null, db:null, _user:null,
+    async init(){
+      if(!window.cloudbase || !RT.config.envId){ this._fallback=true; return local.init(); }
+      this.app = window.cloudbase.init({env:RT.config.envId});
+      this.auth = this.app.auth({persistence:'local'});
+      this.db = this.app.database();
+      try{ const st=await this.auth.getLoginState(); if(st) this._user=st.user; }catch(e){}
+    },
+    online(){ return !this._fallback && navigator.onLine; },
+    async _ensureAnon(){ if(this._user) return this._user; const r=await this.auth.signInAnonymously(); this._user=r.user||(await this.auth.getLoginState()).user; return this._user; },
+    async saveSession(s){
+      if(this._fallback||!navigator.onLine){ const q=read(K_QUEUE,[]); q.push(s); write(K_QUEUE,q); return {id:s.ts,queued:true}; }
+      try{ await this._ensureAnon(); await this.db.collection('rt_sessions').add(s); return {id:s.ts,queued:false}; }
+      catch(e){ const q=read(K_QUEUE,[]); q.push(s); write(K_QUEUE,q); return {id:s.ts,queued:true}; }
+    },
+    async getLeaderboard(opts){
+      if(this._fallback||!navigator.onLine) return local.getLeaderboard(opts);
+      try{
+        const _=this.db.command; let q=this.db.collection('rt_sessions').where({mode:opts.mode});
+        if(opts.period==='today') q=this.db.collection('rt_sessions').where({mode:opts.mode,dayKey:dayKey()});
+        if(opts.scope==='class'&&opts.classCode) q=this.db.collection('rt_sessions').where({mode:opts.mode,classCode:opts.classCode});
+        const r=await q.orderBy('scoreRT','asc').limit(opts.limit||20).get();
+        return r.data||[];
+      }catch(e){ return local.getLeaderboard(opts); }
+    },
+    async getMyHistory(opts){ return local.getMyHistory(opts); },
+    async flushQueue(){
+      if(this._fallback||!navigator.onLine) return;
+      const q=read(K_QUEUE,[]); if(!q.length) return; const rest=[];
+      for(const s of q){ try{ await this._ensureAnon(); await this.db.collection('rt_sessions').add(s); }catch(e){ rest.push(s); } }
+      write(K_QUEUE,rest);
+    }
+  };
+
+  function dayKey(d=new Date()){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  // 本地"电脑选手"种子，让离线榜单可比（清楚标注 🤖）
+  function seedGhosts(){
+    if(read(K_SEED,false)) return;
+    const names=['🤖 闪电侠','🤖 旗手','🤖 老司机','🤖 新手村','🤖 平均君'];
+    const all=read(K_SESS,[]);
+    Object.keys(RT.Norms.N).forEach(mode=>{
+      const n=RT.Norms.N[mode]; const pts=[n.p10+10,n.p50-30,n.p50,n.p50+40,n.p90-20];
+      names.forEach((nm,i)=>{ all.push({uid:'ghost'+i,nickname:nm,classCode:'示例班',ghost:true,mode,scoreRT:Math.round(pts[i]),medianRT:Math.round(pts[i]),meanRT:Math.round(pts[i]+10),sd:30,n:10,validN:10,falseStarts:0,device:'bot',ts:Date.now()-i,dayKey:dayKey()}); });
+    });
+    write(K_SESS,all); write(K_SEED,true);
+  }
+
+  const impl = ()=> RT.config.backend==='cloud' ? cloud : local;
+  return {
+    async init(){ return impl().init(); },
+    online(){ return impl().online(); },
+    saveSession(s){ return impl().saveSession(s); },
+    getLeaderboard(o){ return impl().getLeaderboard(o); },
+    getMyHistory(o){ return impl().getMyHistory(o); },
+    flushQueue(){ return impl().flushQueue(); },
+    dayKey, _read:read, _write:write, K_PROFILE
+  };
+})();
+
+/* ---------- Account：昵称 + 班级码 ---------- */
+RT.Account = (function(){
+  let cur = null;
+  function load(){ cur = RT.DataStore._read(RT.DataStore.K_PROFILE,null); }
+  function current(){ return cur; }
+  function isGuest(){ return !cur; }
+  async function signIn({nickname,classCode}){
+    let uid = (cur&&cur.uid)|| 'u_'+Math.random().toString(36).slice(2,10);
+    cur = {uid,nickname:nickname.trim().slice(0,12)||'无名氏',classCode:(classCode||'').trim().slice(0,16)||'未分班'};
+    RT.DataStore._write(RT.DataStore.K_PROFILE,cur);
+    return cur;
+  }
+  function signOut(){ cur=null; try{localStorage.removeItem(RT.DataStore.K_PROFILE);}catch(e){} }
+  load();
+  return {current,isGuest,signIn,signOut};
+})();
+
+/* ---------- Charts：Canvas 2D 自绘 ---------- */
+RT.Charts = (function(){
+  function setup(canvas,h=180){ const dpr=window.devicePixelRatio||1; const w=canvas.clientWidth||520; canvas.width=w*dpr; canvas.height=h*dpr; const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr); return {ctx,w,h}; }
+  const css=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+  function histogram(canvas,rts){
+    const {ctx,w,h}=setup(canvas,180); ctx.clearRect(0,0,w,h);
+    if(!rts.length){return;}
+    const min=Math.min(...rts),max=Math.max(...rts),bins=10,bw=(max-min)/bins||1;
+    const counts=new Array(bins).fill(0); rts.forEach(r=>{let i=Math.min(bins-1,Math.floor((r-min)/bw));counts[i]++;});
+    const cmax=Math.max(...counts), pad=28, gw=(w-pad*2)/bins;
+    ctx.fillStyle=css('--brand');
+    counts.forEach((c,i)=>{ const bh=(h-pad-14)*(c/cmax); ctx.fillRect(pad+i*gw+2,h-pad-bh,gw-4,bh); });
+    ctx.strokeStyle=css('--line'); ctx.beginPath(); ctx.moveTo(pad,h-pad); ctx.lineTo(w-pad,h-pad); ctx.stroke();
+    ctx.fillStyle=css('--muted'); ctx.font='11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(Math.round(min)+'ms',pad,h-pad+12); ctx.fillText(Math.round(max)+'ms',w-pad,h-pad+12);
+    ctx.fillText('反应时分布',w/2,14);
+  }
+  // points=[{n,rt}] 画 N(对数轴) vs RT + 拟合线
+  function hick(canvas,points,fit){
+    const {ctx,w,h}=setup(canvas,220); ctx.clearRect(0,0,w,h);
+    const pad=40; const xs=points.map(p=>Math.log2(p.n)); const ys=points.map(p=>p.rt);
+    const xmin=0,xmax=Math.max(...xs,3),ymin=Math.min(...ys)*0.85,ymax=Math.max(...ys)*1.1;
+    const X=x=>pad+(x-xmin)/(xmax-xmin)*(w-pad*1.4);
+    const Y=y=>h-pad-(y-ymin)/(ymax-ymin)*(h-pad*1.6);
+    // axes
+    ctx.strokeStyle=css('--line'); ctx.beginPath(); ctx.moveTo(pad,10); ctx.lineTo(pad,h-pad); ctx.lineTo(w-12,h-pad); ctx.stroke();
+    ctx.fillStyle=css('--muted'); ctx.font='11px sans-serif';
+    [1,2,4,8].forEach(n=>{ const x=X(Math.log2(n)); ctx.textAlign='center'; ctx.fillText(n+'选项',x,h-pad+14); });
+    ctx.save();ctx.translate(12,h/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';ctx.fillText('反应时(ms)',0,0);ctx.restore();
+    // fit line
+    if(fit){ ctx.strokeStyle=css('--warn'); ctx.setLineDash([6,4]); ctx.beginPath();
+      const x0=xmin,x1=xmax; ctx.moveTo(X(x0),Y(fit.a+fit.b*x0)); ctx.lineTo(X(x1),Y(fit.a+fit.b*x1)); ctx.stroke(); ctx.setLineDash([]); }
+    // points
+    ctx.fillStyle=css('--brand2');
+    points.forEach((p,i)=>{ const x=X(xs[i]),y=Y(ys[i]); ctx.beginPath(); ctx.arc(x,y,5,0,7); ctx.fill(); });
+    if(fit){ ctx.fillStyle=css('--warn'); ctx.textAlign='left'; ctx.fillText('RT ≈ '+Math.round(fit.a)+' + '+Math.round(fit.b)+'·log₂N   R²='+fit.r2.toFixed(2),pad+6,18); }
+    ctx.fillStyle=css('--muted');ctx.textAlign='center';ctx.fillText('选项越多越慢？看是不是一条直线',w/2,h-6);
+  }
+  return {histogram,hick};
+})();
+
+/* ---------- 模式定义 ---------- */
+RT.modes = {
+  SRT:    {id:'SRT',ic:'🚦',name:'单灯起跑',n:10,practice:2,desc:'五灯熄灭瞬间立刻冲！测你的简单反应极限。',kind:'go',channel:'visual'},
+  CRT:    {id:'CRT',ic:'🛣️',name:'多道起跑 2/4/8',n:10,practice:2,desc:'亮哪条道按哪条。选项越多越慢吗？亲手画出 Hick 曲线。',kind:'choice',Ns:[2,4,8]},
+  GONOGO: {id:'GONOGO',ic:'🟢',name:'黄旗克制 Go/No-Go',n:12,practice:3,desc:'绿灯冲、红旗别动！求快还是求稳？',kind:'gonogo'},
+  AUDIO:  {id:'AUDIO',ic:'🔊',name:'听觉发车',n:10,practice:2,desc:'声音一响就冲——耳朵真的比眼睛快吗？',kind:'go',channel:'audio'},
+  FALSESTART:{id:'FALSESTART',ic:'🎯',name:'抢跑陷阱',n:12,practice:2,desc:'起跑灯会骗你！沉得住气才不被罚 Jump Start。',kind:'go',catch:true}
+};
+
+/* ---------- Audio（WebAudio 自生成） ---------- */
+RT.Audio = (function(){
+  let ctx=null;
+  function unlock(){ if(!ctx){ try{ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } if(ctx&&ctx.state==='suspended') ctx.resume(); }
+  function beep(){ if(!ctx) return; const o=ctx.createOscillator(),g=ctx.createGain(); o.frequency.value=1000;o.type='square'; o.connect(g);g.connect(ctx.destination); g.gain.setValueAtTime(.18,ctx.currentTime); o.start(); o.stop(ctx.currentTime+0.15); }
+  return {unlock,beep};
+})();
+</script>
+
+<!-- ============ UI 编排 ============ -->
+<script>
+"use strict";
+(function(){
+  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+  const screens=['home','play','result','discovery','leaderboard'];
+  function show(name){ screens.forEach(s=>$('#screen-'+s).classList.toggle('hidden',s!==name)); window.scrollTo(0,0); }
+  let stage='junior'; // 单一"反应时测试"：默认展开数学面板（结算图表为玩家自己的数据，非剧透）
+
+  /* ---- achievements 定义（发现型 + 技能型 + 元） ---- */
+  const ach = createAchievements({ storageKey:'reaction-time-ach-v1', defs:[
+    {id:'logfit',icon:'📈',name:'人肉对数曲线',desc:'CRT 2/4/8 拟合 R²>0.9，你亲手画出了 Hick 定律',check:s=>s.hickR2>0.9},
+    {id:'earwin',icon:'👂',name:'耳快于眼',desc:'实测听觉反应比视觉更快',check:s=>s.earWin},
+    {id:'tradeoff',icon:'⚖️',name:'权衡侦探',desc:'在 Go/No-Go 中体会"求快则误按增"',check:s=>s.sawTradeoff},
+    {id:'medianeye',icon:'🔍',name:'中位数侦探',desc:'查看剔除抢跑/异常前后的差别',check:s=>s.sawMedian},
+    {id:'flash',icon:'⚡',name:'闪电反射',desc:'单次反应 < 200ms',check:s=>s.bestRT&&s.bestRT<200},
+    {id:'calm',icon:'🧘',name:'沉得住气',desc:'一整轮零抢跑完成',check:s=>s.zeroFalseRound},
+    {id:'nogoking',icon:'👑',name:'克制之王',desc:'Go/No-Go 零误按',check:s=>s.noGoPerfect},
+    {id:'stable',icon:'🎯',name:'稳定大师',desc:'一轮反应时标准差 < 40ms',check:s=>s.lowSd},
+    {id:'pb',icon:'🚀',name:'破纪录',desc:'刷新自己的最好成绩',check:s=>s.newPB},
+    {id:'top1',icon:'🥇',name:'登顶',desc:'登上某个榜单第一名',check:s=>s.rankedTop1},
+    {id:'ace8',icon:'🎮',name:'八向飞手',desc:'CRT8 全部正确且飞快',check:s=>s.ace8},
+    {id:'master',icon:'🏆',name:'反应力大师',desc:'解锁前面 6 项成就',check:s=>ach && ach.unlockedCount()>=6}
+  ]});
+  // 跨局累积状态（部分成就需跨模式）
+  const AST = { bestRT:null, visualMedian:null, audioMedian:null, earWin:false, sawTradeoff:false, sawMedian:false,
+                noGoPerfect:false, hickR2:0, rankedTop1:false };
+
+  /* ---- 渲染主页模式卡 ---- */
+  function renderHome(){
+    const c=$('#modeCards'); c.innerHTML='';
+    Object.values(RT.modes).forEach(m=>{
+      const el=document.createElement('button'); el.className='mode-card';
+      el.innerHTML=`<span class="tag">${m.n}试次</span><div class="ic">${m.ic}</div><h3>${m.name}</h3><p>${m.desc}</p>`;
+      el.onclick=()=>startMode(m.id);
+      c.appendChild(el);
+    });
+  }
+  // 学段切换已移除：单一"反应时测试"
+
+  /* ---- F1 起跑灯 ---- */
+  const lightsEl=$('#lights'); for(let i=0;i<5;i++){const d=document.createElement('div');d.className='light';lightsEl.appendChild(d);}
+  const lights=[...lightsEl.children];
+  let lightsTimer=null;
+  function lightsReset(){ if(lightsTimer){clearInterval(lightsTimer);lightsTimer=null;} lights.forEach(l=>l.classList.remove('on')); }
+  function lightsSequence(cb){ // 5 灯依次点亮 ~ 800ms
+    lightsReset(); let i=0;
+    lightsTimer=setInterval(()=>{ if(i<5){lights[i].classList.add('on');i++;} else {clearInterval(lightsTimer);lightsTimer=null; cb&&cb();} },150);
+  }
+
+  /* ---- 区组运行 ---- */
+  const area=$('#signalArea'), big=$('#signalBig'), hint=$('#signalHint'), live=$('#liveFeedback'), lanes=$('#lanes'), prog=$('#playProg'), startBtn=$('#startBlockBtn'), playArea=$('.play');
+  let curMode=null, curN=null, selectedNs=[2,4,8];
+  let RUN=null; // 当前轮次令牌：返回/重开即作废，杜绝轮次混乱
+  function newRun(){ if(RUN){ RUN.aborted=true; try{ RUN.signal&&RUN.signal.cancel&&RUN.signal.cancel(); }catch(e){} } RUN={aborted:false,signal:null}; return RUN; }
+  function resetPlayUI(){ lanes.classList.add('hidden'); lanes.innerHTML=''; lightsReset(); area.className='wait'; big.textContent='准备'; hint.textContent=''; live.textContent=''; prog.textContent=''; }
+  function abortRun(){ if(RUN){ RUN.aborted=true; try{ RUN.signal&&RUN.signal.cancel&&RUN.signal.cancel(); }catch(e){} } RUN=null; resetPlayUI(); }
+
+  function buildCrtPick(){
+    const wrap=$('#pickChips'); wrap.innerHTML='';
+    [2,4,8].forEach(n=>{ const b=document.createElement('button'); b.textContent=n+' 道'; b.dataset.n=n;
+      b.className=selectedNs.includes(n)?'on':'';
+      b.onclick=()=>{ const i=selectedNs.indexOf(n); if(i>=0){ if(selectedNs.length>1) selectedNs.splice(i,1); } else selectedNs.push(n); selectedNs.sort((a,b)=>a-b); buildCrtPick(); };
+      wrap.appendChild(b); });
+  }
+  function startMode(id){
+    curMode=RT.modes[id]; show('play');
+    $('#playBack').onclick=()=>{ abortRun(); show('home'); };
+    lanes.classList.add('hidden'); lightsReset();
+    area.className='wait'; big.textContent='准备'; hint.textContent=curMode.desc; live.textContent=''; prog.textContent='';
+    if(curMode.kind==='choice'){ selectedNs=[2,4,8]; buildCrtPick(); $('#crtPick').classList.remove('hidden'); }
+    else { $('#crtPick').classList.add('hidden'); }
+    startBtn.classList.remove('hidden');
+    startBtn.textContent = curMode.channel==='audio' ? '开始（开启声音）' : '开始';
+    startBtn.onclick=()=>{ if(curMode.channel==='audio') RT.Audio.unlock(); runFlow(); };
+  }
+
+  async function runFlow(){
+    const run=newRun();             // 开新轮次，自动作废旧轮次
+    startBtn.classList.add('hidden'); $('#crtPick').classList.add('hidden');
+    if(curMode.kind==='choice'){
+      // CRT：按自选道数依次跑，收集 Hick
+      const Ns=selectedNs.slice().sort((a,b)=>a-b);
+      const hickPts=[]; let allTrials=[]; let aceOK=false, aceFast=false;
+      for(const N of Ns){
+        curN=N; const res=await practiceThenBlock(curMode,N,run);
+        if(run.aborted||!res) return;   // 已返回/换轮：立即退出，不再渲染
+        allTrials=allTrials.concat(res.trials);
+        hickPts.push({n:N,rt:res.summary.median});
+        if(N===8){ aceOK=res.summary.accuracy>=1; aceFast=res.summary.median<520; }
+        await pause(600); if(run.aborted) return;
+      }
+      const srtHist=await RT.DataStore.getMyHistory({mode:'SRT',uid:uidOrGuest()});
+      if(run.aborted) return;
+      const srtMed = srtHist.length? srtHist[srtHist.length-1].medianRT : null;
+      const pts = srtMed? [{n:1,rt:srtMed},...hickPts] : hickPts;
+      const fit=RT.Stats.linregLog2(pts);
+      AST.hickR2=fit.r2;
+      finishChoice(pts,fit,allTrials,{ace8:aceOK&&aceFast});
+      return;
+    }
+    // 其它模式：单区组
+    const res=await practiceThenBlock(curMode,null,run);
+    if(run.aborted||!res) return;
+    finishSingle(res);
+  }
+
+  let lastBlock=null;
+  function pause(ms){return new Promise(r=>setTimeout(r,ms));}
+  function uidOrGuest(){ const c=RT.Account.current(); return c?c.uid:'guest-local'; }
+
+  // 练习关 + 正式区组
+  async function practiceThenBlock(mode,N,run){
+    // 练习
+    live.textContent='练习几次（不计分）';
+    for(let i=0;i<mode.practice;i++){ await oneTrial(mode,N,true,i+1,mode.practice,run); if(run.aborted) return null; await pause(450); if(run.aborted) return null; }
+    // 正式
+    const trials=[]; const n=mode.n;
+    for(let i=0;i<n;i++){ const r=await oneTrial(mode,N,false,i+1,n,run); if(run.aborted) return null; trials.push(r); await pause(420); if(run.aborted) return null; }
+    lastBlock={mode,N,trials,summary:summarize(mode,trials)};
+    return lastBlock;
+  }
+
+  // 渲染一个试次，返回结果
+  function oneTrial(mode,N,isPractice,idx,total,run){
+    prog.textContent=(isPractice?'练习 ':'正式 ')+idx+' / '+total;
+    live.textContent=isPractice?'练习':'';
+    lanes.classList.add('hidden'); lanes.innerHTML='';
+    area.className='wait'; big.textContent=''; hint.textContent='';
+    // 决定 go/nogo 与刺激
+    let kind='go', litIdx=null, isCatch=false, signalKind='go';
+    if(mode.kind==='gonogo'){ kind = Math.random()<0.3?'nogo':'go'; signalKind=kind; }
+    if(mode.catch){ isCatch = Math.random()<0.28; if(isCatch) kind='nogo'; }
+    if(mode.kind==='choice'){ litIdx=Math.floor(Math.random()*N); }
+
+    const foreperiod = 800 + RT.Engine.rand(900,2400); // 含点灯动画时长
+    const signal={}; if(run) run.signal=signal; // 注册到当前轮次，便于返回时取消
+
+    const opts = {
+      area: playArea, kind, foreperiod, isCatch, signal,
+      onWaitStart(){
+        if(mode.kind==='choice'){ buildLanes(N); }
+        lightsSequence(); // 起跑灯依次亮
+        area.className='wait'; big.textContent='盯住'; hint.textContent= kind==='nogo'&&mode.kind==='gonogo' ? '' : '';
+      },
+      render(){ // 信号呈现（onset）
+        if(mode.channel==='audio'){ RT.Audio.beep(); lightsReset(); area.className='go'; big.textContent='🔊'; hint.textContent='听到就按！'; return; }
+        if(mode.kind==='gonogo'){
+          lightsReset();
+          if(kind==='go'){ area.className='go'; big.textContent='GO'; hint.textContent='冲！'; }
+          else { area.className='stop'; big.textContent='✋'; hint.textContent='红旗！别动'; }
+          return;
+        }
+        if(mode.catch && isCatch){ area.className='flash'; big.textContent='…'; hint.textContent='假动作！别上当'; return; }
+        if(mode.kind==='choice'){
+          lightsReset(); area.className='go'; big.textContent=''; hint.textContent='按亮起的车道：点它，或按对应数字键';
+          const ls=[...lanes.children]; ls.forEach((l,i)=>l.classList.toggle('lit',i===litIdx));
+          return;
+        }
+        // SRT / FALSESTART 正常 go
+        lightsReset(); area.className='go'; big.textContent='GO!'; hint.textContent='';
+      },
+      resolveResponse(ev){
+        if(mode.kind==='choice'){
+          if(ev.type==='pointer'){ const lane=ev.target.closest('.lane'); return lane?Number(lane.dataset.idx):null; }
+          // 键盘：数字键 1..N 对应车道（车道标号即按键数字）；兼容 2/4 选项的方向键
+          if(/^[1-9]$/.test(ev.key)){ const d=Number(ev.key)-1; return d<N?d:null; }
+          const map2={'ArrowLeft':0,'ArrowRight':1};
+          const map4={'ArrowLeft':0,'ArrowRight':1,'ArrowUp':2,'ArrowDown':3};
+          const m = N===2?map2:(N===4?map4:null);
+          if(m && ev.key in m) return m[ev.key];
+          return null;
+        }
+        // 其它：空格/回车/任意点击
+        if(ev.type==='pointer') return 'go';
+        if(ev.key===' '||ev.key==='Enter'||ev.key==='Spacebar') return 'go';
+        return 'go'; // 任意键都算"按下"
+      },
+      isCorrectCode(code){ if(mode.kind==='choice') return code===litIdx; return true; },
+      timeoutMs:1500, nogoWindowMs:900
+    };
+
+    return RT.Engine.runTrial(opts).then(r=>{
+      if(run && run.aborted) return r;   // 已返回：不再写反馈、不复位界面
+      r.litIdx=litIdx; r.isCatch=isCatch; r.kind=kind;
+      if(!isPractice) showLiveFeedback(mode,r);
+      else showPracticeFeedback(mode,r);
+      // 复位
+      area.className='wait';
+      return r;
+    });
+  }
+
+  function buildLanes(N){
+    lanes.className='lanes'+(N===8?' n8':''); lanes.classList.remove('hidden'); lanes.innerHTML='';
+    for(let i=0;i<N;i++){ const d=document.createElement('div'); d.className='lane'; d.dataset.idx=i; d.textContent=i+1; lanes.appendChild(d); }
+  }
+
+  function rate(rt){ if(rt<250)return ['⚡闪电','var(--go)']; if(rt<400)return ['🐎神速','var(--brand2)']; return ['🐢慢了点','var(--warn)']; }
+  function showLiveFeedback(mode,r){
+    if(r.falseStart){ area.className='stop'; big.textContent='抢跑!'; hint.textContent='Jump Start 判罚'; live.innerHTML='<span style="color:var(--stop)">🚩 抢跑了！熄灯前不能动</span>'; return; }
+    if(r.outcome==='timeout'){ live.innerHTML='<span style="color:var(--warn)">走神了…太慢没按</span>'; return; }
+    if(mode.kind==='gonogo'){
+      if(r.outcome==='falseAlarm'){ live.innerHTML='<span style="color:var(--stop)">❌ 红旗你也冲了（误按）</span>'; }
+      else if(r.outcome==='correctReject'){ live.innerHTML='<span style="color:var(--go)">✅ 忍住了，漂亮！</span>'; }
+      else { const [t,c]=rate(r.rt); live.innerHTML=`<span class="rtbig" style="color:${c}">${Math.round(r.rt)}ms</span> <span class="rating">${t}</span>`; }
+      return;
+    }
+    if(mode.catch && r.isCatch){ live.innerHTML='<span style="color:var(--go)">✅ 没上当，沉住气！</span>'; return; }
+    if(r.outcome==='hit' && mode.kind==='choice' && !r.correct){ live.innerHTML='<span style="color:var(--stop)">按错道了</span>'; return; }
+    const [t,c]=rate(r.rt); live.innerHTML=`<span class="rtbig" style="color:${c}">${Math.round(r.rt)}ms</span> <span class="rating">${t}</span>`;
+  }
+  function showPracticeFeedback(mode,r){
+    if(r.falseStart) live.textContent='练习：抢跑了，等熄灯再按';
+    else if(r.rt) live.textContent='练习：'+Math.round(r.rt)+'ms';
+    else live.textContent='练习';
+  }
+
+  /* ---- 统计汇总 ---- */
+  function summarize(mode,trials){
+    const valids = trials.filter(t=>!t.invalid);
+    const rts = valids.filter(t=>t.outcome==='hit'&&t.rt!=null&&(mode.kind!=='choice'||t.correct)).map(t=>t.rt);
+    const {valid:clean}=RT.Stats.rejectOutliers(rts,{minRT:120,maxRT:900});
+    const falseStarts = valids.filter(t=>t.falseStart).length;
+    let accuracy=1, falseAlarmRate=0;
+    if(mode.kind==='choice'){ const ans=valids.filter(t=>t.outcome==='hit'); accuracy=ans.length?ans.filter(t=>t.correct).length/ans.length:0; }
+    if(mode.kind==='gonogo'){ const nogo=valids.filter(t=>t.kind==='nogo'); falseAlarmRate=nogo.length?nogo.filter(t=>t.outcome==='falseAlarm').length/nogo.length:0; accuracy=1-falseAlarmRate; }
+    return {
+      n:trials.length, validN:clean.length,
+      mean:Math.round(RT.Stats.mean(clean)), median:Math.round(RT.Stats.median(clean)),
+      sd:Math.round(RT.Stats.sd(clean)), min:clean.length?Math.round(Math.min(...clean)):null,
+      falseStarts, accuracy, falseAlarmRate, rts:clean, rawRts:rts
+    };
+  }
+
+  /* ---- 结算：单区组 ---- */
+  async function finishSingle(block){
+    const {mode,summary:S}=block;
+    // 跨局成就状态
+    if(S.min!=null && (AST.bestRT==null||S.min<AST.bestRT)) AST.bestRT=S.min;
+    if(mode.id==='SRT') AST.visualMedian=S.median;
+    if(mode.id==='AUDIO') AST.audioMedian=S.median;
+    if(AST.visualMedian&&AST.audioMedian&&AST.audioMedian<AST.visualMedian) AST.earWin=true;
+    if(mode.kind==='gonogo' && S.falseAlarmRate===0) AST.noGoPerfect=true;
+
+    const scoreRT = S.median||9999;
+    const newPB = await checkPB(mode.id,scoreRT);
+    const session = makeSession(mode.id,S,scoreRT);
+    await RT.DataStore.saveSession(session);
+    const rank = await myRank(mode.id,scoreRT);
+    if(rank===1) AST.rankedTop1=true;
+
+    const st = {...AST, bestRT:AST.bestRT, newPB, rankedTop1:AST.rankedTop1,
+      zeroFalseRound:(S.falseStarts===0 && mode.kind!=='gonogo' && (mode.id==='SRT'||mode.catch)),
+      noGoPerfect:AST.noGoPerfect, lowSd:(S.sd>0&&S.sd<40), sawTradeoff:AST.sawTradeoff,
+      earWin:AST.earWin, hickR2:AST.hickR2, sawMedian:AST.sawMedian, ace8:false };
+    ach.check(st);
+
+    renderResult(mode,S,{rank,newPB,scoreRT,session});
+  }
+
+  /* ---- 结算：CRT/Hick ---- */
+  async function finishChoice(pts,fit,allTrials,extra){
+    // 三个 N 各存一条
+    for(const p of pts){ if(p.n===1) continue; const mid='CRT'+p.n;
+      const sub = {n:10,validN:10,mean:p.rt+10,median:p.rt,sd:30,min:p.rt-20,falseStarts:0,accuracy:1,falseAlarmRate:0};
+      const sc=p.rt; await RT.DataStore.saveSession(makeSession(mid,sub,sc));
+    }
+    AST.sawMedian=true; // 看了 N–RT
+    const ace8 = !!extra.ace8;
+    const st={...AST,hickR2:fit.r2,ace8,bestRT:AST.bestRT,sawMedian:true,sawTradeoff:AST.sawTradeoff,earWin:AST.earWin,
+      zeroFalseRound:false,noGoPerfect:AST.noGoPerfect,lowSd:false,newPB:false,rankedTop1:AST.rankedTop1};
+    ach.check(st);
+    renderHickResult(pts,fit);
+  }
+
+  function makeSession(modeId,S,scoreRT){
+    const c=RT.Account.current();
+    return { uid:c?c.uid:'guest-local', nickname:c?c.nickname:'我(游客)', classCode:c?c.classCode:'未分班',
+      mode:modeId, scoreRT:Math.round(scoreRT), meanRT:S.mean, medianRT:S.median, sd:S.sd, minRT:S.min,
+      n:S.n, validN:S.validN, falseStarts:S.falseStarts, accuracy:S.accuracy, device: matchMedia('(pointer:coarse)').matches?'mobile':'desktop',
+      ts:Date.now(), dayKey:RT.DataStore.dayKey() };
+  }
+  async function checkPB(modeId,scoreRT){
+    const hist=await RT.DataStore.getMyHistory({mode:modeId,uid:uidOrGuest()});
+    const prevBest=hist.reduce((m,s)=>Math.min(m,s.scoreRT),Infinity);
+    return scoreRT<prevBest;
+  }
+  async function myRank(modeId,scoreRT){
+    const rows=await RT.DataStore.getLeaderboard({mode:modeId,scope:'global',period:'all',limit:999,myUid:uidOrGuest()});
+    let rank=1; rows.forEach(r=>{ if(r.scoreRT<scoreRT) rank++; }); return rank;
+  }
+
+  /* ---- 结算页渲染 ---- */
+  function renderResult(mode,S,info){
+    const norm=RT.Norms.percentFaster(S.median,mode.id);
+    const el=$('#screen-result');
+    el.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <button class="btn ghost" id="rBack">← 主页</button><h2 style="font-size:18px">${mode.ic} ${mode.name}·成绩</h2><span></span>
+      </div>
+      <div class="panel">
+        <div class="stat-grid">
+          <div class="stat"><div class="v">${S.median||'-'}</div><div class="k">中位数(ms)</div></div>
+          <div class="stat"><div class="v">${S.min||'-'}</div><div class="k">最快(ms)</div></div>
+          <div class="stat"><div class="v">${S.mean||'-'}</div><div class="k">平均(ms)</div></div>
+          <div class="stat"><div class="v">${S.sd||'-'}</div><div class="k">稳定(SD)</div></div>
+          ${mode.kind==='gonogo'?`<div class="stat"><div class="v">${Math.round((1-S.falseAlarmRate)*100)}%</div><div class="k">克制正确</div></div>`:''}
+          <div class="stat"><div class="v" style="color:var(--stop)">${S.falseStarts}</div><div class="k">抢跑</div></div>
+        </div>
+        ${norm?`<div class="norm">你比约 <b>${norm}%</b> 的同龄人更快 💪</div>`:''}
+        ${info.newPB?'<div class="norm">🚀 破纪录！刷新了你的最好成绩</div>':''}
+        <div class="norm">榜单名次：第 <b>${info.rank}</b> 名（${mode.id} 全站）</div>
+      </div>
+      <div class="panel mathpanel ${stage==='primary'?'collapsed':''}">
+        <h2>反应时分布 <button class="btn ghost reveal-toggle" id="mathToggle">${stage==='primary'?'显示数学':'隐藏'}</button></h2>
+        <div class="mathbody"><canvas id="histCanvas"></canvas>
+        <p style="font-size:13px;color:var(--muted);margin-top:8px">中位数比平均更稳健（不被偶尔的慢/抢跑带偏）。已自动剔除 &lt;120ms 抢跑与 &gt;900ms 走神。</p></div>
+      </div>
+      <div class="row-actions">
+        <button class="btn primary" id="rRetry">再来一次</button>
+        <button class="btn" id="rBoard">看排行榜</button>
+        <button class="btn" id="rExport">导出CSV</button>
+        <button class="btn ghost" id="rHome">换个模式</button>
+      </div>`;
+    show('result');
+    RT.Charts.histogram($('#histCanvas'),S.rts.length?S.rts:S.rawRts);
+    $('#rBack').onclick=$('#rHome').onclick=()=>show('home');
+    $('#rRetry').onclick=()=>startMode(mode.id);
+    $('#rBoard').onclick=()=>openLeaderboard(mode.id);
+    $('#rExport').onclick=()=>exportCSV(mode,lastBlock.trials);
+    const mt=$('#mathToggle'); if(mt) mt.onclick=()=>{ const p=mt.closest('.mathpanel'); p.classList.toggle('collapsed'); mt.textContent=p.classList.contains('collapsed')?'显示数学':'隐藏'; AST.sawMedian=true; };
+  }
+
+  function renderHickResult(pts,fit){
+    const el=$('#screen-result');
+    const crt=pts.filter(p=>p.n>1);
+    const multi = pts.length>=2;   // 至少两个数据点才谈"曲线/斜率"
+    el.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <button class="btn ghost" id="rBack">← 主页</button><h2 style="font-size:18px">🛣️ 多道起跑${multi?'·Hick 曲线':'·结果'}</h2><span></span>
+      </div>
+      <div class="panel">
+        <div class="stat-grid">
+          ${crt.map(p=>`<div class="stat"><div class="v">${p.rt}</div><div class="k">${p.n}选项(ms)</div></div>`).join('')}
+        </div>
+        ${multi
+          ? `<div class="norm">每多一倍选项，反应时约 +<b>${Math.round(fit.b)}ms</b>（不是翻倍！）</div>`
+          : `<div class="norm">想看"选项越多越慢"的对数规律？回去多选几个道数（2/4/8）再玩一次 🙂</div>`}
+      </div>
+      <div class="panel">
+        <h2>选项越多越慢吗？</h2>
+        <canvas id="hickCanvas"></canvas>
+        ${multi
+          ? `<p style="font-size:13px;color:var(--muted);margin-top:8px">横轴按"翻倍"等距排（对数轴）。点几乎排成<b style="color:var(--warn)">一条直线</b>，说明 <b>RT ≈ a + b·log₂N</b>——这就是 <b>Hick 定律</b>！R²=${fit.r2.toFixed(2)} 越接近 1 越直。</p>`
+          : `<p style="font-size:13px;color:var(--muted);margin-top:8px">这是你这次所选道数的成绩。选 2 个以上道数即可画出 Hick 对数曲线。</p>`}
+      </div>
+      <div class="row-actions">
+        <button class="btn primary" id="rRetry">再来一次</button>
+        <button class="btn" id="rDisc">去发现之旅验证</button>
+        <button class="btn ghost" id="rHome">换个模式</button>
+      </div>`;
+    show('result');
+    RT.Charts.hick($('#hickCanvas'),pts,multi?fit:null);
+    $('#rBack').onclick=$('#rHome').onclick=()=>show('home');
+    $('#rRetry').onclick=()=>startMode('CRT');
+    $('#rDisc').onclick=()=>openDiscovery();
+  }
+
+  /* ---- CSV 导出 ---- */
+  function exportCSV(mode,trials){
+    const head='mode,trial,outcome,rt_ms,correct,falseStart,litIdx\n';
+    const body=trials.map((t,i)=>[mode.id,i+1,t.outcome,t.rt?Math.round(t.rt):'',t.correct,t.falseStart,t.litIdx??''].join(',')).join('\n');
+    const blob=new Blob([head+body],{type:'text/csv'}); const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=mode.id+'-trials.csv'; a.click();
+  }
+
+  /* ---- 排行榜 ---- */
+  let lbMode='SRT', lbScope='class', lbPeriod='all';
+  function buildLbModeTabs(){ const t=$('#lbModeTabs'); t.innerHTML='';
+    [['SRT','单灯'],['CRT2','2选'],['CRT4','4选'],['CRT8','8选'],['GONOGO','克制'],['AUDIO','听觉']].forEach(([id,nm])=>{
+      const b=document.createElement('button'); b.textContent=nm; b.className=id===lbMode?'on':''; b.onclick=()=>{lbMode=id;buildLbModeTabs();renderLb();}; t.appendChild(b);
+    });
+  }
+  $$('#lbScopeTabs button').forEach(b=>b.onclick=()=>{
+    if(b.dataset.scope){ lbScope=b.dataset.scope; $$('#lbScopeTabs [data-scope]').forEach(x=>x.classList.toggle('on',x===b)); }
+    if(b.dataset.period){ lbPeriod=b.dataset.period; $$('#lbScopeTabs [data-period]').forEach(x=>x.classList.toggle('on',x===b)); }
+    renderLb();
+  });
+  async function renderLb(){
+    const c=RT.Account.current(); const myUid=uidOrGuest();
+    const rows=await RT.DataStore.getLeaderboard({mode:lbMode,scope:lbScope,period:lbPeriod,classCode:c?c.classCode:'示例班',myUid,limit:20});
+    const list=$('#lbList'); list.innerHTML='';
+    if(!rows.length){ list.innerHTML='<p style="color:var(--muted)">还没有成绩，去玩一局上榜吧！</p>'; }
+    rows.forEach((r,i)=>{
+      const me=r.uid===myUid; const d=document.createElement('div'); d.className='lb-row'+(me?' me':'');
+      d.innerHTML=`<div class="lb-rank ${i<3?'top':''}">${i+1}</div><div class="lb-name">${r.nickname}${me?'（我）':''}<div class="lb-bot">${r.classCode||''}</div></div><div class="lb-score">${r.scoreRT}ms</div>`;
+      list.appendChild(d);
+    });
+    $('#lbNotice').textContent = RT.config.backend==='local' ? '离线本地榜：含 🤖 电脑选手作参照；联网版可与真人同学比拼。' : '';
+  }
+  function openLeaderboard(mode){ lbMode=mode==='CRT'?'CRT8':mode; buildLbModeTabs(); renderLb(); show('leaderboard'); }
+  $('#lbBack').onclick=()=>show('home');
+  $('#goLeaderboard').onclick=()=>{ buildLbModeTabs(); renderLb(); show('leaderboard'); };
+
+  /* ---- 发现之旅（predict → reveal） ---- */
+  function openDiscovery(){
+    const el=$('#screen-discovery');
+    el.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <button class="btn ghost" id="dBack">← 主页</button><h2 style="font-size:18px">🔬 发现之旅</h2><span></span>
+      </div>
+      <div class="panel">
+        <h2>预测：选项从 2 个变成 8 个，反应时会怎样？</h2>
+        <button class="opt" data-k="same">① 几乎不变</button>
+        <button class="opt" data-k="double">② 翻一倍（甚至更多）</button>
+        <button class="opt" data-k="log">③ 变慢，但远不到翻倍</button>
+        <div id="dReveal" class="hidden"></div>
+      </div>
+      <div class="panel">
+        <h2>预测：耳朵快还是眼睛快？</h2>
+        <button class="opt" data-k2="eye">① 眼睛（视觉）快</button>
+        <button class="opt" data-k2="ear">② 耳朵（听觉）快</button>
+        <button class="opt" data-k2="same">③ 一样快</button>
+        <div id="dReveal2" class="hidden"></div>
+      </div>`;
+    show('discovery');
+    $('#dBack').onclick=()=>show('home');
+    $$('#screen-discovery [data-k]').forEach(b=>b.onclick=()=>{
+      $$('#screen-discovery [data-k]').forEach(x=>x.classList.remove('sel','correct','wrong'));
+      b.classList.add(b.dataset.k==='log'?'correct':'wrong'); if(b.dataset.k!=='log'){ const c=$('#screen-discovery [data-k="log"]'); }
+      const r=$('#dReveal'); r.classList.remove('hidden');
+      r.innerHTML='<div class="sci-card">✅ 正确答案是 <b>③</b>。选项 ×4（2→8），反应时只增加<b>固定两段</b>，因为大脑按"信息量(比特)"处理：<b>RT ≈ a + b·log₂N</b>（Hick 定律）。去"多道起跑"亲手把这条直线画出来！</div>';
+      AST.sawMedian=true;
+    });
+    $$('#screen-discovery [data-k2]').forEach(b=>b.onclick=()=>{
+      $$('#screen-discovery [data-k2]').forEach(x=>x.classList.remove('sel','correct','wrong'));
+      b.classList.add(b.dataset.k2==='ear'?'correct':'wrong');
+      const r=$('#dReveal2'); r.classList.remove('hidden');
+      r.innerHTML='<div class="sci-card">✅ 通常 <b>耳朵更快</b>（约快 30–50ms）：声音传到大脑的通路更短。去"听觉发车"对比你的视觉/听觉反应时验证一下！</div>';
+    });
+  }
+  $('#goDiscovery').onclick=openDiscovery;
+
+  /* ---- 科普面板 ---- */
+  function openScience(){
+    modal(`<h2>📖 反应时背后的科学</h2>
+      <div class="sci-card"><b>Donders 减法法</b>：用反应时拆解大脑步骤——简单反应(看到就按) → 选择反应(看哪个按哪个)多了"辨认+选择"，所以更慢。</div>
+      <div class="sci-card"><b>Hick 定律</b>：选项越多越慢，但是<b>对数</b>关系 RT≈a+b·log₂N。选项翻倍只多一个固定台阶，不是翻倍。</div>
+      <div class="sci-card"><b>视觉 vs 听觉</b>：听觉反应通常比视觉快 30–50ms。</div>
+      <div class="sci-card"><b>反应抑制(Go/No-Go)</b>：该停就停很难，求快往往更容易误按——速度与准确的权衡。</div>
+      <div class="sci-card"><b>为什么用中位数</b>：反应时分布右偏（偶有很慢的），中位数比平均数更能代表你的真实水平；抢跑(&lt;120ms)和走神(&gt;900ms)都要剔除。</div>
+      <div class="sci-card"><b>计时怎么做到准</b>：用 performance.now() 高精度时钟，在屏幕真正绘制那一帧才开始计时。屏幕/键盘有几毫秒固定延迟，但比较不同条件时会抵消。</div>`);
+  }
+  $('#goScience').onclick=openScience;
+
+  /* ---- modal 通用 ---- */
+  function modal(html){
+    const bg=document.createElement('div'); bg.className='modal-bg';
+    bg.innerHTML=`<div class="modal"><button class="close">×</button>${html}</div>`;
+    bg.onclick=e=>{ if(e.target===bg||e.target.classList.contains('close')) bg.remove(); };
+    document.body.appendChild(bg); return bg;
+  }
+
+  /* ---- 账号 ---- */
+  function refreshAcct(){ const c=RT.Account.current(); $('#acctLabel').textContent = c? (c.nickname+'@'+c.classCode) : '游客'; }
+  $('#acctBtn').onclick=()=>{
+    const c=RT.Account.current();
+    const bg=modal(`<h2>设置昵称 / 班级</h2>
+      <p style="font-size:13px;color:var(--muted)">仅用昵称+班级码，不收集真实姓名/手机/邮箱。班级码由老师统一发放（也可自填）。</p>
+      <div class="field"><label>昵称（2–12字）</label><input id="inName" maxlength="12" value="${c?c.nickname:''}" placeholder="如：小闪电"></div>
+      <div class="field"><label>班级码</label><input id="inClass" maxlength="16" value="${c?c.classCode:''}" placeholder="如：5年2班"></div>
+      <div class="row-actions" style="margin-top:16px">
+        <button class="btn primary" id="saveAcct">保存</button>
+        ${c?'<button class="btn ghost" id="outAcct">退出登录</button>':''}
+      </div>`);
+    bg.querySelector('#saveAcct').onclick=async()=>{ const nm=bg.querySelector('#inName').value, cl=bg.querySelector('#inClass').value; if(!nm.trim()){bg.querySelector('#inName').focus();return;} await RT.Account.signIn({nickname:nm,classCode:cl}); refreshAcct(); bg.remove(); };
+    const out=bg.querySelector('#outAcct'); if(out) out.onclick=()=>{ RT.Account.signOut(); refreshAcct(); bg.remove(); };
+  };
+  $('#trophyBtn').onclick=()=>{ const bg=modal('<h2>🏆 成就</h2><div class="progress-wrap"><div data-ach-progress></div></div><div id="achList"></div>'); ach.renderList(bg.querySelector('#achList')); };
+
+  /* ---- init ---- */
+  (async function init(){
+    await RT.DataStore.init();
+    await RT.DataStore.flushQueue();
+    renderHome(); refreshAcct();
+    window.RT=RT; // 便于调试
+  })();
+})();
+</script>
+</body>
+</html>

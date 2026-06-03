@@ -305,6 +305,10 @@ function card(c, cat){
      <span class="go">打开课件
        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
      </span>`;
+  // 上报“打开了哪个课件”（百度统计事件分析里可查看每个课件的点击量）
+  a.addEventListener("click", () => {
+    if (window._hmt) _hmt.push(["_trackEvent", "课件", "打开", c.title]);
+  });
   return a;
 }
 
@@ -352,6 +356,18 @@ render();
     var cc=document.getElementById('amCancel'); if(cc)cc.addEventListener('click',function(){bg.remove();});
   });
   refresh();
+})();
+</script>
+
+<!-- 百度统计（站点 ID 10000724570）：在 https://tongji.baidu.com 后台查看 PV/UV、来源、地域；
+     「事件分析」里可看每个课件被打开的次数（事件类别=课件）。 -->
+<script>
+var _hmt = _hmt || [];
+(function () {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?10000724570";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
 })();
 </script>
 </body>

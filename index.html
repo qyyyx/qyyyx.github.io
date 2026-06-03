@@ -22,7 +22,7 @@
     --bg:#0f172a; --bg2:#1e293b;
     --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
     --brand:#4f46e5; --brand2:#7c3aed;
-    --geo:#0ea5e9; --alg:#10b981; --num:#f59e0b; --app:#ef4444; --fun:#8b5cf6;
+    --geo:#0ea5e9; --alg:#10b981; --num:#f59e0b; --app:#ef4444; --fun:#8b5cf6; --prob:#ec4899;
     --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.08);
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -153,6 +153,7 @@ const CATEGORIES = [
   {key:"geo", name:"几何与图形", color:"var(--geo)"},
   {key:"alg", name:"代数与函数", color:"var(--alg)"},
   {key:"num", name:"数论与组合", color:"var(--num)"},
+  {key:"prob", name:"概率统计",  color:"var(--prob)"},
   {key:"app", name:"应用问题",   color:"var(--app)"},
   {key:"fun", name:"趣味与思维", color:"var(--fun)"},
 ];
@@ -196,6 +197,10 @@ const COURSEWARE = [
    desc:"探究完全平方数的规律与判定，感受平方数背后的数论结构。", tags:["数论","平方数","规律"]},
   {title:"天平称重问题", cat:"num", file:"balance-weighing.html", isNew:true,
    desc:"经典天平问题：在最少次数内找出 N 枚硬币中的次品，体会信息熵与三分思想。", tags:["称重","信息熵","组合","谜题"]},
+
+  // 概率统计
+  {title:"概率实验室（概率-集1）", cat:"prob", file:"probability-lab.html", isNew:true,
+   desc:"六个反直觉的概率实验——大数定律、两骰之和、高尔顿钉板、约会问题、三门问题，外加知识总结闯关；先预测、再亲手模拟，让频率打败直觉。", tags:["概率","大数定律","古典概型","几何概型","三门问题","蒙特卡洛"]},
 
   // 应用问题
   {title:"经济问题", cat:"app", file:"economics.html",

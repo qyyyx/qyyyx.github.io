@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>概率实验室 · 第十三讲 概率-集1</title>
+<style>
+/* ============ 设计系统（数学实验室型 · 取自 styles.css） ============ */
+:root{
+  color-scheme: light;
+  --bg:#f8fafc; --surface:#ffffff; --surface-strong:#eff6ff; --line:#dbe3ea;
+  --text:#152529; --muted:#66777d; --accent:#3b82f6; --accent-dark:#2563eb; --accent-soft:#dbeafe;
+  --warning:#c47a1c; --proof:#f3c44e;
+  --good:#2f9d64; --good-soft:#dcf3e6; --bad:#e05a4f; --bad-soft:#fde4e1;
+  --grid:#aab6c2; --shadow:0 18px 50px rgba(30,52,60,.12);
+  --mono:"Roboto Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);
+  font-family:"Microsoft YaHei","PingFang SC","Segoe UI",Arial,sans-serif;overflow-x:hidden}
+button{font:inherit}
+.mini{font-size:12px;color:var(--muted)}
+
+.lab-shell{display:grid;grid-template-columns:236px minmax(0,1fr) 308px;gap:18px;width:100%;min-height:100vh;padding:18px}
+.lab-nav,.data-panel{display:flex;flex-direction:column;gap:16px}
+.lab-nav{border-right:1px solid var(--line);padding-right:18px}
+
+.brand-block{padding:6px 2px 14px}
+.brand-kicker,.section-label,.panel-label,.prompt-label{margin:0;color:var(--accent-dark);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.brand-block h1{margin:6px 0 4px;font-size:25px;line-height:1.15}
+.brand-block p{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
+
+.module-list{display:grid;gap:8px}
+.module-item{display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;width:100%;min-height:50px;
+  border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--text);text-align:left;cursor:pointer;transition:.15s}
+.module-item:hover{border-color:var(--accent);background:var(--surface-strong)}
+.module-item.active{border-color:var(--accent);background:var(--accent-soft)}
+.module-index{color:var(--accent-dark);font-size:12px;font-weight:800;text-align:center}
+.module-item b{font-size:14px;font-weight:700}
+.module-item span{display:block;font-size:11px;color:var(--muted);margin-top:1px}
+
+/* 成就卡 */
+.ach-card{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:14px}
+.ach-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ach-head b{font-size:14px}
+.ach-progress-track{height:8px;border-radius:999px;background:var(--surface-strong);overflow:hidden;margin:6px 0 10px}
+.ach-progress-track>[data-ach-progress]{display:block;height:100%;width:0%;border-radius:999px;background:var(--accent);transition:width .35s ease}
+#achList{display:grid;gap:7px;max-height:262px;overflow:auto}
+.ach-row{display:grid;grid-template-columns:28px 1fr;align-items:center;gap:9px;padding:7px 8px;border-radius:9px;border:1px solid var(--line);background:var(--surface);opacity:.5}
+.ach-row.is-unlocked{opacity:1;border-color:var(--accent-soft);background:var(--surface-strong)}
+.ach-row .ach-icon{font-size:18px;text-align:center}
+.ach-row .ach-name{font-weight:700;font-size:12.5px}
+.ach-row .ach-desc{font-size:11px;color:var(--muted);margin-top:1px;line-height:1.35}
+.ach-reset{margin-top:9px;font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline}
+
+/* toast */
+.ach-toast-stack{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:10px;z-index:9999;pointer-events:none}
+.ach-toast{min-width:230px;max-width:310px;padding:12px 14px;border-radius:12px;background:var(--surface);
+  border:1px solid var(--line);border-left:4px solid var(--accent);box-shadow:0 6px 20px rgba(15,30,40,.16);animation:ach-in .25s ease-out}
+.ach-toast-title{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--accent-dark);font-weight:700}
+.ach-toast-name{margin-top:4px;font-size:15px;font-weight:800}
+.ach-toast-desc{margin-top:2px;font-size:12px;color:var(--muted)}
+@keyframes ach-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ============ 中央工作台 ============ */
+.workbench{display:grid;grid-template-rows:auto 1fr;gap:14px;min-width:0}
+.lab-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;min-height:54px}
+.lab-header h2{margin:5px 0 2px;font-size:23px;line-height:1.15}
+.lab-header .sub{margin:0;font-size:13px;color:var(--muted)}
+.status-strip{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--muted);font-size:13px;white-space:nowrap}
+.status-dot{width:9px;height:9px;border-radius:50%;background:var(--good);box-shadow:0 0 0 4px rgba(47,157,100,.14)}
+
+.mod-view{display:none;grid-template-rows:auto minmax(340px,1fr) auto;gap:14px;min-width:0}
+.mod-view.active{display:grid}
+
+.control-rack{display:flex;align-items:center;flex-wrap:wrap;gap:10px;min-height:48px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+.segmented{display:inline-flex;gap:4px;padding:3px;background:var(--surface-strong);border-radius:8px}
+.segmented button{min-height:34px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--muted);padding:0 13px;font-weight:700;cursor:pointer;transition:.12s}
+.segmented button.active{background:var(--surface);border-color:var(--accent);color:var(--accent-dark);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.tool-btn{min-height:40px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);padding:0 16px;font-weight:700;cursor:pointer;transition:.12s}
+.tool-btn:hover:not(:disabled){border-color:var(--accent);background:var(--surface-strong);color:var(--accent-dark)}
+.tool-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.tool-btn.primary:hover:not(:disabled){background:var(--accent-dark)}
+.tool-btn:disabled{opacity:.4;cursor:not-allowed}
+.tool-btn.is-locked{opacity:.55;border-style:dashed;cursor:pointer}
+.tool-btn.is-locked:hover{border-color:var(--accent);background:var(--surface);color:var(--accent-dark)}
+.tool-btn.primary.is-locked{background:#bcd3f5;border-color:#bcd3f5;color:#fff}
+.tool-btn.primary.is-locked:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.lock-hint{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--warning);background:#fff7e6;border:1px solid #f3d9a8;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:pointer}
+.predict.nudge{animation:predict-nudge 1.15s ease}
+@keyframes predict-nudge{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,0)}28%,72%{box-shadow:0 0 0 4px var(--accent-soft);border-radius:10px}}
+.slider-group{display:inline-flex;align-items:center;gap:9px;font-size:13px;color:var(--muted)}
+.slider-group input[type=range]{accent-color:var(--accent);width:118px}
+.slider-group b{color:var(--text);font-family:var(--mono);min-width:30px;text-align:right}
+.spacer{flex:1 1 auto}
+
+.board-wrap{position:relative;min-height:clamp(340px,52vh,560px);border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+.board-wrap canvas{display:block;width:100%;height:100%}
+.board-hint{position:absolute;left:12px;top:10px;font-size:12px;color:var(--muted);background:rgba(255,255,255,.78);border:1px solid var(--line);border-radius:7px;padding:4px 9px;pointer-events:none;max-width:60%}
+
+/* 探究 / 预测 / 结论 */
+.prompt-panel{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:14px 16px}
+.eyebrow{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.5px;color:#fff;background:var(--accent);border-radius:6px;padding:2px 9px;text-transform:uppercase}
+.predict .q{margin:9px 0 10px;font-size:15px;font-weight:600;line-height:1.5}
+.opts{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.opt{text-align:left;background:var(--surface);border:1px solid var(--line);color:var(--text);padding:11px 13px;border-radius:9px;font-size:13.5px;cursor:pointer;transition:.12s;line-height:1.4}
+.opt:hover{border-color:var(--accent)}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt.correct{border-color:var(--good);background:var(--good-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.opt.dim{opacity:.5}
+.feedback{margin-top:11px;font-size:13.5px;color:var(--muted);line-height:1.55;background:var(--surface-strong);border-radius:8px;padding:9px 12px}
+.feedback b{color:var(--accent-dark)}
+.reveal-bar{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+.reveal-toggle{min-height:34px;border:1px dashed var(--accent);border-radius:8px;background:var(--surface);color:var(--accent-dark);padding:0 14px;font-weight:700;cursor:pointer}
+.conclusion{display:none;margin-top:11px;border-left:3px solid var(--proof);background:#fffdf5;border-radius:0 8px 8px 0;padding:11px 14px;font-size:13.5px;line-height:1.65}
+.conclusion.open{display:block;animation:ach-in .2s ease-out}
+.conclusion b{color:var(--warning)}
+.formula{font-family:var(--mono);font-size:13px;background:var(--surface-strong);border-radius:6px;padding:2px 6px}
+
+/* ============ 右侧数据面板 ============ */
+.metric-card{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:15px}
+#metrics{display:grid;gap:9px;margin:11px 0 0}
+#metrics>div{display:flex;justify-content:space-between;gap:12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+#metrics>div:last-child{border-bottom:none;padding-bottom:0}
+#metrics dt{color:var(--muted);font-size:13px}
+#metrics dd{margin:0;font-weight:700;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px}
+#metrics dd.hi{color:var(--accent-dark)}
+#metrics dd.good{color:var(--good)}
+#metricNote{margin:12px 0 0;font-size:12px;color:var(--muted);line-height:1.5;border-top:1px dashed var(--line);padding-top:10px}
+
+/* 三门规则卡 */
+.rules-card{display:grid;gap:5px;margin:0 0 12px;padding:10px 13px;border:1px solid var(--accent-soft);border-radius:9px;background:var(--surface-strong);font-size:12.5px;line-height:1.5}
+.rules-card .rk-title{font-weight:800;color:var(--accent-dark);font-size:12px}
+.rules-card .rule-key{color:var(--warning);font-weight:700}
+
+/* 模块6 · 知识总结 + 闯关 */
+.summary-host{height:100%;overflow:auto;padding:14px 16px}
+.summary-intro{font-size:13.5px;color:var(--muted);margin:0 0 13px;line-height:1.65}
+.summary-intro b{color:var(--text)}
+.concept-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:10px;margin-bottom:16px}
+.concept-card{border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:11px 13px}
+.concept-card .cc-head{display:flex;align-items:center;gap:7px;font-weight:800;font-size:13.5px}
+.concept-card .cc-tag{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--accent-dark);background:var(--accent-soft);border-radius:5px;padding:1px 7px;white-space:nowrap}
+.concept-card .cc-body{margin-top:6px;font-size:12.5px;color:var(--muted);line-height:1.6}
+.concept-card .cc-body b{color:var(--text)}
+.concept-card .f{font-family:var(--mono);font-size:11.5px;color:var(--accent-dark);background:var(--surface-strong);border-radius:4px;padding:1px 5px}
+.quiz-box{border:1px solid var(--accent-soft);border-radius:10px;background:#fbfdff;padding:14px 15px}
+.quiz-progress{font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--accent-dark);text-transform:uppercase}
+.quiz-q{margin:8px 0 11px;font-size:15px;font-weight:700;line-height:1.55}
+.quiz-opts{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+.quiz-opt{text-align:left;background:var(--surface);border:1px solid var(--line);color:var(--text);padding:11px 13px;border-radius:9px;font-size:13.5px;cursor:pointer;transition:.12s}
+.quiz-opt:hover:not(:disabled){border-color:var(--accent);background:var(--surface-strong)}
+.quiz-opt:disabled{cursor:default}
+.quiz-opt.correct{border-color:var(--good);background:var(--good-soft);font-weight:700}
+.quiz-opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.quiz-opt.dim{opacity:.5}
+.quiz-feedback{margin:11px 0 4px;font-size:13px;line-height:1.6;border-radius:8px;padding:9px 12px}
+.quiz-feedback.ok{background:var(--good-soft);color:#1c6b43}
+.quiz-feedback.no{background:var(--bad-soft);color:#9b362e}
+.quiz-result{text-align:center;padding:16px 10px}
+.quiz-result .rank-badge{font-size:52px;line-height:1}
+.quiz-result .rank-name{font-size:20px;font-weight:800;margin-top:6px;color:var(--accent-dark)}
+.quiz-result .rank-score{margin-top:6px;font-size:15px}
+.quiz-result .rank-score b{color:var(--good)}
+.quiz-result .rank-desc{margin:8px auto 15px;max-width:380px;font-size:13px;color:var(--muted);line-height:1.6}
+.formula-sheet{display:grid;gap:6px}
+.formula-sheet div{font-size:12.5px;line-height:1.5}
+.formula-sheet code{font-family:var(--mono);background:var(--surface-strong);border-radius:5px;padding:1px 6px;color:var(--accent-dark)}
+
+@media (max-width:1099px){
+  .lab-shell{grid-template-columns:1fr}
+  .lab-nav{border-right:0;border-bottom:1px solid var(--line);padding-right:0;padding-bottom:14px}
+  .module-list{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .data-panel{order:3}
+}
+@media (max-width:560px){
+  .lab-shell{gap:12px;padding:12px}
+  .brand-block h1{font-size:21px}
+  .board-wrap{min-height:300px}
+  .control-rack{gap:8px}
+  .slider-group input[type=range]{width:92px}
+}
+</style>
+</head>
+<body>
+<div class="lab-shell">
+
+  <!-- ============ 左：模块导航 + 成就 ============ -->
+  <aside class="lab-nav">
+    <div class="brand-block">
+      <p class="brand-kicker">第十三讲 · 概率-集1</p>
+      <h1>概率实验室</h1>
+      <p>五个反直觉的概率实验 + 一张知识地图 —— 先预测、再模拟，让<b>频率打败直觉</b>。</p>
+    </div>
+    <nav class="module-list" id="moduleList">
+      <button class="module-item active" data-target="m1"><span class="module-index">01</span><span><b>频率与大数定律</b><span>抛硬币 · 概率的真身</span></span></button>
+      <button class="module-item" data-target="m2"><span class="module-index">02</span><span><b>两骰之和</b><span>古典概型 · 枚举36格</span></span></button>
+      <button class="module-item" data-target="m3"><span class="module-index">03</span><span><b>高尔顿钉板</b><span>路径计数 · 钟形浮现</span></span></button>
+      <button class="module-item" data-target="m4"><span class="module-index">04</span><span><b>约会问题</b><span>几何概型 · 面积即概率</span></span></button>
+      <button class="module-item" data-target="m5"><span class="module-index">05</span><span><b>三门问题</b><span>条件概率 · 换还是不换</span></span></button>
+      <button class="module-item" data-target="m6"><span class="module-index">06</span><span><b>知识总结</b><span>概率地图 · 闯关自检</span></span></button>
+    </nav>
+    <div class="ach-card">
+      <div class="ach-head"><b>🏆 探索成就</b><span class="mini"><b data-ach-count>0</b>/<b data-ach-total>0</b></span></div>
+      <div class="ach-progress-track"><span data-ach-progress></span></div>
+      <div id="achList"></div>
+      <button class="ach-reset" id="achReset">重置成就进度</button>
+    </div>
+  </aside>
+
+  <!-- ============ 中：工作台 ============ -->
+  <main class="workbench">
+    <header class="lab-header">
+      <div>
+        <p class="prompt-label" id="modKicker">实验 01</p>
+        <h2 id="modTitle">频率与大数定律</h2>
+        <p class="sub" id="modSub">抛掷越多次，正面频率会发生什么？</p>
+      </div>
+      <div class="status-strip"><span class="status-dot"></span><span id="statusText">离线可运行 · 无需联网</span></div>
+    </header>
+
+    <!-- 模块1：大数定律 -->
+    <section class="mod-view active" data-mod="m1">
+      <div class="control-rack">
+        <div class="segmented" data-p-mode>
+          <button class="active" data-p="coin">🪙 硬币 (½)</button>
+          <button data-p="die">🎲 骰子点6 (⅙)</button>
+          <button data-p="custom">⚙️ 自定义</button>
+        </div>
+        <div class="slider-group" data-custom style="display:none">概率 p<input type="range" min="0.05" max="0.95" step="0.05" value="0.30" data-p-slider><b data-p-val>0.30</b></div>
+        <span class="spacer"></span>
+        <button class="tool-btn" data-needs-predict data-act="one">抛 1 次</button>
+        <button class="tool-btn primary" data-needs-predict data-act="auto">自动抛掷</button>
+        <button class="tool-btn" data-act="reset">重置</button>
+      </div>
+      <div class="board-wrap"><div class="board-hint">纵轴＝目标结果出现的频率，横轴＝试验次数</div><canvas></canvas></div>
+      <section class="prompt-panel">
+        <div class="predict" data-predict data-fb="选择一个预测，然后动手做实验来验证它。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">不断重复同一个随机试验（抛硬币 / 掷骰子……），某个结果的"频率"随次数增加会怎样？</p>
+          <div class="opts">
+            <button class="opt" data-correct="false">在 0 和 1 之间一直剧烈跳动</button>
+            <button class="opt" data-correct="true">越来越稳地逼近它的理论概率</button>
+            <button class="opt" data-correct="false">正负抵消，最终变成 0</button>
+            <button class="opt" data-correct="false">完全随机，毫无规律</button>
+          </div>
+          <div class="feedback">选择一个预测，然后动手做实验来验证它。</div>
+        </div>
+        <div class="reveal-bar"><button class="reveal-toggle" data-reveal-toggle>显示结论</button></div>
+        <div class="conclusion" data-conclusion>
+          <b>大数定律</b>：随机事件的<b>频率</b>会随试验次数增大而稳定地接近其<b>概率</b>。单次结果无法预测，但海量重复后规律浮现 —— 这正是"概率"的真实含义，也是 <span class="formula">频率概型</span> 的根基。次数少时频率会偏离，<b>切勿用一两次结果下结论</b>。
+        </div>
+      </section>
+    </section>
+
+    <!-- 模块2：两骰之和 -->
+    <section class="mod-view" data-mod="m2">
+      <div class="control-rack">
+        <span class="mini">两颗均匀骰子，记录点数之和</span>
+        <span class="spacer"></span>
+        <button class="tool-btn" data-needs-predict data-act="one">掷 1 次</button>
+        <button class="tool-btn primary" data-needs-predict data-act="auto">自动掷骰</button>
+        <button class="tool-btn" data-act="reset">重置</button>
+      </div>
+      <div class="board-wrap"><div class="board-hint">左：6×6 等可能样本（36 格）　右：和的频数分布</div><canvas></canvas></div>
+      <section class="prompt-panel">
+        <div class="predict" data-predict data-fb="选择一个预测，然后开始掷骰验证。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">掷两颗骰子，下面哪个"点数之和"最容易出现？</p>
+          <div class="opts">
+            <button class="opt" data-correct="false">和 = 2</button>
+            <button class="opt" data-correct="false">和 = 6</button>
+            <button class="opt" data-correct="true">和 = 7</button>
+            <button class="opt" data-correct="false">每个和一样可能</button>
+          </div>
+          <div class="feedback">选择一个预测，然后开始掷骰验证。</div>
+        </div>
+        <div class="reveal-bar"><button class="reveal-toggle" data-reveal-toggle>显示理论分布</button></div>
+        <div class="conclusion" data-conclusion>
+          <b>古典概型</b>：先后两颗骰子共 <span class="formula">6×6 = 36</span> 种<b>等可能</b>结果。和为 7 的有 (1,6)(2,5)(3,4)(4,3)(5,2)(6,1) 共 6 种，概率最大 = <span class="formula">6/36 = 1/6</span>；而和为 2 或 12 各只有 1 种。<b>"和"等可能是错觉，"格子"才等可能</b>。
+        </div>
+      </section>
+    </section>
+
+    <!-- 模块3：高尔顿钉板 -->
+    <section class="mod-view" data-mod="m3">
+      <div class="control-rack">
+        <div class="slider-group">钉板层数<input type="range" min="6" max="12" step="1" value="10" data-rows><b data-rows-val>10</b></div>
+        <span class="spacer"></span>
+        <button class="tool-btn" data-needs-predict data-act="one">放 1 球</button>
+        <button class="tool-btn primary" data-needs-predict data-act="hundred">放 200 球</button>
+        <button class="tool-btn" data-act="reset">重置</button>
+      </div>
+      <div class="board-wrap"><div class="board-hint">每颗球在每个钉子处 ½ 向左、½ 向右 · 点击底部槽看路径数</div><canvas></canvas></div>
+      <section class="prompt-panel">
+        <div class="predict" data-predict data-fb="选择一个预测，然后放球验证。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">成千上万颗球随机左右滑落，最后在底部会堆成什么形状？</p>
+          <div class="opts">
+            <button class="opt" data-correct="false">平均铺平，每槽差不多</button>
+            <button class="opt" data-correct="true">中间高、两边低（钟形）</button>
+            <button class="opt" data-correct="false">两边高、中间低（U 形）</button>
+            <button class="opt" data-correct="false">杂乱无章，没有形状</button>
+          </div>
+          <div class="feedback">选择一个预测，然后放球验证。</div>
+        </div>
+        <div class="reveal-bar"><button class="reveal-toggle" data-reveal-toggle>显示理论曲线</button></div>
+        <div class="conclusion" data-conclusion>
+          <b>路径计数 = 概率</b>：到第 k 个槽要"恰好向右 k 次"，路径数 = <span class="formula">C(n,k)</span>（杨辉三角），落入概率 = <span class="formula">C(n,k) / 2ⁿ</span>。中间的路径最多所以最高，两端各只有 1 条路径所以最矮 —— 大量随机叠加出现<b>二项分布（钟形）</b>，这就是"随机中的秩序"。
+        </div>
+      </section>
+    </section>
+
+    <!-- 模块4：约会问题 -->
+    <section class="mod-view" data-mod="m4">
+      <div class="control-rack">
+        <div class="slider-group">等待<input type="range" min="0" max="60" step="1" value="20" data-wait><b data-wait-val>20</b>分</div>
+        <span class="spacer"></span>
+        <button class="tool-btn" data-needs-predict data-act="one">撒 1 点</button>
+        <button class="tool-btn primary" data-needs-predict data-act="auto">自动撒点</button>
+        <button class="tool-btn" data-act="reset">重置</button>
+      </div>
+      <div class="board-wrap"><div class="board-hint">横轴＝甲到达时刻，纵轴＝乙到达时刻（7:00–8:00）· 蓝带＝能碰面</div><canvas></canvas></div>
+      <section class="prompt-panel">
+        <div class="predict" data-predict data-fb="选择一个预测，然后撒点验证。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">两人 7:00–8:00 间随机到达，先到者等 20 分钟。两人能碰面的概率约是？</p>
+          <div class="opts">
+            <button class="opt" data-correct="false">1/9 ≈ 11%</button>
+            <button class="opt" data-correct="false">1/3 ≈ 33%</button>
+            <button class="opt" data-correct="true">5/9 ≈ 56%</button>
+            <button class="opt" data-correct="false">1/2 = 50%</button>
+          </div>
+          <div class="feedback">选择一个预测，然后撒点验证。</div>
+        </div>
+        <div class="reveal-bar"><button class="reveal-toggle" data-reveal-toggle>显示公式</button></div>
+        <div class="conclusion" data-conclusion>
+          <b>几何概型</b>：把"两人到达时刻"看成正方形里的一个随机点，能碰面 ⟺ <span class="formula">|甲−乙| ≤ 20</span>，即落在对角蓝带内。概率 = <b>蓝带面积 ÷ 正方形面积</b> = <span class="formula">1 − (40/60)² = 1 − 4/9 = 5/9</span>。当"等可能"从离散计数推广到连续度量（面积），概率就变成了<b>面积之比</b>。
+        </div>
+      </section>
+    </section>
+
+    <!-- 模块5：三门问题 -->
+    <section class="mod-view" data-mod="m5">
+      <div class="control-rack">
+        <div class="segmented" data-doors>
+          <button class="active" data-n="3">3 门</button>
+          <button data-n="10">10 门</button>
+          <button data-n="100">100 门</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="tool-btn" data-act="newgame">新的一局</button>
+        <button class="tool-btn primary" data-needs-predict data-act="batch">自动玩 1000 次</button>
+        <button class="tool-btn" data-act="reset">重置</button>
+      </div>
+      <div class="board-wrap"><div class="board-hint" data-m5hint>点击一扇门来选择 →</div><canvas></canvas></div>
+      <section class="prompt-panel">
+        <div class="rules-card">
+          <span class="rk-title">🎪 游戏规则（读懂规则，预测才有意义）</span>
+          <span>① 若干扇门后<b>只有 1 扇</b>藏着汽车 🚗，其余都是山羊 🐐；你先<b>选 1 扇</b>，先不打开。</span>
+          <span>② 关键：<b class="rule-key">知道车在哪</b>的主持人，从其余门里<b class="rule-key">打开所有羊门、只留 1 扇</b>没开 —— 他绝不会打开车门，也不会打开你选的门。</span>
+          <span>③ 现在二选一 —— <b>坚持</b>原来那扇，还是<b>更换</b>到剩下没开的那扇？</span>
+        </div>
+        <div class="predict" data-predict data-fb="选择一个预测，然后亲手玩、或自动模拟来验证。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">你选一扇门后，主持人打开其余的羊门、只留一扇。这时<b>换门</b>更好吗？</p>
+          <div class="opts">
+            <button class="opt" data-correct="false">坚持原来的更好</button>
+            <button class="opt" data-correct="true">换门更好</button>
+            <button class="opt" data-correct="false">换不换都一样（各 1/2）</button>
+          </div>
+          <div class="feedback">选择一个预测，然后亲手玩、或自动模拟来验证。</div>
+        </div>
+        <div class="reveal-bar"><button class="reveal-toggle" data-reveal-toggle>揭秘概率树</button></div>
+        <div class="conclusion" data-conclusion>
+          <b>条件概率 · 信息的价值</b>：初选选中车的概率是 <span class="formula">1/N</span>，没选中是 <span class="formula">(N−1)/N</span>。主持人"知情地"打开其余所有羊门，把错误情形的概率全部<b>转移</b>到那扇留下的门上。所以<b>换门胜率 = (N−1)/N</b>，坚持只有 1/N。3 门是 <b>2/3 对 1/3</b>；100 门更夸张 —— <b>99/100 对 1/100</b>！直觉以为"剩两扇各半"，错在忽略了主持人行为携带的信息。
+        </div>
+      </section>
+    </section>
+
+    <!-- 模块6：知识总结 + 闯关自检 -->
+    <section class="mod-view" data-mod="m6">
+      <div class="control-rack">
+        <span class="mini">📚 把 5 个实验串成一张概率知识地图，再闯关检验掌握程度</span>
+        <span class="spacer"></span>
+        <button class="tool-btn" data-act="restart">🔄 重新开始小测</button>
+      </div>
+      <div class="board-wrap">
+        <div class="summary-host">
+          <p class="summary-intro">本讲用 <b>5 个动手实验</b> 认识了概率的全貌：从「频率逼近概率」，到 <b>古典 / 几何 / 条件</b> 三大概型，再到 <b>加乘原理</b>。下面是知识地图与公式 —— 看完往下做个<b>闯关小测</b>，检验你的掌握程度。</p>
+          <div class="concept-grid">
+            <div class="concept-card"><div class="cc-head">🎲 随机事件与概率<span class="cc-tag">实验①</span></div><div class="cc-body">必然事件 <b>P=1</b>、不可能 <b>P=0</b>、随机事件 <b>0&lt;P&lt;1</b>。重复试验时<b>频率 → 概率</b>（大数定律）。</div></div>
+            <div class="concept-card"><div class="cc-head">🧮 古典概型<span class="cc-tag">实验②</span></div><div class="cc-body"><b>有限</b> + <b>等可能</b>。<span class="f">P = 有利结果数 ÷ 总结果数</span></div></div>
+            <div class="concept-card"><div class="cc-head">🔔 计数与分布<span class="cc-tag">实验③</span></div><div class="cc-body">枚举 / 加乘 / 排列组合求数目；路径数 <span class="f">C(n,k)</span> 叠加成<b>二项分布</b>。</div></div>
+            <div class="concept-card"><div class="cc-head">📐 几何概型<span class="cc-tag">实验④</span></div><div class="cc-body"><b>连续无限</b>，等可能从计数推广到度量。<span class="f">P = 有利度量 ÷ 总度量</span>（长度/面积/体积）</div></div>
+            <div class="concept-card"><div class="cc-head">✖️ 加乘原理<span class="cc-tag">实验①⑤</span></div><div class="cc-body">互斥相加 <span class="f">P(A∪B)=P(A)+P(B)</span>；独立相乘 <span class="f">P(A∩B)=P(A)·P(B)</span>；对立 <span class="f">P=1−P(反)</span>（正难则反）。</div></div>
+            <div class="concept-card"><div class="cc-head">🚪 条件概率与信息<span class="cc-tag">实验⑤</span></div><div class="cc-body">新信息会<b>更新</b>概率。三门问题：换门胜率 <b>2/3</b>，是坚持（1/3）的两倍。</div></div>
+          </div>
+          <div class="quiz-box"></div>
+        </div>
+      </div>
+      <section class="prompt-panel">
+        <p class="mini" style="margin:0 0 6px">想巩固哪一块，就回到左边对应的实验亲手再玩一遍。</p>
+        <div class="reveal-bar"><button class="reveal-toggle" data-reveal-toggle>显示公式速查表</button></div>
+        <div class="conclusion" data-conclusion>
+          <div class="formula-sheet">
+            <div>概率范围：<code>0 ≤ P ≤ 1</code>；对立事件 <code>P(反) = 1 − P</code></div>
+            <div>古典概型：<code>P = 有利结果数 / 总结果数</code></div>
+            <div>几何概型：<code>P = 有利度量 / 总度量</code>（长度·面积·体积）</div>
+            <div>互斥·加法：<code>P(A∪B) = P(A) + P(B)</code></div>
+            <div>独立·乘法：<code>P(A∩B) = P(A) × P(B)</code></div>
+            <div>正难则反：<code>P(至少一次) = 1 − P(一次都不发生)</code></div>
+            <div>二项 / 路径：到第 k 槽 <code>P = C(n,k) / 2ⁿ</code></div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <!-- ============ 右：数据面板 ============ -->
+  <aside class="data-panel">
+    <div class="metric-card">
+      <p class="panel-label">实时数据</p>
+      <dl id="metrics"></dl>
+      <p id="metricNote"></p>
+    </div>
+  </aside>
+</div>
+
+<!-- ============ 成就系统底座（取自 achievements.js，精简内联） ============ -->
+<script>
+function createAchievements(options){
+  options=options||{}; var defs=options.defs||[], storageKey=options.storageKey||'ach-v1';
+  var toastDuration=options.toastDuration||4200, onUnlock=typeof options.onUnlock==='function'?options.onUnlock:null;
+  var unlocked=new Set();
+  function findDef(id){for(var i=0;i<defs.length;i++){if(defs[i].id===id)return defs[i];}return null;}
+  function load(){try{var raw=localStorage.getItem(storageKey);if(raw)JSON.parse(raw).forEach(function(id){unlocked.add(id);});}catch(e){}}
+  function save(){try{localStorage.setItem(storageKey,JSON.stringify(Array.from(unlocked)));}catch(e){}}
+  function toastStack(){var el=document.getElementById('achToastStack');if(!el){el=document.createElement('div');el.id='achToastStack';el.className='ach-toast-stack';document.body.appendChild(el);}return el;}
+  function showToast(def){var el=document.createElement('div');el.className='ach-toast';
+    el.innerHTML='<div class="ach-toast-title"><span>🏆</span>解锁成就</div><div class="ach-toast-name">'+(def.icon||'')+' '+def.name+'</div><div class="ach-toast-desc">'+(def.desc||'')+'</div>';
+    toastStack().appendChild(el);setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},toastDuration);}
+  function updateProgress(){var got=count(),tot=Math.max(1,total());var bar=document.querySelector('[data-ach-progress]');if(bar)bar.style.width=Math.round(got/tot*100)+'%';
+    var c=document.querySelector('[data-ach-count]');if(c)c.textContent=count();var t=document.querySelector('[data-ach-total]');if(t)t.textContent=total();}
+  function fire(def){save();showToast(def);updateProgress();renderList(document.getElementById('achList'));if(onUnlock)onUnlock(def);}
+  function unlock(id){if(unlocked.has(id))return false;var def=findDef(id);if(!def)return false;unlocked.add(id);fire(def);return true;}
+  function check(state){var fresh=[];for(var i=0;i<defs.length;i++){var def=defs[i];if(def.check&&!unlocked.has(def.id)&&def.check(state)){unlocked.add(def.id);fresh.push(def);}}if(fresh.length)fresh.forEach(fire);return fresh;}
+  function has(id){return unlocked.has(id);}
+  function count(){return defs.filter(function(d){return unlocked.has(d.id);}).length;}
+  function total(){return defs.length;}
+  function reset(){unlocked.clear();save();updateProgress();renderList(document.getElementById('achList'));}
+  function renderList(container){if(!container)return;container.innerHTML='';defs.forEach(function(def){var got=unlocked.has(def.id);var row=document.createElement('div');
+    row.className='ach-row'+(got?' is-unlocked':'');
+    row.innerHTML='<div class="ach-icon">'+(got?(def.icon||'🏆'):'🔒')+'</div><div><div class="ach-name">'+def.name+'</div><div class="ach-desc">'+(got?def.desc:'未解锁')+'</div></div>';
+    container.appendChild(row);});updateProgress();}
+  load();updateProgress();
+  return {check:check,unlock:unlock,has:has,count:count,total:total,reset:reset,renderList:renderList};
+}
+</script>
+
+<!-- ============ 课件主逻辑 ============ -->
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s);};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));};
+function rnd(n){return Math.floor(Math.random()*n);}
+function pct(x){return (x*100).toFixed(1)+'%';}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+
+/* ---------- 全局状态（成就基于"发现/掌握"） ---------- */
+var state={unlockedCount:0,
+  m1Converged:false,m1MaxN:0,
+  m2N:0,m2PeakIs7:false,
+  m3Total:0,m3SawPath:false,
+  m4MatchAny:false,m4Meet59:false,
+  m5SwitchN:0,m5SwitchWin:false,m5Saw100:false,m5Tree:false,
+  m6Pass:false};
+
+var ach=createAchievements({storageKey:'prob-lab-v1',
+  defs:[
+    {id:'lln',  icon:'📉',name:'见证收敛',  desc:'抛掷 ≥500 次，频率与理论差 <1%',     check:function(s){return s.m1Converged;}},
+    {id:'bignum',icon:'🌊',name:'大数之力', desc:'单轮抛掷累计达到 2000 次',          check:function(s){return s.m1MaxN>=2000;}},
+    {id:'peak7',icon:'🎯',name:'峰值在七',  desc:'掷骰 ≥500 次，众数确实落在 7',       check:function(s){return s.m2PeakIs7;}},
+    {id:'bell', icon:'🔔',name:'钟形浮现',  desc:'高尔顿钉板累计 ≥300 球，堆出钟形',   check:function(s){return s.m3Total>=300;}},
+    {id:'path', icon:'🧮',name:'路径即概率',desc:'点击底部某个槽，看到它的路径数 C(n,k)',check:function(s){return s.m3SawPath;}},
+    {id:'area', icon:'📐',name:'面积即概率',desc:'撒点 ≥300，模拟概率≈面积比理论值',   check:function(s){return s.m4MatchAny;}},
+    {id:'meet59',icon:'🤝',name:'相遇 5/9', desc:'等待=20 分时模拟概率逼近 5/9',       check:function(s){return s.m4Meet59;}},
+    {id:'switch',icon:'🚪',name:'换门信徒', desc:'自动模拟 ≥300 局，换门胜率 >60%',    check:function(s){return s.m5SwitchWin;}},
+    {id:'door100',icon:'💯',name:'百门顿悟',desc:'在 100 门规模下跑一次自动模拟',      check:function(s){return s.m5Saw100;}},
+    {id:'grad',  icon:'🎓',name:'学成出师', desc:'完成知识小测，答对 ≥5 题',           check:function(s){return s.m6Pass;}},
+    {id:'master',icon:'👑',name:'概率大师', desc:'解锁前面任意 8 项成就',             check:function(s){return s.unlockedCount>=8;}}
+  ],
+  onUnlock:function(){state.unlockedCount=ach.count();ach.check(state);}
+});
+ach.renderList($('#achList'));
+$('#achReset').addEventListener('click',function(){if(confirm('确定重置全部成就进度？')){ach.reset();}});
+
+/* ---------- 画布工具 ---------- */
+function makeStage(canvas){
+  var ctx=canvas.getContext('2d');
+  var api={canvas:canvas,ctx:ctx,w:0,h:0,fit:function(){
+    var r=canvas.getBoundingClientRect();if(!r.width||!r.height)return false;
+    var dpr=Math.min(2,window.devicePixelRatio||1);
+    canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);api.w=r.width;api.h=r.height;return true;}};
+  return api;
+}
+function roundRect(ctx,x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+/* ---------- 预测框 / 结论 / 指标 通用件 ---------- */
+function setupPredict(view){
+  var box=$('[data-predict]',view);if(!box)return null;
+  var opts=$$('.opt',box),fb=$('.feedback',box),baseFb=box.getAttribute('data-fb')||'';
+  var chosen=null,revealed=false;
+  var runBtns=$$('[data-needs-predict]',view);
+  // 持久提示：锁定时在运行按钮旁显示「先预测」，点它也会跳到预测区
+  var hint=document.createElement('span');hint.className='lock-hint';hint.textContent='🔒 先在下方预测';
+  if(runBtns[0]&&runBtns[0].parentNode){runBtns[0].parentNode.insertBefore(hint,runBtns[0]);}
+  function lock(){hint.style.display='';runBtns.forEach(function(b){b.classList.add('is-locked');});}
+  function unlock(){hint.style.display='none';runBtns.forEach(function(b){b.classList.remove('is-locked');});}
+  function nudge(){
+    try{box.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
+    box.classList.remove('nudge');void box.offsetWidth;box.classList.add('nudge');
+    fb.innerHTML='👆 请先选择一个<b>预测</b>，然后就能开始实验啦。';
+  }
+  hint.addEventListener('click',nudge);
+  // 锁定时拦截运行按钮点击：setupPredict 在各模块工厂最先调用，故此监听最先注册，
+  // 用 stopImmediatePropagation 抢在模块自身处理器之前阻断动作并引导预测。
+  runBtns.forEach(function(b){b.addEventListener('click',function(e){
+    if(b.classList.contains('is-locked')){e.preventDefault();e.stopImmediatePropagation();nudge();}
+  });});
+  opts.forEach(function(o){o.addEventListener('click',function(){
+    if(revealed)return;opts.forEach(function(x){x.classList.remove('sel');});o.classList.add('sel');chosen=o;
+    fb.textContent='预测已记录 —— 现在亲手模拟来验证它。';unlock();
+  });});
+  lock();
+  return {
+    get chosen(){return chosen;},
+    reveal:function(insight){if(revealed||!chosen)return;revealed=true;
+      opts.forEach(function(o){o.classList.add(o.getAttribute('data-correct')==='true'?'correct':'dim');});
+      var ok=chosen.getAttribute('data-correct')==='true';chosen.classList.remove('dim');
+      if(!ok)chosen.classList.add('wrong');
+      fb.innerHTML=(ok?'✅ 预测正确！':'❎ 出乎意料吧？')+' '+insight;},
+    reset:function(){revealed=false;chosen=null;opts.forEach(function(o){o.className='opt';});fb.textContent=baseFb;lock();}
+  };
+}
+function setupReveal(view){
+  var btn=$('[data-reveal-toggle]',view),box=$('[data-conclusion]',view);if(!btn||!box)return;
+  btn.addEventListener('click',function(){var open=box.classList.toggle('open');btn.textContent=open?btn.textContent.replace('显示','隐藏').replace('揭秘','收起'):btn.getAttribute('data-label')||btn.textContent.replace('隐藏','显示').replace('收起','揭秘');
+    if(open){btn.dataset.opened='1';if(view.dataset.mod==='m5'){state.m5Tree=true;ach.check(state);}}});
+}
+var metricsEl=$('#metrics'),metricNoteEl=$('#metricNote');
+function buildMetrics(schema,note){metricsEl.innerHTML='';schema.forEach(function(m){
+  var row=document.createElement('div');row.innerHTML='<dt>'+m.label+'</dt><dd data-k="'+m.key+'"'+(m.cls?(' class="'+m.cls+'"'):'')+'>'+(m.init||'—')+'</dd>';metricsEl.appendChild(row);});
+  metricNoteEl.innerHTML=note||'';}
+function setMetric(key,val,cls){var dd=metricsEl.querySelector('[data-k="'+key+'"]');if(dd){dd.textContent=val;if(cls!==undefined)dd.className=cls;}}
+
+/* ============================================================
+   模块 1 · 大数定律
+   ============================================================ */
+function ModuleLLN(){
+  var view=$('[data-mod="m1"]'),stage=makeStage($('canvas',view)),predict=setupPredict(view);
+  var mode='coin',P={coin:0.5,die:1/6},slider=$('[data-p-slider]',view),customWrap=$('[data-custom]',view),pVal=$('[data-p-val]',view);
+  var trials=0,hits=0,hist=[],auto=false,raf=0,autoBtn=$('[data-act="auto"]',view);
+  function p(){return mode==='custom'?parseFloat(slider.value):P[mode];}
+  $$('[data-p-mode] button',view).forEach(function(b){b.addEventListener('click',function(){
+    $$('[data-p-mode] button',view).forEach(function(x){x.classList.remove('active');});b.classList.add('active');
+    mode=b.getAttribute('data-p');customWrap.style.display=mode==='custom'?'':'none';reset();});});
+  slider.addEventListener('input',function(){pVal.textContent=parseFloat(slider.value).toFixed(2);if(mode==='custom')reset();});
+  function reset(){stopAuto();trials=0;hits=0;hist=[];refresh();}
+  function flip(n){for(var i=0;i<n;i++){trials++;if(Math.random()<p())hits++;hist.push(hits/trials);}
+    if(trials>=500&&Math.abs(hits/trials-p())<0.01){state.m1Converged=true;}
+    state.m1MaxN=Math.max(state.m1MaxN,trials);ach.check(state);
+    if(trials>=500&&Math.abs(hits/trials-p())<0.02&&predict.chosen){predict.reveal('频率确实稳稳逼近它的<b>理论概率</b>（右侧"理论概率"一栏）—— 这就是大数定律。');}
+    refresh();}
+  function startAuto(){if(auto||!predict.chosen)return;auto=true;autoBtn.textContent='⏸ 暂停';
+    var tick=function(){if(!auto)return;var b=trials<60?1:trials<400?6:trials<1500?25:70;flip(b);
+      if(trials>=6000){stopAuto();return;}raf=requestAnimationFrame(tick);};raf=requestAnimationFrame(tick);}
+  function stopAuto(){auto=false;if(raf)cancelAnimationFrame(raf);raf=0;autoBtn.textContent='自动抛掷';}
+  $('[data-act="one"]',view).addEventListener('click',function(){flip(1);});
+  autoBtn.addEventListener('click',function(){auto?stopAuto():startAuto();});
+  $('[data-act="reset"]',view).addEventListener('click',function(){predict.reset();reset();});
+  function refresh(){var f=trials?hits/trials:0;
+    setMetric('n',trials);setMetric('hits',hits);
+    setMetric('freq',trials?pct(f):'—','hi');setMetric('p',pct(p()));
+    setMetric('dev',trials?(f>=p()?'+':'−')+pct(Math.abs(f-p())):'—',trials&&Math.abs(f-p())<0.01?'good':'');
+    draw();}
+  function draw(){var ctx=stage.ctx,W=stage.w,H=stage.h;if(!W)return;ctx.clearRect(0,0,W,H);
+    var L=46,R=W-16,T=18,B=H-30,pw=R-L,ph=B-T;
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    // y 轴刻度 0..1
+    ctx.strokeStyle='#eef2f6';ctx.fillStyle='#9aa7b2';ctx.font='11px '+'var(--mono)';ctx.textAlign='right';ctx.textBaseline='middle';
+    for(var yv=0;yv<=1.0001;yv+=0.25){var y=B-yv*ph;ctx.strokeStyle='#eef2f6';ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(R,y);ctx.stroke();
+      ctx.fillStyle='#9aa7b2';ctx.fillText(Math.round(yv*100)+'%',L-6,y);}
+    // 理论线 p
+    var py=B-p()*ph;ctx.strokeStyle='#e05a4f';ctx.setLineDash([6,5]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(L,py);ctx.lineTo(R,py);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#e05a4f';ctx.textAlign='left';ctx.fillText('理论 '+pct(p()),L+6,py-9<T?py+10:py-9);
+    // 频率折线
+    if(hist.length>1){ctx.strokeStyle='#3b82f6';ctx.lineWidth=2;ctx.beginPath();
+      var step=Math.max(1,Math.floor(hist.length/Math.max(1,pw)));
+      for(var i=0;i<hist.length;i+=step){var x=L+(i/(hist.length-1))*pw;var yy=B-hist[i]*ph;i===0?ctx.moveTo(x,yy):ctx.lineTo(x,yy);}
+      var lx=L+pw,ly=B-hist[hist.length-1]*ph;ctx.lineTo(lx,ly);ctx.stroke();
+      ctx.fillStyle='#3b82f6';ctx.beginPath();ctx.arc(lx,ly,4,0,7);ctx.fill();}
+    else{ctx.fillStyle='#9aa7b2';ctx.textAlign='center';ctx.fillText('点击"抛 1 次"或"自动抛掷"开始实验',(L+R)/2,(T+B)/2);}
+    // x 轴标签
+    ctx.fillStyle='#9aa7b2';ctx.textAlign='center';ctx.fillText('试验次数 → '+trials,(L+R)/2,B+16);}
+  return {title:'频率与大数定律',kicker:'实验 01',sub:'重复越多次，频率会逼近什么？',
+    metrics:function(){buildMetrics([
+      {key:'n',label:'试验次数',init:'0'},{key:'hits',label:'出现次数',init:'0'},
+      {key:'freq',label:'出现频率',init:'—',cls:'hi'},{key:'p',label:'理论概率',init:pct(p())},
+      {key:'dev',label:'与理论偏差',init:'—'}],
+      '少量试验时频率会上下乱跳；只有大量重复后，频率才稳定逼近概率。');refresh();},
+    resize:function(){stage.fit();draw();},stop:stopAuto};
+}
+
+/* ============================================================
+   模块 2 · 两骰之和（古典概型）
+   ============================================================ */
+function ModuleDice(){
+  var view=$('[data-mod="m2"]'),stage=makeStage($('canvas',view)),predict=setupPredict(view);
+  var counts=new Array(13).fill(0),total=0,last=null,auto=false,raf=0,autoBtn=$('[data-act="auto"]',view);
+  var ways=[0,0,1,2,3,4,5,6,5,4,3,2,1];
+  function reset(){stopAuto();counts=new Array(13).fill(0);total=0;last=null;refresh();}
+  function roll(n){for(var i=0;i<n;i++){var a=1+rnd(6),b=1+rnd(6);counts[a+b]++;total++;last=[a,b];}
+    var peak=7,mx=0;for(var s=2;s<=12;s++){if(counts[s]>mx){mx=counts[s];peak=s;}}
+    if(total>=500&&peak===7){state.m2PeakIs7=true;ach.check(state);}
+    if(total>=300&&predict.chosen)predict.reveal('和为 <b>7</b> 的组合最多（6 种），所以峰值在 7。');
+    refresh();}
+  function startAuto(){if(auto||!predict.chosen)return;auto=true;autoBtn.textContent='⏸ 暂停';
+    var tick=function(){if(!auto)return;roll(total<200?2:8);if(total>=4000){stopAuto();return;}raf=requestAnimationFrame(tick);};raf=requestAnimationFrame(tick);}
+  function stopAuto(){auto=false;if(raf)cancelAnimationFrame(raf);raf=0;autoBtn.textContent='自动掷骰';}
+  $('[data-act="one"]',view).addEventListener('click',function(){roll(1);});
+  autoBtn.addEventListener('click',function(){auto?stopAuto():startAuto();});
+  $('[data-act="reset"]',view).addEventListener('click',function(){predict.reset();reset();});
+  var showTheory=false;var rt=$('[data-reveal-toggle]',view);rt.addEventListener('click',function(){showTheory=$('[data-conclusion]',view).classList.contains('open');draw();});
+  function heat(s){var t=(s-2)/10;var r=Math.round(219-t*150),g=Math.round(234-t*70),b=Math.round(254-t*40);return 'rgb('+r+','+g+','+b+')';}
+  function refresh(){setMetric('n',total);
+    setMetric('p7',total?pct(counts[7]/total):'—','hi');
+    setMetric('t7','6/36 ≈ 16.7%');
+    setMetric('p2',total?pct(counts[2]/total):'—');setMetric('last',last?(last[0]+' + '+last[1]+' = '+(last[0]+last[1])):'—');
+    draw();}
+  function draw(){var ctx=stage.ctx,W=stage.w,H=stage.h;if(!W)return;ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    var gridW=Math.min(H-40,W*0.42),gx=14,gy=(H-gridW)/2,cell=gridW/6;
+    // 6x6 样本格
+    ctx.font='600 '+Math.max(10,cell*0.34)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    for(var a=1;a<=6;a++)for(var b=1;b<=6;b++){var x=gx+(b-1)*cell,y=gy+(a-1)*cell,s=a+b;
+      ctx.fillStyle=heat(s);ctx.fillRect(x+1,y+1,cell-2,cell-2);
+      ctx.fillStyle='#33424c';ctx.fillText(s,x+cell/2,y+cell/2);
+      if(last&&last[0]===a&&last[1]===b){ctx.strokeStyle='#e05a4f';ctx.lineWidth=3;ctx.strokeRect(x+1.5,y+1.5,cell-3,cell-3);}}
+    ctx.fillStyle='#66777d';ctx.font='11px sans-serif';ctx.fillText('骰子A↓ / 骰子B→  共36格等可能',gx+gridW/2,gy-12);
+    // 右：柱状图
+    var bx=gx+gridW+34,bw=W-bx-16,by=H-34,bh=H-56,n=11,slot=bw/n;
+    var maxC=1;for(var s2=2;s2<=12;s2++)maxC=Math.max(maxC,counts[s2]);
+    var maxRef=Math.max(maxC,total?total*6/36:1);
+    for(var s3=2;s3<=12;s3++){var idx=s3-2,cx=bx+idx*slot,barW=slot*0.7,bxx=cx+slot*0.15;
+      var hh=(counts[s3]/maxRef)*bh;
+      ctx.fillStyle=s3===7?'#3b82f6':'#9cc3f7';roundRect(ctx,bxx,by-hh,barW,hh,3);ctx.fill();
+      ctx.fillStyle='#66777d';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(s3,cx+slot/2,by+14);
+      if(counts[s3]>0){ctx.fillStyle='#33424c';ctx.font='10px var(--mono)';ctx.fillText(counts[s3],cx+slot/2,by-hh-7);}
+      if(showTheory){var th=(ways[s3]/36)*((total?total:36)/maxRef)*bh*(total?1:1);
+        var ty=by-(ways[s3]/36)*(total?total:36)/maxRef*bh;
+        ctx.fillStyle='#e05a4f';ctx.fillRect(bxx,ty,barW,2);}}
+    if(showTheory){ctx.fillStyle='#e05a4f';ctx.textAlign='left';ctx.font='11px sans-serif';ctx.fillText('— 理论 ways/36',bx,by-bh-2);}
+    ctx.fillStyle='#66777d';ctx.textAlign='center';ctx.font='11px sans-serif';ctx.fillText('点数之和的频数',bx+bw/2,28);}
+  return {title:'两骰之和 · 古典概型',kicker:'实验 02',sub:'两颗骰子的点数之和，哪个最常见？',
+    metrics:function(){buildMetrics([
+      {key:'n',label:'掷骰次数',init:'0'},{key:'p7',label:'和=7 频率',init:'—',cls:'hi'},
+      {key:'t7',label:'和=7 理论',init:'6/36 ≈ 16.7%'},{key:'p2',label:'和=2 频率',init:'—'},
+      {key:'last',label:'最近一掷',init:'—'}],
+      '36 个格子才是等可能的基本事件；"和"是把若干格子归并的结果，所以各和并不等可能。');refresh();},
+    resize:function(){stage.fit();draw();},stop:stopAuto};
+}
+
+/* ============================================================
+   模块 3 · 高尔顿钉板
+   ============================================================ */
+function ModuleGalton(){
+  var view=$('[data-mod="m3"]'),stage=makeStage($('canvas',view)),predict=setupPredict(view);
+  var rows=10,bins=new Array(11).fill(0),total=0,sliderR=$('[data-rows]',view),rVal=$('[data-rows-val]',view);
+  var anim=null,highlight=-1;
+  function comb(n,k){var c=1;for(var i=0;i<k;i++)c=c*(n-i)/(i+1);return Math.round(c);}
+  function reset(){anim=null;bins=new Array(rows+1).fill(0);total=0;highlight=-1;refresh();}
+  sliderR.addEventListener('input',function(){rows=parseInt(sliderR.value);rVal.textContent=rows;reset();});
+  function commit(k){bins[k]++;total++;state.m3Total=Math.max(state.m3Total,total);ach.check(state);
+    if(total>=200&&predict.chosen)predict.reveal('随机左右叠加出现<b>二项分布</b> —— 中间路径最多所以最高。');refresh();}
+  function dropOne(){if(anim)return;var path=[],k=0;for(var r=0;r<rows;r++){var right=Math.random()<0.5;if(right)k++;path.push(right);}
+    anim={path:path,k:k,row:0,t:0,start:performance.now()};requestAnimationFrame(stepAnim);}
+  function stepAnim(now){if(!anim)return;var dur=Math.max(60,520/rows);var el=now-anim.start;anim.row=Math.min(rows,el/dur);
+    draw();if(anim.row>=rows){var k=anim.k;anim=null;commit(k);}else requestAnimationFrame(stepAnim);}
+  function dropMany(m){for(var i=0;i<m;i++){var k=0;for(var r=0;r<rows;r++)if(Math.random()<0.5)k++;bins[k]++;}
+    total+=m;state.m3Total=Math.max(state.m3Total,total);ach.check(state);
+    if(total>=200&&predict.chosen)predict.reveal('随机左右叠加出现<b>二项分布</b> —— 中间路径最多所以最高。');refresh();}
+  $('[data-act="one"]',view).addEventListener('click',dropOne);
+  $('[data-act="hundred"]',view).addEventListener('click',function(){dropMany(200);});
+  $('[data-act="reset"]',view).addEventListener('click',function(){predict.reset();reset();});
+  // 点击底部槽 → 路径数
+  $('canvas',view).addEventListener('click',function(e){var r=this.getBoundingClientRect();var mx=e.clientX-r.left;
+    var geo=layout();if(!geo)return;var k=Math.round((mx-geo.x0)/geo.slot-0.5);if(k>=0&&k<=rows){highlight=k;state.m3SawPath=true;ach.check(state);refresh();}});
+  var showTheory=false;$('[data-reveal-toggle]',view).addEventListener('click',function(){showTheory=$('[data-conclusion]',view).classList.contains('open');draw();});
+  function layout(){var W=stage.w,H=stage.h;if(!W)return null;var top=24,pegBottom=H*0.56,binTop=H*0.60,binBottom=H-46;
+    var slot=W/(rows+1),x0=0;return {W:W,H:H,top:top,pegBottom:pegBottom,binTop:binTop,binBottom:binBottom,slot:slot,x0:x0};}
+  function refresh(){setMetric('total',total);
+    var mid=Math.round(rows/2);setMetric('mid',total?pct(bins[mid]/total):'—','hi');
+    setMetric('tmid',pct(comb(rows,mid)/Math.pow(2,rows)));
+    setMetric('rows',rows);
+    setMetric('hl',highlight>=0?('C('+rows+','+highlight+') = '+comb(rows,highlight)+' 条'):'—',highlight>=0?'good':'');
+    draw();}
+  function draw(){var ctx=stage.ctx,g=layout();if(!g)return;var W=g.W,H=g.H;ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    // 钉子三角阵
+    var pegRows=rows,availH=g.pegBottom-g.top,dy=availH/pegRows;
+    ctx.fillStyle='#c2cdd8';
+    for(var r=0;r<pegRows;r++){var cnt=r+1,y=g.top+r*dy;for(var c=0;c<cnt;c++){var x=W/2+(c-(cnt-1)/2)*g.slot;ctx.beginPath();ctx.arc(x,y,2.4,0,7);ctx.fill();}}
+    // 落球动画
+    if(anim){var rr=Math.floor(anim.row),frac=anim.row-rr,cpos=0;for(var i2=0;i2<rr;i2++)cpos+=anim.path[i2]?0.5:-0.5;
+      var nextStep=(rr<rows&&anim.path[rr])?0.5:(rr<rows?-0.5:0);var cx=W/2+(cpos+nextStep*frac)*g.slot;var cy=g.top+anim.row*dy;
+      ctx.fillStyle='#e05a4f';ctx.beginPath();ctx.arc(cx,cy,5,0,7);ctx.fill();}
+    // 槽与柱
+    var nb=rows+1,maxC=1;for(var b=0;b<nb;b++)maxC=Math.max(maxC,bins[b]);
+    var maxRef=maxC;if(showTheory){var pk=comb(rows,Math.round(rows/2))/Math.pow(2,rows)*total;maxRef=Math.max(maxRef,pk);}
+    maxRef=Math.max(maxRef,1);var binH=g.binBottom-g.binTop;
+    for(var b2=0;b2<nb;b2++){var bx=b2*g.slot+g.slot*0.12,bw=g.slot*0.76,hh=(bins[b2]/maxRef)*binH;
+      ctx.fillStyle=b2===highlight?'#f59e0b':'#3b82f6';roundRect(ctx,bx,g.binBottom-hh,bw,hh,2);ctx.fill();
+      if(showTheory){var th=comb(rows,b2)/Math.pow(2,rows)*total/maxRef*binH;ctx.strokeStyle='#e05a4f';ctx.lineWidth=1.6;
+        var ty=g.binBottom-th;ctx.beginPath();ctx.moveTo(bx-g.slot*0.06,ty);ctx.lineTo(bx+bw+g.slot*0.06,ty);ctx.stroke();}
+      ctx.fillStyle='#9aa7b2';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText(b2,b2*g.slot+g.slot/2,g.binBottom+13);}
+    if(showTheory){ctx.fillStyle='#e05a4f';ctx.textAlign='left';ctx.font='11px sans-serif';ctx.fillText('— 理论 C(n,k)/2ⁿ',6,g.binTop-4);}
+    ctx.fillStyle='#66777d';ctx.textAlign='right';ctx.font='11px sans-serif';ctx.fillText('球数 '+total,W-8,g.top+4);}
+  return {title:'高尔顿钉板',kicker:'实验 03',sub:'随机左右滑落，会堆出什么形状？',
+    metrics:function(){buildMetrics([
+      {key:'total',label:'落球总数',init:'0'},{key:'rows',label:'钉板层数 n',init:'10'},
+      {key:'mid',label:'中央槽频率',init:'—',cls:'hi'},{key:'tmid',label:'中央槽理论',init:'—'},
+      {key:'hl',label:'选中槽路径数',init:'—'}],
+      '到第 k 槽要恰好向右 k 次，路径数 = C(n,k)。点击某个槽查看它的路径数。');refresh();},
+    resize:function(){stage.fit();draw();},stop:function(){anim=null;}};
+}
+
+/* ============================================================
+   模块 4 · 约会问题（几何概型）
+   ============================================================ */
+function ModuleMeet(){
+  var view=$('[data-mod="m4"]'),stage=makeStage($('canvas',view)),predict=setupPredict(view);
+  var T=60,wait=20,pts=[],auto=false,raf=0,CAP=4000,sliderW=$('[data-wait]',view),wVal=$('[data-wait-val]',view),autoBtn=$('[data-act="auto"]',view);
+  sliderW.addEventListener('input',function(){wait=parseInt(sliderW.value);wVal.textContent=wait;refresh();});
+  function reset(){stopAuto();pts=[];refresh();}
+  function meetsCount(){var m=0;for(var i=0;i<pts.length;i++)if(Math.abs(pts[i][0]-pts[i][1])<=wait)m++;return m;}
+  function add(n){for(var i=0;i<n;i++){pts.push([Math.random()*T,Math.random()*T]);if(pts.length>CAP)pts.shift();}
+    var tot=pts.length,m=meetsCount(),sim=tot?m/tot:0,theory=1-Math.pow((T-wait)/T,2);
+    if(tot>=300&&Math.abs(sim-theory)<0.03){state.m4MatchAny=true;ach.check(state);}
+    if(Math.abs(wait-20)<1&&tot>=500&&Math.abs(sim-5/9)<0.03){state.m4Meet59=true;ach.check(state);}
+    if(tot>=300&&predict.chosen&&Math.abs(wait-20)<1)predict.reveal('蓝带面积比 = <b>5/9 ≈ 55.6%</b>，模拟点频率正好印证。');refresh();}
+  function startAuto(){if(auto||!predict.chosen)return;auto=true;autoBtn.textContent='⏸ 暂停';
+    var tick=function(){if(!auto)return;add(pts.length<400?6:30);if(pts.length>=CAP){stopAuto();return;}raf=requestAnimationFrame(tick);};raf=requestAnimationFrame(tick);}
+  function stopAuto(){auto=false;if(raf)cancelAnimationFrame(raf);raf=0;autoBtn.textContent='自动撒点';}
+  $('[data-act="one"]',view).addEventListener('click',function(){add(1);});
+  autoBtn.addEventListener('click',function(){auto?stopAuto():startAuto();});
+  $('[data-act="reset"]',view).addEventListener('click',function(){predict.reset();reset();});
+  function refresh(){var tot=pts.length,m=meetsCount(),sim=tot?m/tot:0,theory=1-Math.pow((T-wait)/T,2);
+    setMetric('n',tot);setMetric('meet',m);
+    setMetric('sim',tot?pct(sim):'—','hi');setMetric('theory',pct(theory),'good');
+    setMetric('wait',wait+' 分');draw();}
+  function draw(){var ctx=stage.ctx,W=stage.w,H=stage.h;if(!W)return;ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    var pad=38,size=Math.min(W,H)-pad*1.6,ox=pad,oy=(H-size)/2;
+    function sx(v){return ox+v/T*size;}function sy(v){return oy+size-v/T*size;}
+    // 正方形
+    ctx.fillStyle='#f4f8fc';ctx.fillRect(ox,oy,size,size);
+    // 碰面蓝带 |x-y|<=wait（在正方形内的多边形）
+    var w=wait;ctx.fillStyle='rgba(59,130,246,.20)';ctx.beginPath();
+    ctx.moveTo(sx(0),sy(Math.min(T,0+w)));ctx.lineTo(sx(Math.max(0,T-w)),sy(T));ctx.lineTo(sx(T),sy(T));
+    ctx.lineTo(sx(T),sy(Math.max(0,T-w)));ctx.lineTo(sx(Math.min(T,0+w)),sy(0));ctx.lineTo(sx(0),sy(0));ctx.closePath();ctx.fill();
+    // 对角参考线
+    ctx.strokeStyle='#3b82f6';ctx.setLineDash([5,4]);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sx(0),sy(0));ctx.lineTo(sx(T),sy(T));ctx.stroke();ctx.setLineDash([]);
+    // 点
+    for(var i=0;i<pts.length;i++){var p=pts[i],meet=Math.abs(p[0]-p[1])<=w;
+      ctx.fillStyle=meet?'rgba(47,157,100,.85)':'rgba(224,90,79,.55)';ctx.beginPath();ctx.arc(sx(p[0]),sy(p[1]),meet?2.6:2,0,7);ctx.fill();}
+    // 边框 + 刻度
+    ctx.strokeStyle='#c2cdd8';ctx.lineWidth=1.5;ctx.strokeRect(ox,oy,size,size);
+    ctx.fillStyle='#9aa7b2';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.textBaseline='top';
+    [0,20,40,60].forEach(function(v){ctx.fillText(v,sx(v),oy+size+6);});
+    ctx.textAlign='right';ctx.textBaseline='middle';[0,20,40,60].forEach(function(v){ctx.fillText(v,ox-6,sy(v));});
+    ctx.textAlign='center';ctx.fillStyle='#66777d';ctx.fillText('甲到达 (分钟)',ox+size/2,oy+size+22);
+    ctx.save();ctx.translate(ox-26,oy+size/2);ctx.rotate(-Math.PI/2);ctx.fillText('乙到达 (分钟)',0,0);ctx.restore();}
+  return {title:'约会问题 · 几何概型',kicker:'实验 04',sub:'先到者等 20 分钟，两人能碰面吗？',
+    metrics:function(){buildMetrics([
+      {key:'n',label:'撒点总数',init:'0'},{key:'meet',label:'碰面点数',init:'0'},
+      {key:'sim',label:'模拟概率',init:'—',cls:'hi'},{key:'theory',label:'几何概率',init:'—',cls:'good'},
+      {key:'wait',label:'等待时间',init:'20 分'}],
+      '几何概率 = 蓝带面积 ÷ 正方形面积 = 1 −((60−等待)/60)²。拖动"等待"滑块看面积如何变化。');refresh();},
+    resize:function(){stage.fit();draw();},stop:stopAuto};
+}
+
+/* ============================================================
+   模块 5 · 三门问题（条件概率）
+   ============================================================ */
+function ModuleMonty(){
+  var view=$('[data-mod="m5"]'),stage=makeStage($('canvas',view)),predict=setupPredict(view),hint=$('[data-m5hint]',view);
+  var N=3,car=-1,pick=-1,alt=-1,phase='pick',result=null;
+  var stayWins=0,switchWins=0,games=0,batchBars=null;
+  $$('[data-doors] button',view).forEach(function(b){b.addEventListener('click',function(){
+    $$('[data-doors] button',view).forEach(function(x){x.classList.remove('active');});b.classList.add('active');
+    N=parseInt(b.getAttribute('data-n'));stayWins=switchWins=games=0;batchBars=null;newGame();});});
+  function newGame(){car=rnd(N);pick=-1;alt=-1;phase='pick';result=null;hint.textContent=N<=12?'点击一扇门来选择 →':'门太多了，直接"自动玩 1000 次"看胜率 →';refresh();}
+  function doPick(d){if(phase!=='pick')return;pick=d;
+    if(pick!==car){alt=car;}else{var others=[];for(var i=0;i<N;i++)if(i!==pick)others.push(i);alt=others[rnd(others.length)];}
+    phase='decide';hint.textContent='主持人打开了其余羊门，只留你选的门和另一扇。坚持 or 更换？';refresh();}
+  function decide(sw){if(phase!=='decide')return;if(sw)pick=alt;result=(pick===car)?'win':'lose';phase='done';
+    hint.textContent=(result==='win'?'🎉 中奖！':'🐐 是羊…')+'（点击"新的一局"再来）';refresh();}
+  function batch(){var K=1000;for(var i=0;i<K;i++){var c=rnd(N),pk=rnd(N);if(pk===c)stayWins++;else switchWins++;}games+=K;
+    batchBars=true;state.m5SwitchN=games;
+    if(games>=300&&switchWins/games>0.6){state.m5SwitchWin=true;}
+    if(N>=100)state.m5Saw100=true;ach.check(state);
+    if(predict.chosen)predict.reveal('换门把"初选很可能选错"的概率全转移给了留下的门 —— <b>换门胜率 =(N−1)/N</b>，远高于坚持的 1/N！');refresh();}
+  $('[data-act="newgame"]',view).addEventListener('click',newGame);
+  $('[data-act="batch"]',view).addEventListener('click',batch);
+  $('[data-act="reset"]',view).addEventListener('click',function(){predict.reset();stayWins=switchWins=games=0;batchBars=null;newGame();});
+  $('canvas',view).addEventListener('click',function(e){if(N>12||phase!=='pick')return;var r=this.getBoundingClientRect();var mx=e.clientX-r.left,my=e.clientY-r.top;
+    var g=doorLayout();if(!g)return;for(var i=0;i<N;i++){var dx=g.x0+i*g.step;if(mx>=dx&&mx<=dx+g.dw&&my>=g.y&&my<=g.y+g.dh){doPick(i);return;}}});
+  function doorLayout(){var W=stage.w,H=stage.h;if(!W)return null;var area=batchBars?H*0.52:H*0.86;
+    var cols=Math.min(N,N<=12?N:Math.ceil(Math.sqrt(N*1.6)));var dw=Math.min(96,(W-40)/cols-10);var dh=Math.min(area-30,dw*1.35);
+    var rows=Math.ceil(N/cols),step=dw+10,x0=(W-(cols*step-10))/2,y=22;return {x0:x0,y:y,dw:dw,dh:dh,step:step,cols:cols,rows:rows};}
+  function refresh(){setMetric('games',games);
+    setMetric('stay',games?pct(stayWins/games):'—');setMetric('switch',games?pct(switchWins/games):'—','good');
+    setMetric('tstay',pct(1/N));setMetric('tswitch',pct((N-1)/N));draw();}
+  function draw(){var ctx=stage.ctx,W=stage.w,H=stage.h;if(!W)return;ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    // 门
+    if(N<=12){var g=doorLayout();ctx.textAlign='center';ctx.textBaseline='middle';
+      for(var i=0;i<N;i++){var col=i%g.cols,row=Math.floor(i/g.cols);var dx=g.x0+col*g.step,dy=g.y+row*(g.dh+12);
+        var opened=(phase!=='pick'&&i!==pick&&i!==alt);var isPick=(i===pick),isAlt=(i===alt&&phase!=='pick');
+        ctx.fillStyle=opened?'#eef2f6':(isPick?'#dbeafe':(isAlt?'#fff7e6':'#f4f8fc'));
+        ctx.strokeStyle=isPick?'#3b82f6':(isAlt?'#f59e0b':'#c2cdd8');ctx.lineWidth=isPick||isAlt?3:1.5;
+        roundRect(ctx,dx,dy,g.dw,g.dh,8);ctx.fill();ctx.stroke();
+        var icon='🚪';if(phase==='done'){icon=(i===car)?'🚗':'🐐';}else if(opened){icon='🐐';}
+        ctx.font=Math.min(40,g.dw*0.5)+'px serif';ctx.fillStyle='#33424c';ctx.fillText(icon,dx+g.dw/2,dy+g.dh/2-4);
+        ctx.font='12px sans-serif';ctx.fillStyle=isPick?'#2563eb':(isAlt?'#c47a1c':'#9aa7b2');
+        var tag=isPick?'你选的':(isAlt?'另一扇':(opened?'已打开':('门'+(i+1))));ctx.fillText(tag,dx+g.dw/2,dy+g.dh-12);}}
+    else{ // 100 门：网格缩略
+      ctx.fillStyle='#66777d';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText(N+' 扇门 —— 用"自动玩 1000 次"感受换门的威力',W/2,28);
+      var cols=20,cw=Math.min(16,(W-40)/cols),x0=(W-cols*cw)/2,y0=44;
+      for(var i2=0;i2<N;i2++){var c2=i2%cols,r2=Math.floor(i2/cols);ctx.fillStyle=i2===car?'#dbeafe':'#eef2f6';ctx.strokeStyle='#c2cdd8';
+        ctx.fillRect(x0+c2*cw,y0+r2*cw,cw-2,cw-2);}}
+    // 批量胜率柱
+    if(batchBars){var by=H-30,bh=H*0.32,bx=W*0.18,bw=W*0.26,gap=W*0.16;
+      var sStay=games?stayWins/games:0,sSwitch=games?switchWins/games:0;
+      [['坚持',sStay,1/N,'#9cc3f7',bx],['更换',sSwitch,(N-1)/N,'#2f9d64',bx+bw+gap]].forEach(function(d){
+        var x=d[4],h=d[1]*bh;ctx.fillStyle=d[3];roundRect(ctx,x,by-h,bw,h,4);ctx.fill();
+        var ty=by-d[2]*bh;ctx.strokeStyle='#e05a4f';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x-6,ty);ctx.lineTo(x+bw+6,ty);ctx.stroke();
+        ctx.fillStyle='#33424c';ctx.font='700 15px sans-serif';ctx.textAlign='center';ctx.fillText(pct(d[1]),x+bw/2,by-h-9);
+        ctx.fillStyle='#66777d';ctx.font='12px sans-serif';ctx.fillText(d[0]+'胜率',x+bw/2,by+15);});
+      ctx.fillStyle='#e05a4f';ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText('— 红线＝理论值',bx,by-bh-4);}}
+  newGame();
+  return {title:'三门问题 · 条件概率',kicker:'实验 05',sub:'主持人开门后，换还是不换？',
+    metrics:function(){buildMetrics([
+      {key:'games',label:'模拟局数',init:'0'},{key:'stay',label:'坚持胜率',init:'—'},
+      {key:'switch',label:'更换胜率',init:'—',cls:'good'},{key:'tstay',label:'坚持理论',init:pct(1/N)},
+      {key:'tswitch',label:'更换理论',init:pct((N-1)/N)}],
+      '主持人"知情地"打开羊门，把信息转移给了未开的门。换门胜率 =(N−1)/N。');refresh();},
+    resize:function(){stage.fit();draw();},stop:function(){}};
+}
+
+/* ============================================================
+   模块 6 · 知识总结 + 闯关自检
+   ============================================================ */
+function ModuleSummary(){
+  var view=$('[data-mod="m6"]'),host=$('.quiz-box',view);
+  var QUIZ=[
+    {q:'掷一颗普通六面骰子，掷出"7 点"属于哪种事件？',
+     opts:['必然事件','不可能事件','随机（不确定）事件','以上都不对'],ans:1,
+     tip:'骰子最大点数是 6，掷出 7 永远不会发生 → 不可能事件，概率 P = 0。'},
+    {q:'一副去掉大小王的 52 张扑克，随机抽 1 张，抽到♥红桃的概率是？',
+     opts:['1/2','1/4','1/13','1/52'],ans:1,
+     tip:'古典概型：红桃有 13 张，P = 13/52 = 1/4。'},
+    {q:'抛硬币连续 9 次都是正面，第 10 次仍是正面的概率是？',
+     opts:['很小，该出反面了','很大，手气正旺','仍然是 1/2','无法确定'],ans:2,
+     tip:'每次抛掷相互独立、硬币没有记忆 —— 仍是 1/2。这就是著名的"赌徒谬误"。'},
+    {q:'一个只有分针的钟随机停下，指针落在 12 点到 3 点之间的概率是？',
+     opts:['1/2','1/3','1/4','1/12'],ans:2,
+     tip:'几何概型：12→3 占整圈 90°/360° = 1/4（按度数之比）。'},
+    {q:'连续掷两次骰子，两次都是 6 的概率是？',
+     opts:['1/6','1/12','1/36','2/6'],ans:2,
+     tip:'两次相互独立，用乘法原理：1/6 × 1/6 = 1/36。'},
+    {q:'掷两次骰子，"至少出现一个 6"的概率是？',
+     opts:['1/6','1/3','11/36','1/36'],ans:2,
+     tip:'正难则反：1 − P(一个 6 都没有) = 1 − (5/6)² = 1 − 25/36 = 11/36。'}
+  ];
+  var idx=0,chosen=null,correct=0,finished=false;
+  function rankOf(c){if(c>=6)return['🏆','概率大师','全部答对，概率全貌已了然于胸！'];
+    if(c>=4)return['🎯','概率高手','大部分已掌握，个别再回看对应实验。'];
+    if(c>=2)return['📘','概率学徒','基础已具备，建议重玩实验①–⑤巩固。'];
+    return['🌱','初学乍练','别灰心，回到前面的实验亲手玩一玩再来。'];}
+  function refreshMetrics(){
+    var ans=finished?QUIZ.length:(idx+(chosen!=null?1:0));
+    setMetric('done',ans+' / '+QUIZ.length);setMetric('right',correct);
+    setMetric('rate',ans?Math.round(correct/ans*100)+'%':'—','hi');
+    setMetric('rank',finished?rankOf(correct)[1]:'闯关中…',finished?'good':'');}
+  function render(){
+    if(finished){var r=rankOf(correct);
+      host.innerHTML='<div class="quiz-result"><div class="rank-badge">'+r[0]+'</div>'+
+        '<div class="rank-name">'+r[1]+'</div><div class="rank-score">答对 <b>'+correct+'</b> / '+QUIZ.length+' 题</div>'+
+        '<div class="rank-desc">'+r[2]+'</div><button class="tool-btn primary" data-quiz-restart>🔄 再来一次</button></div>';
+      $('[data-quiz-restart]',host).addEventListener('click',restart);refreshMetrics();return;}
+    var Q=QUIZ[idx],answered=chosen!=null;
+    var h='<div class="quiz-progress">闯关小测 · 第 '+(idx+1)+' / '+QUIZ.length+' 题</div>';
+    h+='<div class="quiz-q">'+Q.q+'</div><div class="quiz-opts">';
+    Q.opts.forEach(function(o,i){var cls='quiz-opt';
+      if(answered){if(i===Q.ans)cls+=' correct';else if(i===chosen)cls+=' wrong';else cls+=' dim';}
+      h+='<button class="'+cls+'" data-qi="'+i+'"'+(answered?' disabled':'')+'>'+o+'</button>';});
+    h+='</div>';
+    if(answered){var ok=chosen===Q.ans;
+      h+='<div class="quiz-feedback '+(ok?'ok':'no')+'">'+(ok?'✅ 答对了！':'❌ 正确答案见绿色。')+' '+Q.tip+'</div>';
+      h+='<button class="tool-btn primary" data-qnext>'+(idx+1<QUIZ.length?'下一题 →':'查看成绩')+'</button>';}
+    host.innerHTML=h;
+    if(!answered){$$('[data-qi]',host).forEach(function(b){b.addEventListener('click',function(){
+      chosen=parseInt(b.getAttribute('data-qi'));if(chosen===Q.ans)correct++;render();});});}
+    else{$('[data-qnext]',host).addEventListener('click',function(){
+      idx++;chosen=null;
+      if(idx>=QUIZ.length){finished=true;if(correct>=5){state.m6Pass=true;ach.check(state);}}
+      render();});}
+    refreshMetrics();}
+  function restart(){idx=0;chosen=null;correct=0;finished=false;render();}
+  $('[data-act="restart"]',view).addEventListener('click',restart);
+  render();
+  return {title:'概率知识总结 · 闯关自检',kicker:'小结 06',sub:'把五个实验串成一张概率知识地图',
+    metrics:function(){buildMetrics([
+      {key:'done',label:'已答题',init:'0 / '+QUIZ.length},{key:'right',label:'答对',init:'0'},
+      {key:'rate',label:'正确率',init:'—',cls:'hi'},{key:'rank',label:'当前段位',init:'闯关中…'}],
+      '答完小测会评出"段位"；想巩固就回到对应实验亲手再玩一遍。');refreshMetrics();},
+    resize:function(){},stop:function(){}};
+}
+
+/* ---------- 路由 ---------- */
+var modules={m1:ModuleLLN(),m2:ModuleDice(),m3:ModuleGalton(),m4:ModuleMeet(),m5:ModuleMonty(),m6:ModuleSummary()};
+var current=null;
+function activate(id){
+  $$('.mod-view').forEach(function(el){el.classList.toggle('active',el.getAttribute('data-mod')===id);});
+  $$('.module-item').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-target')===id);});
+  if(current&&current.stop)current.stop();
+  current=modules[id];
+  $('#modTitle').textContent=current.title;$('#modKicker').textContent=current.kicker;$('#modSub').textContent=current.sub;
+  current.resize();        // 同步 fit 画布（切换后立即可绘制/可点击，不依赖下一帧）
+  current.metrics();
+  requestAnimationFrame(function(){current.resize();});
+}
+$$('.module-item').forEach(function(b){b.addEventListener('click',function(){activate(b.getAttribute('data-target'));});});
+$$('[data-reveal-toggle]').forEach(function(b){b.setAttribute('data-label',b.textContent);});
+$$('.mod-view').forEach(function(v){setupReveal(v);});
+
+var resizeTimer=null;
+window.addEventListener('resize',function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(function(){if(current)current.resize();},120);});
+
+activate('m1');
+})();
+</script>
+</body>
+</html>

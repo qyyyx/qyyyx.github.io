@@ -4,18 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>杨老师的 mathlab</title>
-<meta name="description" content="杨老师的 mathlab — 17 个数学交互课件，按主题分类，动手探究、即点即学。数学不仅是解题，更有大问题、真实的问题与有趣的问题。">
+<meta name="description" content="杨老师的 mathlab — 数学交互课件库，按主题分类，动手探究、即点即学。数学不仅是解题，更有大问题、真实的问题与有趣的问题。">
 <meta name="theme-color" content="#312e81">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <!-- Open Graph / 微信·群分享卡片 -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="杨老师的 mathlab">
-<meta property="og:description" content="17 个数学交互课件，按主题分类，动手探究、即点即学。">
+<meta property="og:description" content="数学交互课件库，按主题分类，动手探究、即点即学。">
 <meta property="og:url" content="https://qyyyx.github.io/">
 <meta property="og:image" content="https://qyyyx.github.io/assets/og-cover.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="杨老师的 mathlab">
-<meta name="twitter:description" content="17 个数学交互课件，按主题分类，动手探究、即点即学。">
+<meta name="twitter:description" content="数学交互课件库，按主题分类，动手探究、即点即学。">
 <meta name="twitter:image" content="https://qyyyx.github.io/assets/og-cover.png">
 <style>
   :root{
@@ -223,6 +223,19 @@ const toTop = document.getElementById("toTop");
 const catMap = Object.fromEntries(CATEGORIES.map(c => [c.key, c]));
 
 document.getElementById("year").textContent = new Date().getFullYear();
+
+// 课件数量的【唯一真相源】= COURSEWARE 数组。页面"共 N 个"与下面的分享卡 meta
+// 都由 COURSEWARE.length 自动派生，**新增课件无需手动改任何数字**（静态 meta 已写成
+// 不带数字的永久措辞，作为不执行 JS 的爬虫兜底；此处运行时回写精确数量给浏览器/搜索引擎）。
+(function syncMeta(){
+  var n = COURSEWARE.length;
+  var long  = "杨老师的 mathlab — 共 " + n + " 个数学交互课件，按主题分类，动手探究、即点即学。数学不仅是解题，更有大问题、真实的问题与有趣的问题。";
+  var short = "共 " + n + " 个数学交互课件，按主题分类，动手探究、即点即学。";
+  var set = function(sel, v){ var m = document.querySelector(sel); if (m) m.setAttribute("content", v); };
+  set('meta[name="description"]', long);
+  set('meta[property="og:description"]', short);
+  set('meta[name="twitter:description"]', short);
+})();
 
 let activeCat = "all";
 

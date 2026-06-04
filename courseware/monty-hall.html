@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蒙提霍尔三门问题 · 概率引擎</title>
+<style>
+/* ============ 设计系统（数学实验室型 · 取自概率实验室 styles.css） ============ */
+:root{
+  color-scheme: light;
+  --bg:#f8fafc; --surface:#ffffff; --surface-strong:#eff6ff; --line:#dbe3ea;
+  --text:#152529; --muted:#66777d; --accent:#3b82f6; --accent-dark:#2563eb; --accent-soft:#dbeafe;
+  --warning:#c47a1c; --proof:#f3c44e;
+  --good:#2f9d64; --good-soft:#dcf3e6; --bad:#e05a4f; --bad-soft:#fde4e1;
+  --grid:#aab6c2; --shadow:0 18px 50px rgba(30,52,60,.12);
+  --mono:"Roboto Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);
+  font-family:"Microsoft YaHei","PingFang SC","Segoe UI",Arial,sans-serif;overflow-x:hidden}
+button{font:inherit}
+.mini{font-size:12px;color:var(--muted)}
+
+.lab-shell{display:grid;grid-template-columns:236px minmax(0,1fr) 308px;gap:18px;width:100%;min-height:100vh;padding:18px}
+.lab-nav,.data-panel{display:flex;flex-direction:column;gap:16px}
+.lab-nav{border-right:1px solid var(--line);padding-right:18px}
+
+.brand-block{padding:6px 2px 14px}
+.brand-kicker,.section-label,.panel-label,.prompt-label{margin:0;color:var(--accent-dark);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.brand-block h1{margin:6px 0 4px;font-size:25px;line-height:1.15}
+.brand-block p{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
+
+.module-list{display:grid;gap:8px}
+.module-item{display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;width:100%;min-height:50px;
+  border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--text);text-align:left;cursor:pointer;transition:.15s}
+.module-item:hover{border-color:var(--accent);background:var(--surface-strong)}
+.module-item.active{border-color:var(--accent);background:var(--accent-soft)}
+.module-index{color:var(--accent-dark);font-size:12px;font-weight:800;text-align:center}
+.module-item b{font-size:14px;font-weight:700}
+.module-item span{display:block;font-size:11px;color:var(--muted);margin-top:1px}
+
+/* 成就卡 */
+.ach-card{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:14px}
+.ach-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ach-head b{font-size:14px}
+.ach-progress-track{height:8px;border-radius:999px;background:var(--surface-strong);overflow:hidden;margin:6px 0 10px}
+.ach-progress-track>[data-ach-progress]{display:block;height:100%;width:0%;border-radius:999px;background:var(--accent);transition:width .35s ease}
+#achList{display:grid;gap:7px;max-height:262px;overflow:auto}
+.ach-row{display:grid;grid-template-columns:28px 1fr;align-items:center;gap:9px;padding:7px 8px;border-radius:9px;border:1px solid var(--line);background:var(--surface);opacity:.5}
+.ach-row.is-unlocked{opacity:1;border-color:var(--accent-soft);background:var(--surface-strong)}
+.ach-row .ach-icon{font-size:18px;text-align:center}
+.ach-row .ach-name{font-weight:700;font-size:12.5px}
+.ach-row .ach-desc{font-size:11px;color:var(--muted);margin-top:1px;line-height:1.35}
+.ach-reset{margin-top:9px;font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline}
+
+/* toast */
+.ach-toast-stack{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:10px;z-index:9999;pointer-events:none}
+.ach-toast{min-width:230px;max-width:310px;padding:12px 14px;border-radius:12px;background:var(--surface);
+  border:1px solid var(--line);border-left:4px solid var(--accent);box-shadow:0 6px 20px rgba(15,30,40,.16);animation:ach-in .25s ease-out}
+.ach-toast-title{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--accent-dark);font-weight:700}
+.ach-toast-name{margin-top:4px;font-size:15px;font-weight:800}
+.ach-toast-desc{margin-top:2px;font-size:12px;color:var(--muted)}
+@keyframes ach-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ============ 中央工作台 ============ */
+.workbench{display:grid;grid-template-rows:auto 1fr;gap:14px;min-width:0}
+.lab-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;min-height:54px}
+.lab-header h2{margin:5px 0 2px;font-size:23px;line-height:1.15}
+.lab-header .sub{margin:0;font-size:13px;color:var(--muted)}
+.status-strip{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--muted);font-size:13px;white-space:nowrap}
+.status-dot{width:9px;height:9px;border-radius:50%;background:var(--good);box-shadow:0 0 0 4px rgba(47,157,100,.14)}
+
+.mod-view{display:none;grid-template-rows:auto minmax(340px,1fr) auto;gap:14px;min-width:0}
+.mod-view.active{display:grid}
+
+.control-rack{display:flex;align-items:center;flex-wrap:wrap;gap:10px;min-height:48px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+.segmented{display:inline-flex;gap:4px;padding:3px;background:var(--surface-strong);border-radius:8px}
+.segmented button{min-height:34px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--muted);padding:0 13px;font-weight:700;cursor:pointer;transition:.12s}
+.segmented button.active{background:var(--surface);border-color:var(--accent);color:var(--accent-dark);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.tool-btn{min-height:40px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);padding:0 16px;font-weight:700;cursor:pointer;transition:.12s}
+.tool-btn:hover:not(:disabled){border-color:var(--accent);background:var(--surface-strong);color:var(--accent-dark)}
+.tool-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.tool-btn.primary:hover:not(:disabled){background:var(--accent-dark)}
+.tool-btn:disabled{opacity:.4;cursor:not-allowed}
+.tool-btn.is-locked{opacity:.55;border-style:dashed;cursor:pointer}
+.tool-btn.is-locked:hover{border-color:var(--accent);background:var(--surface);color:var(--accent-dark)}
+.tool-btn.primary.is-locked{background:#bcd3f5;border-color:#bcd3f5;color:#fff}
+.tool-btn.primary.is-locked:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.lock-hint{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--warning);background:#fff7e6;border:1px solid #f3d9a8;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:pointer}
+.predict.nudge{animation:predict-nudge 1.15s ease}
+@keyframes predict-nudge{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,0)}28%,72%{box-shadow:0 0 0 4px var(--accent-soft);border-radius:10px}}
+.slider-group{display:inline-flex;align-items:center;gap:9px;font-size:13px;color:var(--muted)}
+.slider-group input[type=range]{accent-color:var(--accent);width:118px}
+.slider-group b{color:var(--text);font-family:var(--mono);min-width:30px;text-align:right}
+.spacer{flex:1 1 auto}
+
+.board-wrap{position:relative;min-height:clamp(340px,52vh,560px);border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+.board-wrap canvas{display:block;width:100%;height:100%}
+.board-hint{position:absolute;left:12px;top:10px;font-size:12px;color:var(--muted);background:rgba(255,255,255,.78);border:1px solid var(--line);border-radius:7px;padding:4px 9px;pointer-events:none;max-width:64%}
+
+/* 探究 / 预测 / 结论 */
+.prompt-panel{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:14px 16px}
+.eyebrow{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.5px;color:#fff;background:var(--accent);border-radius:6px;padding:2px 9px;text-transform:uppercase}
+.predict .q{margin:9px 0 10px;font-size:15px;font-weight:600;line-height:1.5}
+.opts{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.opt{text-align:left;background:var(--surface);border:1px solid var(--line);color:var(--text);padding:11px 13px;border-radius:9px;font-size:13.5px;cursor:pointer;transition:.12s;line-height:1.4}
+.opt:hover{border-color:var(--accent)}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt.correct{border-color:var(--good);background:var(--good-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.opt.dim{opacity:.5}
+.feedback{margin-top:11px;font-size:13.5px;color:var(--muted);line-height:1.55;background:var(--surface-strong);border-radius:8px;padding:9px 12px}
+.feedback b{color:var(--accent-dark)}
+.reveal-bar{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+.reveal-toggle{min-height:34px;border:1px dashed var(--accent);border-radius:8px;background:var(--surface);color:var(--accent-dark);padding:0 14px;font-weight:700;cursor:pointer}
+.conclusion{display:none;margin-top:11px;border-left:3px solid var(--proof);background:#fffdf5;border-radius:0 8px 8px 0;padding:11px 14px;font-size:13.5px;line-height:1.65}
+.conclusion.open{display:block;animation:ach-in .2s ease-out}
+.conclusion b{color:var(--warning)}
+.formula{font-family:var(--mono);font-size:13px;background:var(--surface-strong);border-radius:6px;padding:2px 6px}
+
+/* ============ 右侧数据面板 ============ */
+.metric-card{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:15px}
+#metrics{display:grid;gap:9px;margin:11px 0 0}
+#metrics>div{display:flex;justify-content:space-between;gap:12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+#metrics>div:last-child{border-bottom:none;padding-bottom:0}
+#metrics dt{color:var(--muted);font-size:13px}
+#metrics dd{margin:0;font-weight:700;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px}
+#metrics dd.hi{color:var(--accent-dark)}
+#metrics dd.good{color:var(--good)}
+#metricNote{margin:12px 0 0;font-size:12px;color:var(--muted);line-height:1.5;border-top:1px dashed var(--line);padding-top:10px}
+
+/* 三门规则卡 */
+.rules-card{display:grid;gap:5px;margin:0 0 12px;padding:10px 13px;border:1px solid var(--accent-soft);border-radius:9px;background:var(--surface-strong);font-size:12.5px;line-height:1.5}
+.rules-card .rk-title{font-weight:800;color:var(--accent-dark);font-size:12px}
+.rules-card .rule-key{color:var(--warning);font-weight:700}
+
+/* 知识总结 + 闯关 */
+.summary-host{height:100%;overflow:auto;padding:14px 16px}
+.summary-intro{font-size:13.5px;color:var(--muted);margin:0 0 13px;line-height:1.65}
+.summary-intro b{color:var(--text)}
+.concept-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:10px;margin-bottom:16px}
+.concept-card{border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:11px 13px}
+.concept-card .cc-head{display:flex;align-items:center;gap:7px;font-weight:800;font-size:13.5px}
+.concept-card .cc-tag{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--accent-dark);background:var(--accent-soft);border-radius:5px;padding:1px 7px;white-space:nowrap}
+.concept-card .cc-body{margin-top:6px;font-size:12.5px;color:var(--muted);line-height:1.6}
+.concept-card .cc-body b{color:var(--text)}
+.concept-card .f{font-family:var(--mono);font-size:11.5px;color:var(--accent-dark);background:var(--surface-strong);border-radius:4px;padding:1px 5px}
+.quiz-box{border:1px solid var(--accent-soft);border-radius:10px;background:#fbfdff;padding:14px 15px}
+.quiz-progress{font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--accent-dark);text-transform:uppercase}
+.quiz-q{margin:8px 0 11px;font-size:15px;font-weight:700;line-height:1.55}
+.quiz-opts{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+.quiz-opt{text-align:left;background:var(--surface);border:1px solid var(--line);color:var(--text);padding:11px 13px;border-radius:9px;font-size:13.5px;cursor:pointer;transition:.12s}
+.quiz-opt:hover:not(:disabled){border-color:var(--accent);background:var(--surface-strong)}
+.quiz-opt:disabled{cursor:default}
+.quiz-opt.correct{border-color:var(--good);background:var(--good-soft);font-weight:700}
+.quiz-opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.quiz-opt.dim{opacity:.5}
+.quiz-feedback{margin:11px 0 4px;font-size:13px;line-height:1.6;border-radius:8px;padding:9px 12px}
+.quiz-feedback.ok{background:var(--good-soft);color:#1c6b43}
+.quiz-feedback.no{background:var(--bad-soft);color:#9b362e}
+.quiz-result{text-align:center;padding:16px 10px}
+.quiz-result .rank-badge{font-size:52px;line-height:1}
+.quiz-result .rank-name{font-size:20px;font-weight:800;margin-top:6px;color:var(--accent-dark)}
+.quiz-result .rank-score{margin-top:6px;font-size:15px}
+.quiz-result .rank-score b{color:var(--good)}
+.quiz-result .rank-desc{margin:8px auto 15px;max-width:380px;font-size:13px;color:var(--muted);line-height:1.6}
+.formula-sheet{display:grid;gap:6px}
+.formula-sheet div{font-size:12.5px;line-height:1.5}
+.formula-sheet code{font-family:var(--mono);background:var(--surface-strong);border-radius:5px;padding:1px 6px;color:var(--accent-dark)}
+
+@media (max-width:1099px){
+  .lab-shell{grid-template-columns:1fr}
+  .lab-nav{border-right:0;border-bottom:1px solid var(--line);padding-right:0;padding-bottom:14px}
+  .module-list{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .data-panel{order:3}
+}
+@media (max-width:560px){
+  .lab-shell{gap:12px;padding:12px}
+  .brand-block h1{font-size:21px}
+  .board-wrap{min-height:300px}
+  .control-rack{gap:8px}
+  .slider-group input[type=range]{width:92px}
+}
+</style>
+</head>
+<body>
+<div class="lab-shell">
+
+  <!-- ============ 左：模块导航 + 成就 ============ -->
+  <aside class="lab-nav">
+    <div class="brand-block">
+      <p class="brand-kicker">概率引擎 · F8</p>
+      <h1>蒙提霍尔三门</h1>
+      <p>换，还是不换？先<b>亲手玩</b>，再用<b>上千次模拟</b>把直觉变成概率分布。</p>
+    </div>
+    <nav class="module-list" id="moduleList">
+      <button class="module-item active" data-target="m1"><span class="module-index">01</span><span><b>亲手玩三门</b><span>单局游戏 · 即时战绩</span></span></button>
+      <button class="module-item" data-target="m2"><span class="module-index">02</span><span><b>大量模拟·分布</b><span>频率收敛 · 钟形浮现</span></span></button>
+      <button class="module-item" data-target="m3"><span class="module-index">03</span><span><b>N 门推广</b><span>3/10/100 门 · 越多越显</span></span></button>
+      <button class="module-item" data-target="m4"><span class="module-index">04</span><span><b>概率树揭秘</b><span>条件概率 · 为什么</span></span></button>
+      <button class="module-item" data-target="m5"><span class="module-index">05</span><span><b>知识总结</b><span>概率地图 · 闯关自检</span></span></button>
+    </nav>
+    <div class="ach-card">
+      <div class="ach-head"><b>🏆 探索成就</b><span class="mini"><b data-ach-count>0</b>/<b data-ach-total>0</b></span></div>
+      <div class="ach-progress-track"><span data-ach-progress></span></div>
+      <div id="achList"></div>
+      <button class="ach-reset" id="achReset">重置成就进度</button>
+    </div>
+  </aside>
+
+  <!-- ============ 中：工作台 ============ -->
+  <main class="workbench">
+    <header class="lab-header">
+      <div>
+        <p class="prompt-label" id="modKicker">实验 01</p>
+        <h2 id="modTitle">亲手玩三门</h2>
+        <p class="sub" id="modSub">主持人开门后，换还是不换？</p>
+      </div>
+      <div class="status-strip"><span class="status-dot"></span><span id="statusText">离线可运行 · 无需联网</span></div>
+    </header>
+
+    <!-- 模块1：亲手玩三门 -->
+    <section class="mod-view active" data-mod="m1">
+      <div class="control-rack">
+        <button class="tool-btn primary" data-needs-predict data-act="newgame">🚪 新的一局</button>
+        <span class="spacer"></span>
+        <button class="tool-btn" data-act="stay" disabled>✋ 坚持</button>
+        <button class="tool-btn" data-act="switch" disabled>🔀 更换</button>
+        <button class="tool-btn" data-act="reset">重置战绩</button>
+      </div>
+      <div class="board-wrap"><div class="board-hint" data-m1hint>先在下方预测，再点「🚪 新的一局」发牌开始 →</div><canvas></canvas></div>
+      <section class="prompt-panel">
+        <div class="rules-card">
+          <span class="rk-title">🎪 游戏规则（读懂规则，预测才有意义）</span>
+          <span>① 3 扇门后<b>只有 1 扇</b>藏着汽车 🚗，其余是山羊 🐐；你先<b>选 1 扇</b>，先不打开。</span>
+          <span>② 关键：<b class="rule-key">知道车在哪</b>的主持人，从其余门里<b class="rule-key">打开一扇羊门</b> —— 他绝不会打开车门，也不会打开你选的门。</span>
+          <span>③ 现在二选一 —— <b>坚持</b>原来那扇，还是<b>更换</b>到剩下没开的那扇？</span>
+        </div>
+        <div class="predict" data-predict data-fb="先选一个预测，再点「新的一局」亲手玩几局验证。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">主持人打开一扇羊门后，要赢得汽车，你应该……</p>
+          <div class="opts">
+            <button class="opt" data-correct="false">坚持原来那扇更好</button>
+            <button class="opt" data-correct="true">更换到另一扇更好</button>
+            <button class="opt" data-correct="false">换不换都一样（各 1/2）</button>
+          </div>
+          <div class="feedback">先选一个预测，再点「新的一局」亲手玩几局验证。</div>
+        </div>
+        <div class="reveal-bar"><button class="reveal-toggle" data-reveal-toggle>显示结论</button></div>
+        <div class="conclusion" data-conclusion>
+          <b>单局是随机，海量才见规律</b>：一局里你无法保证赢——这正是「随机」。但只要主持人<b>知情地只开羊门</b>，<b>换门</b>就把「初选大概率选错」变成了优势。你自己的战绩（右栏）局数越多，更换胜率就越向 <span class="formula">2/3</span> 靠拢，坚持向 <span class="formula">1/3</span>。想更快看清？去「大量模拟」。
+        </div>
+      </section>
+    </section>
+
+    <!-- 模块2：大量模拟·概率分布 -->
+    <section class="mod-view" data-mod="m2">
+      <div class="control-rack">
+        <div class="segmented" data-view>
+          <button class="active" data-v="conv">📈 频率收敛</button>
+          <button data-v="dist">📊 战绩分布</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="tool-btn" data-needs-predict data-act="one">模拟 50 局</button>
+        <button class="tool-btn primary" data-needs-predict data-act="auto">自动模拟</button>
+        <button class="tool-btn" data-act="reset">重置</button>
+      </div>
+      <div class="board-wrap"><div class="board-hint" data-m2hint>频率收敛：两条胜率折线分别奔向 ⅔ / ⅓ · 切到「战绩分布」看钟形</div><canvas></canvas></div>
+      <section class="prompt-panel">
+        <div class="predict" data-predict data-fb="选择一个预测，然后开始模拟来验证。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">大量重复模拟后，「坚持」和「更换」的胜率会稳定在哪里？</p>
+          <div class="opts">
+            <button class="opt" data-correct="false">两者都约 1/2（各半）</button>
+            <button class="opt" data-correct="false">坚持更高，约 2/3</button>
+            <button class="opt" data-correct="true">更换约 2/3，坚持约 1/3</button>
+            <button class="opt" data-correct="false">完全随机，没有稳定值</button>
+          </div>
+          <div class="feedback">选择一个预测，然后开始模拟来验证。</div>
+        </div>
+        <div class="reveal-bar"><button class="reveal-toggle" data-reveal-toggle>显示结论</button></div>
+        <div class="conclusion" data-conclusion>
+          <b>大数定律 + 概率分布</b>：单局不可测，但海量重复后<b>频率收敛到概率</b> —— 更换胜率折线稳稳逼近 <span class="formula">2/3</span>，坚持逼近 <span class="formula">1/3</span>（右栏实时值）。再看「战绩分布」：每组玩 L 局更换、赢的局数在重复中堆成<b>二项分布（钟形）</b>，峰值落在 <span class="formula">(2/3)·L</span>。这就是「概率分布」从无到有长出来的样子。
+        </div>
+      </section>
+    </section>
+
+    <!-- 模块3：N 门推广 -->
+    <section class="mod-view" data-mod="m3">
+      <div class="control-rack">
+        <div class="segmented" data-doors>
+          <button class="active" data-n="3">3 门</button>
+          <button data-n="10">10 门</button>
+          <button data-n="100">100 门</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="tool-btn primary" data-needs-predict data-act="batch">⚡ 自动玩 1000 次</button>
+        <button class="tool-btn" data-act="reset">重置</button>
+      </div>
+      <div class="board-wrap"><div class="board-hint">改变门数，看换门胜率 (N−1)/N 如何随门数变大 →</div><canvas></canvas></div>
+      <section class="prompt-panel">
+        <div class="predict" data-predict data-fb="选择一个预测，然后自动模拟来验证。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">如果不是 3 扇门，而是 100 扇门（仍只有 1 辆车，主持人开掉 98 扇羊门只留一扇），换门胜率会怎样？</p>
+          <div class="opts">
+            <button class="opt" data-correct="false">还是和 3 门差不多</button>
+            <button class="opt" data-correct="false">变低了，门多更难</button>
+            <button class="opt" data-correct="true">高到接近 100%</button>
+            <button class="opt" data-correct="false">无法确定</button>
+          </div>
+          <div class="feedback">选择一个预测，然后自动模拟来验证。</div>
+        </div>
+        <div class="reveal-bar"><button class="reveal-toggle" data-reveal-toggle>显示结论</button></div>
+        <div class="conclusion" data-conclusion>
+          <b>(N−1)/N 的威力</b>：你初选选中车的概率只有 <span class="formula">1/N</span>，剩下 <span class="formula">(N−1)/N</span> 的概率车在别处。主持人开掉其余所有羊门，把这 (N−1)/N <b>全部压到留下的那扇门</b>上。所以换门胜率 = <b>(N−1)/N</b>：3 门 = 2/3，10 门 = 9/10，100 门 = <b>99/100</b>！门越多，「该不该换」越一目了然 —— 这正是看懂 3 门的最佳钥匙。
+        </div>
+      </section>
+    </section>
+
+    <!-- 模块4：概率树揭秘 -->
+    <section class="mod-view" data-mod="m4">
+      <div class="control-rack">
+        <div class="segmented" data-strat>
+          <button class="active" data-s="switch">🔀 更换</button>
+          <button data-s="stay">✋ 坚持</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="tool-btn primary" data-needs-predict data-act="walk">🎲 走一遍</button>
+        <button class="tool-btn" data-act="reset">重置</button>
+      </div>
+      <div class="board-wrap"><div class="board-hint">切换策略看哪条路通向 🚗 ·「走一遍」按概率掷一条路径 →</div><canvas></canvas></div>
+      <section class="prompt-panel">
+        <div class="predict" data-predict data-fb="先预测，再切换策略 / 走一遍来对照概率树。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">当你<b>换门</b>并最终赢得汽车时，你<b>最初</b>选中的那扇门后面其实是？</p>
+          <div class="opts">
+            <button class="opt" data-correct="false">汽车 🚗</button>
+            <button class="opt" data-correct="true">山羊 🐐</button>
+            <button class="opt" data-correct="false">无法确定</button>
+          </div>
+          <div class="feedback">先预测，再切换策略 / 走一遍来对照概率树。</div>
+        </div>
+        <div class="reveal-bar"><button class="reveal-toggle" data-reveal-toggle>揭秘概率树</button></div>
+        <div class="conclusion" data-conclusion>
+          <b>条件概率 · 信息的价值</b>：初选中车概率 <span class="formula">1/3</span>，中羊概率 <span class="formula">2/3</span>。主持人「知情地」开掉羊门后：若你<b>初选中羊（2/3）</b>，剩下没开的那扇<b>必然是车</b> —— 换门就赢！若初选中车（1/3），换门才输。所以 <b>P(换门赢)=P(初选中羊)=2/3</b>，<b>P(坚持赢)=P(初选中车)=1/3</b>。换门赢，赢在「一开始大概率选错」被主持人的信息<b>反转成了优势</b>。
+        </div>
+      </section>
+    </section>
+
+    <!-- 模块5：知识总结 + 闯关自检 -->
+    <section class="mod-view" data-mod="m5">
+      <div class="control-rack">
+        <span class="mini">📚 把 4 个实验串成一张概率知识地图，再闯关检验掌握程度</span>
+        <span class="spacer"></span>
+        <button class="tool-btn" data-act="restart">🔄 重新开始小测</button>
+      </div>
+      <div class="board-wrap">
+        <div class="summary-host">
+          <p class="summary-intro">你从<b>亲手玩</b>开始，用<b>上千次模拟</b>看频率收敛、用<b>分布图</b>看钟形浮现，再用<b>概率树</b>理解了为什么——这就是「概率引擎」：<b>单次游戏化体验 + 多次模拟可视化分布</b>。下面是知识地图，看完往下做个<b>闯关小测</b>。</p>
+          <div class="concept-grid">
+            <div class="concept-card"><div class="cc-head">🎲 随机与概率<span class="cc-tag">玩 ①</span></div><div class="cc-body">单局结果<b>不可预测</b>，概率 <span class="f">0≤P≤1</span> 刻画它的「倾向」。一局是运气，多局才见规律。</div></div>
+            <div class="concept-card"><div class="cc-head">🚪 条件概率与信息<span class="cc-tag">树 ④</span></div><div class="cc-body">新信息会<b>更新</b>概率。主持人知情开羊门 ⇒ 换门胜率 <span class="f">2/3</span>、坚持 <span class="f">1/3</span>。</div></div>
+            <div class="concept-card"><div class="cc-head">📉 大数定律<span class="cc-tag">模拟 ②</span></div><div class="cc-body">重复越多，<b>频率 → 概率</b>。上千局后换门胜率稳定在 2/3 —— 这才是概率的真身。</div></div>
+            <div class="concept-card"><div class="cc-head">🔔 概率分布<span class="cc-tag">分布 ②</span></div><div class="cc-body">「每组 L 局赢几局」在重复中堆成<b>二项分布（钟形）</b>，峰值 <span class="f">≈(2/3)L</span>。</div></div>
+            <div class="concept-card"><div class="cc-head">📈 推广 (N−1)/N<span class="cc-tag">N门 ③</span></div><div class="cc-body">门越多换门越优：<span class="f">换门胜率=(N−1)/N</span>，100 门高达 <b>99%</b>。</div></div>
+          </div>
+          <div class="quiz-box"></div>
+        </div>
+      </div>
+      <section class="prompt-panel">
+        <p class="mini" style="margin:0 0 6px">想巩固哪一块，就回到左边对应的实验亲手再玩一遍。</p>
+        <div class="reveal-bar"><button class="reveal-toggle" data-reveal-toggle>显示公式速查表</button></div>
+        <div class="conclusion" data-conclusion>
+          <div class="formula-sheet">
+            <div>概率范围：<code>0 ≤ P ≤ 1</code>；对立事件 <code>P(反) = 1 − P</code></div>
+            <div>古典概型：<code>P = 有利结果数 / 总结果数</code></div>
+            <div>条件概率（三门）：<code>P(换门赢) = P(初选中羊) = 2/3</code></div>
+            <div>N 门推广：<code>P(换门赢) = (N−1)/N</code>，<code>P(坚持赢) = 1/N</code></div>
+            <div>大数定律：<code>试验次数 → ∞ 时，频率 → 概率</code></div>
+            <div>二项分布：玩 L 局赢 k 局 <code>P = C(L,k)·(2/3)ᵏ·(1/3)ᴸ⁻ᵏ</code>，期望 <code>(2/3)L</code></div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <!-- ============ 右：数据面板 ============ -->
+  <aside class="data-panel">
+    <div class="metric-card">
+      <p class="panel-label">实时数据</p>
+      <dl id="metrics"></dl>
+      <p id="metricNote"></p>
+    </div>
+  </aside>
+</div>
+
+<!-- ============ 成就系统底座（取自 achievements.js，精简内联） ============ -->
+<script>
+function createAchievements(options){
+  options=options||{}; var defs=options.defs||[], storageKey=options.storageKey||'ach-v1';
+  var toastDuration=options.toastDuration||4200, onUnlock=typeof options.onUnlock==='function'?options.onUnlock:null;
+  var unlocked=new Set();
+  function findDef(id){for(var i=0;i<defs.length;i++){if(defs[i].id===id)return defs[i];}return null;}
+  function load(){try{var raw=localStorage.getItem(storageKey);if(raw)JSON.parse(raw).forEach(function(id){unlocked.add(id);});}catch(e){}}
+  function save(){try{localStorage.setItem(storageKey,JSON.stringify(Array.from(unlocked)));}catch(e){}}
+  function toastStack(){var el=document.getElementById('achToastStack');if(!el){el=document.createElement('div');el.id='achToastStack';el.className='ach-toast-stack';document.body.appendChild(el);}return el;}
+  function showToast(def){var el=document.createElement('div');el.className='ach-toast';
+    el.innerHTML='<div class="ach-toast-title"><span>🏆</span>解锁成就</div><div class="ach-toast-name">'+(def.icon||'')+' '+def.name+'</div><div class="ach-toast-desc">'+(def.desc||'')+'</div>';
+    toastStack().appendChild(el);setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},toastDuration);}
+  function updateProgress(){var got=count(),tot=Math.max(1,total());var bar=document.querySelector('[data-ach-progress]');if(bar)bar.style.width=Math.round(got/tot*100)+'%';
+    var c=document.querySelector('[data-ach-count]');if(c)c.textContent=count();var t=document.querySelector('[data-ach-total]');if(t)t.textContent=total();}
+  function fire(def){save();showToast(def);updateProgress();renderList(document.getElementById('achList'));if(onUnlock)onUnlock(def);}
+  function unlock(id){if(unlocked.has(id))return false;var def=findDef(id);if(!def)return false;unlocked.add(id);fire(def);return true;}
+  function check(state){var fresh=[];for(var i=0;i<defs.length;i++){var def=defs[i];if(def.check&&!unlocked.has(def.id)&&def.check(state)){unlocked.add(def.id);fresh.push(def);}}if(fresh.length)fresh.forEach(fire);return fresh;}
+  function has(id){return unlocked.has(id);}
+  function count(){return defs.filter(function(d){return unlocked.has(d.id);}).length;}
+  function total(){return defs.length;}
+  function reset(){unlocked.clear();save();updateProgress();renderList(document.getElementById('achList'));}
+  function renderList(container){if(!container)return;container.innerHTML='';defs.forEach(function(def){var got=unlocked.has(def.id);var row=document.createElement('div');
+    row.className='ach-row'+(got?' is-unlocked':'');
+    row.innerHTML='<div class="ach-icon">'+(got?(def.icon||'🏆'):'🔒')+'</div><div><div class="ach-name">'+def.name+'</div><div class="ach-desc">'+(got?def.desc:'未解锁')+'</div></div>';
+    container.appendChild(row);});updateProgress();}
+  load();updateProgress();
+  return {check:check,unlock:unlock,has:has,count:count,total:total,reset:reset,renderList:renderList};
+}
+</script>
+
+<!-- ============ 课件主逻辑 ============ -->
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s);};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));};
+function rnd(n){return Math.floor(Math.random()*n);}
+function pct(x){return (x*100).toFixed(1)+'%';}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function comb(n,k){var c=1;for(var i=0;i<k;i++)c=c*(n-i)/(i+1);return c;}
+
+/* ---------- 全局状态（成就基于"发现/掌握"） ---------- */
+var state={unlockedCount:0,
+  m1Games:0,m1SwitchPlays:0,m1SwitchWin:false,m1StayCost:false,
+  m2Trials:0,m2Converge:false,m2Big:false,m2Sessions:0,m2Bell:false,
+  m3Door100:false,m3MoreN:false,
+  m4Tree:false,m4Insight:false,
+  m5Pass:false};
+
+var ach=createAchievements({storageKey:'monty-hall-v1',
+  defs:[
+    {id:'firstSwitch',icon:'🔀',name:'初次换门',  desc:'在单局里第一次选择「更换」',        check:function(s){return s.m1SwitchPlays>=1;}},
+    {id:'switchWin', icon:'🎉',name:'换门告捷',  desc:'靠「更换」赢得一局',              check:function(s){return s.m1SwitchWin;}},
+    {id:'stayCost',  icon:'🐐',name:'坚持的代价',desc:'坚持却输——车原来在另一扇',        check:function(s){return s.m1StayCost;}},
+    {id:'veteran',   icon:'🎮',name:'老练玩家',  desc:'亲手玩满 10 局',                  check:function(s){return s.m1Games>=10;}},
+    {id:'converge',  icon:'📉',name:'见证收敛',  desc:'模拟≥500 局，更换胜率与 2/3 差<1%',check:function(s){return s.m2Converge;}},
+    {id:'bignum',    icon:'🌊',name:'大数之力',  desc:'累计模拟达到 2000 局',            check:function(s){return s.m2Big;}},
+    {id:'bell',      icon:'🔔',name:'分布浮现',  desc:'战绩分布累计≥40 组，堆出钟形',     check:function(s){return s.m2Bell;}},
+    {id:'door100',   icon:'💯',name:'百门顿悟',  desc:'在 100 门规模跑一次自动模拟',      check:function(s){return s.m3Door100;}},
+    {id:'moreN',     icon:'📈',name:'越多越显',  desc:'3 / 10 / 100 门都跑过模拟',        check:function(s){return s.m3MoreN;}},
+    {id:'tree',      icon:'🌳',name:'看懂概率树',desc:'切换两种策略或揭晓概率树',        check:function(s){return s.m4Tree;}},
+    {id:'insight',   icon:'💡',name:'反着想通',  desc:'答对「换门赢＝初选中羊」',          check:function(s){return s.m4Insight;}},
+    {id:'grad',      icon:'🎓',name:'学成出师',  desc:'闯关小测答对 ≥5 题',              check:function(s){return s.m5Pass;}},
+    {id:'master',    icon:'👑',name:'概率大师',  desc:'解锁前面任意 9 项成就',           check:function(s){return s.unlockedCount>=9;}}
+  ],
+  onUnlock:function(){state.unlockedCount=ach.count();ach.check(state);}
+});
+ach.renderList($('#achList'));
+$('#achReset').addEventListener('click',function(){if(confirm('确定重置全部成就进度？')){ach.reset();}});
+
+/* ---------- 画布工具 ---------- */
+function makeStage(canvas){
+  var ctx=canvas.getContext('2d');
+  var api={canvas:canvas,ctx:ctx,w:0,h:0,fit:function(){
+    var r=canvas.getBoundingClientRect();if(!r.width||!r.height)return false;
+    var dpr=Math.min(2,window.devicePixelRatio||1);
+    canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);api.w=r.width;api.h=r.height;return true;}};
+  return api;
+}
+function roundRect(ctx,x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+/* ---------- 预测框 / 结论 / 指标 通用件 ---------- */
+function setupPredict(view){
+  var box=$('[data-predict]',view);if(!box)return null;
+  var opts=$$('.opt',box),fb=$('.feedback',box),baseFb=box.getAttribute('data-fb')||'';
+  var chosen=null,revealed=false;
+  var runBtns=$$('[data-needs-predict]',view);
+  var hint=document.createElement('span');hint.className='lock-hint';hint.textContent='🔒 先在下方预测';
+  if(runBtns[0]&&runBtns[0].parentNode){runBtns[0].parentNode.insertBefore(hint,runBtns[0]);}
+  function lock(){hint.style.display='';runBtns.forEach(function(b){b.classList.add('is-locked');});}
+  function unlock(){hint.style.display='none';runBtns.forEach(function(b){b.classList.remove('is-locked');});}
+  function nudge(){
+    try{box.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
+    box.classList.remove('nudge');void box.offsetWidth;box.classList.add('nudge');
+    fb.innerHTML='👆 请先选择一个<b>预测</b>，然后就能开始啦。';
+  }
+  if(runBtns.length===0){hint.style.display='none';}
+  hint.addEventListener('click',nudge);
+  runBtns.forEach(function(b){b.addEventListener('click',function(e){
+    if(b.classList.contains('is-locked')){e.preventDefault();e.stopImmediatePropagation();nudge();}
+  });});
+  opts.forEach(function(o){o.addEventListener('click',function(){
+    if(revealed)return;opts.forEach(function(x){x.classList.remove('sel');});o.classList.add('sel');chosen=o;
+    fb.textContent='预测已记录 —— 现在动手验证它。';unlock();
+  });});
+  if(runBtns.length)lock();
+  return {
+    get chosen(){return chosen;},
+    nudge:nudge,
+    reveal:function(insight){if(revealed||!chosen)return;revealed=true;
+      opts.forEach(function(o){o.classList.add(o.getAttribute('data-correct')==='true'?'correct':'dim');});
+      var ok=chosen.getAttribute('data-correct')==='true';chosen.classList.remove('dim');
+      if(!ok)chosen.classList.add('wrong');
+      fb.innerHTML=(ok?'✅ 预测正确！':'❎ 出乎意料吧？')+' '+insight;},
+    reset:function(){revealed=false;chosen=null;opts.forEach(function(o){o.className='opt';});fb.textContent=baseFb;if(runBtns.length)lock();}
+  };
+}
+function setupReveal(view){
+  var btn=$('[data-reveal-toggle]',view),box=$('[data-conclusion]',view);if(!btn||!box)return;
+  btn.addEventListener('click',function(){var open=box.classList.toggle('open');
+    btn.textContent=open?btn.textContent.replace('显示','隐藏').replace('揭秘','收起').replace('揭晓','收起')
+      :(btn.getAttribute('data-label')||btn.textContent);});
+}
+var metricsEl=$('#metrics'),metricNoteEl=$('#metricNote');
+function buildMetrics(schema,note){metricsEl.innerHTML='';schema.forEach(function(m){
+  var row=document.createElement('div');row.innerHTML='<dt>'+m.label+'</dt><dd data-k="'+m.key+'"'+(m.cls?(' class="'+m.cls+'"'):'')+'>'+(m.init||'—')+'</dd>';metricsEl.appendChild(row);});
+  metricNoteEl.innerHTML=note||'';}
+function setMetric(key,val,cls){var dd=metricsEl.querySelector('[data-k="'+key+'"]');if(dd){dd.textContent=val;if(cls!==undefined)dd.className=cls;}}
+
+/* ============================================================
+   模块 1 · 亲手玩三门（单次操作游戏化）
+   ============================================================ */
+function ModulePlay(){
+  var view=$('[data-mod="m1"]'),stage=makeStage($('canvas',view)),predict=setupPredict(view),hint=$('[data-m1hint]',view);
+  var N=3,car=-1,pick=-1,alt=-1,opened=[],phase='idle',result=null;
+  var stayPlays=0,stayWins=0,swPlays=0,swWins=0,games=0,streak=0,confetti=[],confRaf=0;
+  var stayBtn=$('[data-act="stay"]',view),swBtn=$('[data-act="switch"]',view);
+  function setBtns(){var dec=(phase==='decide');stayBtn.disabled=!dec;swBtn.disabled=!dec;}
+  function deal(){stopConfetti();car=rnd(N);pick=-1;alt=-1;opened=[];phase='pick';result=null;
+    hint.textContent='点击一扇门来选择（你觉得车在哪？）→';setBtns();refresh();}
+  function doPick(d){if(phase!=='pick')return;pick=d;
+    var goats=[];for(var i=0;i<N;i++)if(i!==pick&&i!==car)goats.push(i);
+    if(pick===car){var keep=goats[rnd(goats.length)];opened=goats.filter(function(g){return g!==keep;});alt=keep;}
+    else{alt=car;opened=goats;}
+    phase='decide';hint.textContent='主持人打开了羊门 🐐，只剩你选的门和另一扇。坚持，还是更换？';setBtns();refresh();}
+  function decide(sw){if(phase!=='decide')return;if(sw)pick=alt;
+    result=(pick===car)?'win':'lose';games++;
+    if(sw){swPlays++;if(result==='win')swWins++;}else{stayPlays++;if(result==='win')stayWins++;}
+    streak=(result==='win')?streak+1:0;phase='reveal';
+    hint.textContent=(result==='win'?'🎉 中奖！赢得汽车 🚗':'🐐 很遗憾，是山羊…')+'　点「新的一局」再来';
+    state.m1Games=games;state.m1SwitchPlays=swPlays;
+    if(result==='win'&&sw)state.m1SwitchWin=true;
+    if(result==='lose'&&!sw&&alt===car)state.m1StayCost=true;
+    ach.check(state);
+    if(result==='win')spawnConfetti();
+    if((swPlays>=4||games>=10)&&predict.chosen)
+      predict.reveal('看你自己的战绩（右栏）：<b>更换</b>的胜率明显高于<b>坚持</b>。想更快确认？去「大量模拟」跑上千局。');
+    setBtns();refresh();}
+  function spawnConfetti(){confetti=[];for(var i=0;i<48;i++)confetti.push({
+      x:stage.w/2+(Math.random()-0.5)*stage.w*0.45,y:stage.h*0.28+Math.random()*20,
+      vx:(Math.random()-0.5)*4.2,vy:-2-Math.random()*4,g:0.18,
+      c:['#3b82f6','#2f9d64','#f3c44e','#e05a4f','#9333ea'][rnd(5)],r:3+Math.random()*3,life:1});
+    stopConfetti();var t0=performance.now();
+    var tick=function(now){var dt=Math.min(2.5,(now-t0)/16.7);t0=now;var alive=false;
+      for(var j=0;j<confetti.length;j++){var p=confetti[j];p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=0.012*dt;if(p.life>0&&p.y<stage.h+12)alive=true;}
+      draw();if(alive)confRaf=requestAnimationFrame(tick);else confRaf=0;};
+    confRaf=requestAnimationFrame(tick);}
+  function stopConfetti(){if(confRaf)cancelAnimationFrame(confRaf);confRaf=0;}
+  $('[data-act="newgame"]',view).addEventListener('click',deal);
+  stayBtn.addEventListener('click',function(){decide(false);});
+  swBtn.addEventListener('click',function(){decide(true);});
+  $('[data-act="reset"]',view).addEventListener('click',function(){
+    stayPlays=stayWins=swPlays=swWins=games=streak=0;state.m1Games=0;state.m1SwitchPlays=0;phase='idle';opened=[];
+    hint.textContent='战绩已清零。点「新的一局」重新开始 →';setBtns();refresh();});
+  $('canvas',view).addEventListener('click',function(e){var r=this.getBoundingClientRect();var mx=e.clientX-r.left,my=e.clientY-r.top;
+    var g=doorLayout();if(!g)return;for(var i=0;i<N;i++){var dx=g.x0+i*g.step;
+      if(mx>=dx&&mx<=dx+g.dw&&my>=g.y&&my<=g.y+g.dh){
+        if(phase==='pick')doPick(i);
+        else if(phase==='decide'){if(i===pick)decide(false);else if(i===alt)decide(true);}
+        return;}}});
+  function doorLayout(){var W=stage.w,H=stage.h;if(!W)return null;
+    var dw=Math.min(118,(W-60)/N-14),dh=Math.min(H*0.6,dw*1.4),step=dw+18,x0=(W-(N*step-18))/2,y=H*0.17;
+    return {x0:x0,y:y,dw:dw,dh:dh,step:step};}
+  function refresh(){setMetric('games',games);
+    setMetric('stay',stayWins+' / '+stayPlays);
+    setMetric('switch',swWins+' / '+swPlays,'good');
+    setMetric('swrate',swPlays?pct(swWins/swPlays):'—','hi');
+    setMetric('streak',streak);draw();}
+  function draw(){var ctx=stage.ctx,W=stage.w,H=stage.h;if(!W)return;ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    if(phase==='idle'){ctx.fillStyle='#9aa7b2';ctx.font='14px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('先在下方预测，再点「🚪 新的一局」发牌开始',W/2,H/2);return;}
+    var g=doorLayout();ctx.textAlign='center';ctx.textBaseline='middle';
+    for(var i=0;i<N;i++){var dx=g.x0+i*g.step,dy=g.y;
+      var isOpenGoat=(opened.indexOf(i)>=0),isPick=(i===pick),isAlt=(i===alt&&phase==='decide'),reveal=(phase==='reveal');
+      var fill='#f4f8fc',border='#c2cdd8',bw=1.5;
+      if(reveal){fill=(i===car)?'#fff8e1':'#eef2f6';if(i===pick){border=(result==='win')?'#2f9d64':'#e05a4f';bw=3;}else if(i===car){border='#f3c44e';bw=3;}}
+      else{if(isOpenGoat)fill='#eef2f6';if(isPick){fill='#dbeafe';border='#3b82f6';bw=3;}else if(isAlt){fill='#fff7e6';border='#f59e0b';bw=3;}}
+      roundRect(ctx,dx,dy,g.dw,g.dh,9);ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=border;ctx.lineWidth=bw;ctx.stroke();
+      var icon='🚪';if(reveal)icon=(i===car)?'🚗':'🐐';else if(isOpenGoat)icon='🐐';
+      ctx.font=Math.min(46,g.dw*0.5)+'px serif';ctx.fillStyle='#33424c';ctx.fillText(icon,dx+g.dw/2,dy+g.dh/2-6);
+      ctx.font='13px sans-serif';var tag='门 '+(i+1);
+      if(reveal)tag=(i===pick)?(result==='win'?'你的门 ✓':'你的门 ✗'):((i===car)?'车在这':'');
+      else if(isPick)tag='你选的';else if(isAlt)tag='另一扇';else if(isOpenGoat)tag='已打开';
+      ctx.fillStyle=isPick?'#2563eb':(isAlt?'#c47a1c':'#9aa7b2');ctx.fillText(tag,dx+g.dw/2,dy+g.dh-15);}
+    if(confetti.length){for(var j=0;j<confetti.length;j++){var p=confetti[j];if(p.life<=0)continue;
+      ctx.globalAlpha=Math.max(0,Math.min(1,p.life));ctx.fillStyle=p.c;ctx.fillRect(p.x,p.y,p.r,p.r);}ctx.globalAlpha=1;}}
+  return {title:'亲手玩三门',kicker:'实验 01',sub:'主持人开门后，换还是不换？',
+    metrics:function(){buildMetrics([
+      {key:'games',label:'已玩局数',init:'0'},
+      {key:'stay',label:'坚持 胜/局',init:'0 / 0'},
+      {key:'switch',label:'更换 胜/局',init:'0 / 0',cls:'good'},
+      {key:'swrate',label:'你的更换胜率',init:'—',cls:'hi'},
+      {key:'streak',label:'当前连胜',init:'0'}],
+      '这是你的个人战绩。换门胜率会随局数增多逼近 2/3 —— 想更快看清，去「大量模拟」。');refresh();},
+    resize:function(){stage.fit();draw();},stop:stopConfetti};
+}
+
+/* ============================================================
+   模块 2 · 大量模拟·概率分布（多次模拟可视化分布）
+   ============================================================ */
+function ModuleSim(){
+  var view=$('[data-mod="m2"]'),stage=makeStage($('canvas',view)),predict=setupPredict(view);
+  var mode='conv';
+  var trials=0,stayW=0,swW=0,stayHist=[],swHist=[];
+  var L=12,sessions=0,histK=new Array(L+1).fill(0),lastK=-1;
+  var auto=false,raf=0,autoBtn=$('[data-act="auto"]',view),oneBtn=$('[data-act="one"]',view),hint=$('[data-m2hint]',view);
+  function syncLabels(){oneBtn.textContent=mode==='conv'?'模拟 50 局':'玩 1 组';autoBtn.textContent=auto?'⏸ 暂停':(mode==='conv'?'自动模拟':'自动跑组');
+    hint.textContent=mode==='conv'?'频率收敛：两条胜率折线分别奔向 ⅔ / ⅓ · 切到「战绩分布」看钟形'
+      :'战绩分布：每组玩 '+L+' 局(更换)，赢的局数堆成二项分布钟形 · 红线＝理论';}
+  $$('[data-view] button',view).forEach(function(b){b.addEventListener('click',function(){
+    $$('[data-view] button',view).forEach(function(x){x.classList.remove('active');});b.classList.add('active');
+    mode=b.getAttribute('data-v');stopAuto();reset();}); });
+  function reset(){stopAuto();
+    if(mode==='conv'){trials=0;stayW=0;swW=0;stayHist=[];swHist=[];}
+    else{sessions=0;histK=new Array(L+1).fill(0);lastK=-1;}
+    rebuildMetrics();syncLabels();refresh();}
+  function runTrials(n){for(var i=0;i<n;i++){var c=rnd(3),pk=rnd(3);if(pk===c)stayW++;else swW++;trials++;stayHist.push(stayW/trials);swHist.push(swW/trials);}
+    state.m2Trials=Math.max(state.m2Trials,trials);
+    if(trials>=500&&Math.abs(swW/trials-2/3)<0.01)state.m2Converge=true;
+    if(trials>=2000)state.m2Big=true;ach.check(state);
+    if(trials>=300&&predict.chosen)predict.reveal('频率稳稳分开：更换 → <b>2/3</b>，坚持 → <b>1/3</b>（右栏实时值）。这就是大数定律 —— 频率收敛到概率。');
+    refresh();}
+  function runSession(){var k=0;for(var i=0;i<L;i++){var c=rnd(3),pk=rnd(3);if(pk!==c)k++;}histK[k]++;sessions++;lastK=k;
+    state.m2Sessions=sessions;if(sessions>=40)state.m2Bell=true;ach.check(state);
+    if(sessions>=20&&predict.chosen)predict.reveal('每组赢的局数集中在 (2/3)·L ≈ '+Math.round(2/3*L)+' 局附近，堆成<b>二项分布（钟形）</b> —— 这印证了更换胜率≈2/3。');
+    refresh();}
+  function startAuto(){if(auto||!predict.chosen)return;auto=true;syncLabels();
+    var tick=function(){if(!auto)return;
+      if(mode==='conv'){runTrials(trials<200?10:trials<1500?40:120);if(trials>=8000){stopAuto();return;}}
+      else{var batch=sessions<60?1:3;for(var b=0;b<batch;b++)runSession();if(sessions>=400){stopAuto();return;}}
+      raf=requestAnimationFrame(tick);};raf=requestAnimationFrame(tick);}
+  function stopAuto(){auto=false;if(raf)cancelAnimationFrame(raf);raf=0;syncLabels();}
+  oneBtn.addEventListener('click',function(){if(mode==='conv')runTrials(50);else runSession();});
+  autoBtn.addEventListener('click',function(){auto?stopAuto():startAuto();});
+  $('[data-act="reset"]',view).addEventListener('click',function(){predict.reset();reset();});
+  function rebuildMetrics(){
+    if(mode==='conv')buildMetrics([
+      {key:'n',label:'模拟局数',init:'0'},
+      {key:'sw',label:'更换胜率',init:'—',cls:'good'},
+      {key:'tw',label:'更换理论',init:'66.7%'},
+      {key:'st',label:'坚持胜率',init:'—'},
+      {key:'ts',label:'坚持理论',init:'33.3%'}],
+      '两条折线分别逼近 2/3 与 1/3 —— 频率收敛到概率（大数定律）。');
+    else buildMetrics([
+      {key:'sess',label:'已玩组数',init:'0'},
+      {key:'len',label:'每组局数 L',init:''+L},
+      {key:'mean',label:'平均每组赢',init:'—',cls:'hi'},
+      {key:'tmean',label:'理论均值',init:(2/3*L).toFixed(1)},
+      {key:'lastk',label:'最近一组赢',init:'—'}],
+      '每组玩 L 局(更换)，赢的局数堆成二项分布，峰值≈(2/3)L＝'+Math.round(2/3*L)+'。');}
+  function refresh(){
+    if(mode==='conv'){setMetric('n',trials);
+      setMetric('sw',trials?pct(swW/trials):'—','good');setMetric('st',trials?pct(stayW/trials):'—');}
+    else{setMetric('sess',sessions);var tot=0,wsum=0;for(var k=0;k<=L;k++){tot+=histK[k];wsum+=k*histK[k];}
+      setMetric('mean',sessions?(wsum/sessions).toFixed(2):'—','hi');setMetric('lastk',lastK>=0?(lastK+' / '+L):'—');}
+    draw();}
+  function draw(){var ctx=stage.ctx,W=stage.w,H=stage.h;if(!W)return;ctx.clearRect(0,0,W,H);if(mode==='conv')drawConv(ctx,W,H);else drawDist(ctx,W,H);}
+  function drawConv(ctx,W,H){var L0=46,R=W-16,T=18,B=H-30,pw=R-L0,ph=B-T;
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    ctx.font='11px var(--mono)';ctx.textAlign='right';ctx.textBaseline='middle';
+    for(var yv=0;yv<=1.0001;yv+=0.25){var y=B-yv*ph;ctx.strokeStyle='#eef2f6';ctx.beginPath();ctx.moveTo(L0,y);ctx.lineTo(R,y);ctx.stroke();
+      ctx.fillStyle='#9aa7b2';ctx.fillText(Math.round(yv*100)+'%',L0-6,y);}
+    function refLine(val,color,label){var y=B-val*ph;ctx.strokeStyle=color;ctx.setLineDash([6,5]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(L0,y);ctx.lineTo(R,y);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=color;ctx.textAlign='left';ctx.fillText(label,L0+6,(y-9<T)?y+11:y-9);}
+    refLine(2/3,'#2f9d64','更换理论 2/3');refLine(1/3,'#e05a4f','坚持理论 1/3');
+    function drawLine(hist,color){if(hist.length<2)return;ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+      var step=Math.max(1,Math.floor(hist.length/Math.max(1,pw)));
+      for(var i=0;i<hist.length;i+=step){var x=L0+(i/(hist.length-1))*pw,yy=B-hist[i]*ph;i===0?ctx.moveTo(x,yy):ctx.lineTo(x,yy);}
+      var lx=L0+pw,ly=B-hist[hist.length-1]*ph;ctx.lineTo(lx,ly);ctx.stroke();
+      ctx.fillStyle=color;ctx.beginPath();ctx.arc(lx,ly,4,0,7);ctx.fill();}
+    if(swHist.length>1){drawLine(swHist,'#2f9d64');drawLine(stayHist,'#3b82f6');}
+    else{ctx.fillStyle='#9aa7b2';ctx.textAlign='center';ctx.fillText('点击「模拟 50 局」或「自动模拟」开始',(L0+R)/2,(T+B)/2);}
+    ctx.fillStyle='#9aa7b2';ctx.textAlign='center';ctx.fillText('模拟局数 → '+trials,(L0+R)/2,B+16);
+    ctx.fillStyle='#2f9d64';ctx.textAlign='right';ctx.font='700 11px sans-serif';ctx.fillText('● 更换',R,T+4);
+    ctx.fillStyle='#3b82f6';ctx.fillText('● 坚持',R,T+18);}
+  function drawDist(ctx,W,H){ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    var n=L+1,padL=30,padR=16,padT=26,padB=40,gw=W-padL-padR,gh=H-padT-padB,slot=gw/n;
+    var maxC=1;for(var k=0;k<=L;k++)maxC=Math.max(maxC,histK[k]);
+    var pk=2/3,pmf=[],maxPmf=0;for(var k2=0;k2<=L;k2++){pmf[k2]=comb(L,k2)*Math.pow(pk,k2)*Math.pow(1-pk,L-k2);maxPmf=Math.max(maxPmf,pmf[k2]);}
+    var maxRef=Math.max(maxC,maxPmf*sessions,1),peak=Math.round(pk*L);
+    for(var k3=0;k3<=L;k3++){var x=padL+k3*slot+slot*0.12,bw=slot*0.76,hh=(histK[k3]/maxRef)*gh;
+      ctx.fillStyle=(k3===lastK)?'#f59e0b':(k3===peak?'#2f9d64':'#9cc3f7');roundRect(ctx,x,padT+gh-hh,bw,Math.max(0,hh),3);ctx.fill();
+      ctx.fillStyle='#9aa7b2';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText(k3,padL+k3*slot+slot/2,padT+gh+13);
+      if(histK[k3]>0){ctx.fillStyle='#33424c';ctx.font='10px var(--mono)';ctx.fillText(histK[k3],padL+k3*slot+slot/2,padT+gh-hh-6);}}
+    if(sessions>0){ctx.strokeStyle='#e05a4f';ctx.lineWidth=2;ctx.beginPath();
+      for(var k4=0;k4<=L;k4++){var xx=padL+k4*slot+slot/2,yy=padT+gh-(pmf[k4]*sessions/maxRef)*gh;k4===0?ctx.moveTo(xx,yy):ctx.lineTo(xx,yy);}ctx.stroke();}
+    ctx.fillStyle='#66777d';ctx.textAlign='center';ctx.font='11px sans-serif';ctx.fillText('每组('+L+'局)赢的局数 → 红线＝二项分布理论，峰值在 '+peak,W/2,16);
+    if(sessions===0){ctx.fillStyle='#9aa7b2';ctx.fillText('点击「玩 1 组」或「自动跑组」开始',W/2,H/2);}}
+  return {title:'大量模拟 · 概率分布',kicker:'实验 02',sub:'上千局后，胜率稳定在哪？分布长什么样？',
+    metrics:function(){rebuildMetrics();syncLabels();refresh();},
+    resize:function(){stage.fit();draw();},stop:stopAuto};
+}
+
+/* ============================================================
+   模块 3 · N 门推广
+   ============================================================ */
+function ModuleNDoors(){
+  var view=$('[data-mod="m3"]'),stage=makeStage($('canvas',view)),predict=setupPredict(view);
+  var N=3,stayWins=0,swWins=0,games=0,seenN={};
+  $$('[data-doors] button',view).forEach(function(b){b.addEventListener('click',function(){
+    $$('[data-doors] button',view).forEach(function(x){x.classList.remove('active');});b.classList.add('active');
+    N=parseInt(b.getAttribute('data-n'));stayWins=swWins=games=0;refresh();});});
+  function batch(){var K=1000;for(var i=0;i<K;i++){var c=rnd(N),pk=rnd(N);if(pk===c)stayWins++;else swWins++;}games+=K;
+    seenN[N]=true;
+    if(N>=100)state.m3Door100=true;
+    if(seenN[3]&&seenN[10]&&seenN[100])state.m3MoreN=true;ach.check(state);
+    if(predict.chosen)predict.reveal('门数越多，换门越划算：换门胜率 = <b>(N−1)/N</b>（右栏「更换理论」），坚持只有 1/N。');
+    refresh();}
+  $('[data-act="batch"]',view).addEventListener('click',batch);
+  $('[data-act="reset"]',view).addEventListener('click',function(){predict.reset();stayWins=swWins=games=0;refresh();});
+  function refresh(){setMetric('n',N);setMetric('games',games);
+    setMetric('switch',games?pct(swWins/games):'—','good');setMetric('tswitch',pct((N-1)/N));
+    setMetric('stay',games?pct(stayWins/games):'—');setMetric('tstay',pct(1/N));draw();}
+  function draw(){var ctx=stage.ctx,W=stage.w,H=stage.h;if(!W)return;ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    var topH=H*0.42;
+    if(N<=12){var dw=Math.min(64,(W-40)/N-8),dh=Math.min(topH-30,dw*1.3),step=dw+8,x0=(W-(N*step-8))/2,y=18;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      for(var i=0;i<N;i++){var dx=x0+i*step;ctx.fillStyle='#f4f8fc';ctx.strokeStyle='#c2cdd8';ctx.lineWidth=1.5;roundRect(ctx,dx,y,dw,dh,7);ctx.fill();ctx.stroke();
+        ctx.font=Math.min(28,dw*0.52)+'px serif';ctx.fillStyle='#33424c';ctx.fillText('🚪',dx+dw/2,y+dh/2);}
+      ctx.fillStyle='#66777d';ctx.font='11px sans-serif';ctx.fillText(N+' 扇门，只有 1 扇是车 —— 你初选选中车的概率＝1/'+N,W/2,y+dh+14);}
+    else{ctx.fillStyle='#66777d';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText(N+' 扇门 —— 你初选选中车只有 1/'+N+'，几乎一定选错',W/2,18);
+      var cols=20,cw=Math.min(15,(W-40)/cols),gx=(W-cols*cw)/2,gy=34;
+      for(var j=0;j<N;j++){var c2=j%cols,r2=Math.floor(j/cols);ctx.fillStyle='#eef2f6';ctx.strokeStyle='#d4dde6';ctx.lineWidth=1;ctx.fillRect(gx+c2*cw,gy+r2*cw,cw-2,cw-2);}}
+    var by=H-34,bh=H*0.34,bw=W*0.23,gap=W*0.13,bx=W*0.21;
+    if(games>0){[['坚持',stayWins/games,1/N,'#9cc3f7',bx],['更换',swWins/games,(N-1)/N,'#2f9d64',bx+bw+gap]].forEach(function(d){
+      var x=d[4],h=d[1]*bh;ctx.fillStyle=d[3];roundRect(ctx,x,by-h,bw,Math.max(0,h),4);ctx.fill();
+      var ty=by-d[2]*bh;ctx.strokeStyle='#e05a4f';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x-6,ty);ctx.lineTo(x+bw+6,ty);ctx.stroke();
+      ctx.fillStyle='#33424c';ctx.font='700 16px sans-serif';ctx.textAlign='center';ctx.fillText(pct(d[1]),x+bw/2,by-h-9);
+      ctx.fillStyle='#66777d';ctx.font='12px sans-serif';ctx.fillText(d[0]+'胜率',x+bw/2,by+15);});
+      ctx.fillStyle='#e05a4f';ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText('— 红线＝理论值',bx,by-bh-4);}
+    else{ctx.fillStyle='#9aa7b2';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('点「⚡ 自动玩 1000 次」对比两种策略的胜率',W/2,H*0.74);}}
+  return {title:'N 门推广',kicker:'实验 03',sub:'门越多，换门越划算吗？',
+    metrics:function(){buildMetrics([
+      {key:'n',label:'门数 N',init:'3'},{key:'games',label:'模拟局数',init:'0'},
+      {key:'switch',label:'更换胜率',init:'—',cls:'good'},{key:'tswitch',label:'更换理论 (N−1)/N',init:'66.7%'},
+      {key:'stay',label:'坚持胜率',init:'—'},{key:'tstay',label:'坚持理论 1/N',init:'33.3%'}],
+      '换门胜率 = (N−1)/N：3门→2/3，10门→9/10，100门→99/100。门越多越明显。');refresh();},
+    resize:function(){stage.fit();draw();},stop:function(){}};
+}
+
+/* ============================================================
+   模块 4 · 概率树揭秘（条件概率）
+   ============================================================ */
+function ModuleTree(){
+  var view=$('[data-mod="m4"]'),stage=makeStage($('canvas',view)),predict=setupPredict(view);
+  var strat='switch',seen={switch:true},walkTot=0,walkWin=0,token=null,tokenRaf=0;
+  $$('[data-strat] button',view).forEach(function(b){b.addEventListener('click',function(){
+    $$('[data-strat] button',view).forEach(function(x){x.classList.remove('active');});b.classList.add('active');
+    strat=b.getAttribute('data-s');seen[strat]=true;if(seen.switch&&seen.stay){state.m4Tree=true;ach.check(state);}
+    doReveal();refresh();});});
+  function doReveal(){if(!predict.chosen)return;
+    predict.reveal('看树：<b>更换</b>时，赢的那条路对应「初选中羊 🐐」(2/3)；坚持时赢的是「初选中车 🚗」(1/3)。所以<b>换门赢 ⟺ 一开始选中了羊</b>。');
+    if(predict.chosen.getAttribute('data-correct')==='true'){state.m4Insight=true;ach.check(state);}}
+  function walk(){var isCar=(Math.random()<1/3);var win=(strat==='switch')?(!isCar):(isCar);
+    walkTot++;if(win)walkWin++;token={car:isCar,t:0,start:performance.now()};
+    if(tokenRaf)cancelAnimationFrame(tokenRaf);
+    var tick=function(now){if(!token)return;token.t=Math.min(1,(now-token.start)/700);draw();
+      if(token.t<1)tokenRaf=requestAnimationFrame(tick);else{token=null;tokenRaf=0;draw();}};tokenRaf=requestAnimationFrame(tick);
+    doReveal();refresh();}
+  $('[data-act="walk"]',view).addEventListener('click',walk);
+  $('[data-act="reset"]',view).addEventListener('click',function(){walkTot=0;walkWin=0;token=null;refresh();});
+  $('[data-reveal-toggle]',view).addEventListener('click',function(){state.m4Tree=true;ach.check(state);});
+  function refresh(){setMetric('strat',strat==='switch'?'更换':'坚持');
+    setMetric('pwin',strat==='switch'?'66.7%':'33.3%',strat==='switch'?'good':'');
+    setMetric('walks',walkTot);setMetric('wwin',walkWin);setMetric('wrate',walkTot?pct(walkWin/walkTot):'—','hi');draw();}
+  function draw(){var ctx=stage.ctx,W=stage.w,H=stage.h;if(!W)return;ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    var LX=W*0.13,MX=W*0.46,RX=W*0.82,topY=H*0.3,botY=H*0.7,midY=H*0.5,nw=Math.min(150,W*0.27),half=nw/2;
+    function edge(x1,y1,x2,y2,label,strong){ctx.strokeStyle=strong?'#2f9d64':'#c2cdd8';ctx.lineWidth=strong?3:1.5;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+      if(label){ctx.fillStyle=strong?'#2f9d64':'#66777d';ctx.font='700 12px var(--mono)';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,(x1+x2)/2,(y1+y2)/2-8);}}
+    function node(x,y,label,sub,hl){var h=52;roundRect(ctx,x-half,y-h/2,nw,h,9);ctx.fillStyle=hl?'#dcf3e6':'#f4f8fc';ctx.fill();
+      ctx.strokeStyle=hl?'#2f9d64':'#c2cdd8';ctx.lineWidth=hl?2.5:1.5;ctx.stroke();
+      ctx.fillStyle='#33424c';ctx.font='700 14px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,x,y-8);
+      ctx.fillStyle=hl?'#2f9d64':'#66777d';ctx.font='12px var(--mono)';ctx.fillText(sub,x,y+12);}
+    var carWin=(strat==='stay'),goatWin=(strat==='switch');
+    edge(LX+half,midY,MX-half,topY,'1/3',false);
+    edge(LX+half,midY,MX-half,botY,'2/3',false);
+    edge(MX+half,topY,RX-half,topY,strat==='switch'?'换门':'坚持',carWin);
+    edge(MX+half,botY,RX-half,botY,strat==='switch'?'换门':'坚持',goatWin);
+    node(LX,midY,'选 1 扇门','P 总 = 1',false);
+    node(MX,topY,'初选中车 🚗','P = 1/3',false);
+    node(MX,botY,'初选中羊 🐐','P = 2/3',false);
+    node(RX,topY,carWin?'赢 🚗':'输 🐐',carWin?'获胜':'落空',carWin);
+    node(RX,botY,goatWin?'赢 🚗':'输 🐐',goatWin?'获胜':'落空',goatWin);
+    ctx.fillStyle='#2f9d64';ctx.font='700 15px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('「'+(strat==='switch'?'更换':'坚持')+'」获胜概率 = '+(strat==='switch'?'2/3 ≈ 66.7%':'1/3 ≈ 33.3%')+'（绿色路径之和）',W/2,H-16);
+    if(token){var by=token.car?topY:botY,x,yy;
+      if(token.t<0.5){var u=token.t/0.5;x=(LX+half)+((MX-half)-(LX+half))*u;yy=midY+(by-midY)*u;}
+      else{var u2=(token.t-0.5)/0.5;x=(MX+half)+((RX-half)-(MX+half))*u2;yy=by;}
+      ctx.fillStyle='#e05a4f';ctx.beginPath();ctx.arc(x,yy,7,0,7);ctx.fill();}}
+  return {title:'概率树揭秘 · 条件概率',kicker:'实验 04',sub:'换门赢，到底赢在哪一步？',
+    metrics:function(){buildMetrics([
+      {key:'strat',label:'当前策略',init:'更换'},
+      {key:'pwin',label:'该策略胜率',init:'66.7%',cls:'good'},
+      {key:'walks',label:'走了几遍',init:'0'},
+      {key:'wwin',label:'其中赢',init:'0'},
+      {key:'wrate',label:'走一遍胜率',init:'—',cls:'hi'}],
+      '换门赢 ⟺ 初选中羊(2/3)；坚持赢 ⟺ 初选中车(1/3)。走多遍，频率会逼近这个理论值。');refresh();},
+    resize:function(){stage.fit();draw();},stop:function(){token=null;if(tokenRaf)cancelAnimationFrame(tokenRaf);tokenRaf=0;}};
+}
+
+/* ============================================================
+   模块 5 · 知识总结 + 闯关自检
+   ============================================================ */
+function ModuleSummary(){
+  var view=$('[data-mod="m5"]'),host=$('.quiz-box',view);
+  var QUIZ=[
+    {q:'三门问题：你选一扇门，主持人开掉另一扇羊门。换门的胜率是？',
+     opts:['1/2','1/3','2/3','3/4'],ans:2,
+     tip:'换门赢 ⟺ 初选中羊(2/3)。主持人开羊门，把这 2/3 全转移给了留下的门。'},
+    {q:'换门更划算，最关键的原因是？',
+     opts:['运气好','主持人「知道车在哪」、只开羊门，带来了信息','门会偷偷换','纯属巧合'],ans:1,
+     tip:'信息的价值：若主持人随机开门（可能开到车），换门的优势就消失了。'},
+    {q:'改成 100 扇门（1 车 99 羊），主持人开掉 98 扇羊门只留一扇，换门胜率约是？',
+     opts:['1/100','1/2','2/3','99/100'],ans:3,
+     tip:'(N−1)/N = 99/100。门越多越明显——这也是看懂 3 门的最佳钥匙。'},
+    {q:'抛硬币连续 9 次正面，第 10 次仍是正面的概率是？',
+     opts:['很小，该出反面了','仍然是 1/2','很大，手气正旺','无法确定'],ans:1,
+     tip:'每次独立、硬币没有记忆，仍是 1/2。这是「赌徒谬误」——这里没有像主持人那样的新信息。'},
+    {q:'「大数定律」说的是？',
+     opts:['运气最终会均衡','试验越多，频率越接近概率','概率本身会改变','一定正好各一半'],ans:1,
+     tip:'频率随次数增多稳定逼近概率——正是模拟里折线收敛到 2/3 的原因。'},
+    {q:'用「更换」策略玩 12 局，最可能赢几局？',
+     opts:['6 局','8 局','12 局','4 局'],ans:1,
+     tip:'期望 = 12×2/3 = 8，二项分布的峰值也在 8（战绩分布图钟形的峰）。'}
+  ];
+  var idx=0,chosen=null,correct=0,finished=false;
+  function rankOf(c){if(c>=6)return['🏆','概率大师','全部答对，三门问题的来龙去脉已了然于胸！'];
+    if(c>=5)return['🎯','概率高手','已经出师！个别再回看对应实验巩固。'];
+    if(c>=3)return['📘','概率学徒','基础已具备，建议重玩实验①–④加深。'];
+    return['🌱','初学乍练','别灰心，回到前面的实验亲手玩一玩再来。'];}
+  function refreshMetrics(){var ans=finished?QUIZ.length:(idx+(chosen!=null?1:0));
+    setMetric('done',ans+' / '+QUIZ.length);setMetric('right',correct);
+    setMetric('rate',ans?Math.round(correct/ans*100)+'%':'—','hi');
+    setMetric('rank',finished?rankOf(correct)[1]:'闯关中…',finished?'good':'');}
+  function render(){
+    if(finished){var r=rankOf(correct);
+      host.innerHTML='<div class="quiz-result"><div class="rank-badge">'+r[0]+'</div>'+
+        '<div class="rank-name">'+r[1]+'</div><div class="rank-score">答对 <b>'+correct+'</b> / '+QUIZ.length+' 题</div>'+
+        '<div class="rank-desc">'+r[2]+'</div><button class="tool-btn primary" data-quiz-restart>🔄 再来一次</button></div>';
+      $('[data-quiz-restart]',host).addEventListener('click',restart);refreshMetrics();return;}
+    var Q=QUIZ[idx],answered=chosen!=null;
+    var h='<div class="quiz-progress">闯关小测 · 第 '+(idx+1)+' / '+QUIZ.length+' 题</div>';
+    h+='<div class="quiz-q">'+Q.q+'</div><div class="quiz-opts">';
+    Q.opts.forEach(function(o,i){var cls='quiz-opt';
+      if(answered){if(i===Q.ans)cls+=' correct';else if(i===chosen)cls+=' wrong';else cls+=' dim';}
+      h+='<button class="'+cls+'" data-qi="'+i+'"'+(answered?' disabled':'')+'>'+o+'</button>';});
+    h+='</div>';
+    if(answered){var ok=chosen===Q.ans;
+      h+='<div class="quiz-feedback '+(ok?'ok':'no')+'">'+(ok?'✅ 答对了！':'❌ 正确答案见绿色。')+' '+Q.tip+'</div>';
+      h+='<button class="tool-btn primary" data-qnext>'+(idx+1<QUIZ.length?'下一题 →':'查看成绩')+'</button>';}
+    host.innerHTML=h;
+    if(!answered){$$('[data-qi]',host).forEach(function(b){b.addEventListener('click',function(){
+      chosen=parseInt(b.getAttribute('data-qi'));if(chosen===Q.ans)correct++;render();});});}
+    else{$('[data-qnext]',host).addEventListener('click',function(){idx++;chosen=null;
+      if(idx>=QUIZ.length){finished=true;if(correct>=5){state.m5Pass=true;ach.check(state);}}render();});}
+    refreshMetrics();}
+  function restart(){idx=0;chosen=null;correct=0;finished=false;render();}
+  $('[data-act="restart"]',view).addEventListener('click',restart);
+  render();
+  return {title:'知识总结 · 闯关自检',kicker:'小结 05',sub:'把四个实验串成一张概率知识地图',
+    metrics:function(){buildMetrics([
+      {key:'done',label:'已答题',init:'0 / '+QUIZ.length},{key:'right',label:'答对',init:'0'},
+      {key:'rate',label:'正确率',init:'—',cls:'hi'},{key:'rank',label:'当前段位',init:'闯关中…'}],
+      '答完小测会评出「段位」；想巩固就回到对应实验亲手再玩一遍。');refreshMetrics();},
+    resize:function(){},stop:function(){}};
+}
+
+/* ---------- 路由 ---------- */
+var modules={m1:ModulePlay(),m2:ModuleSim(),m3:ModuleNDoors(),m4:ModuleTree(),m5:ModuleSummary()};
+var current=null;
+function activate(id){
+  $$('.mod-view').forEach(function(el){el.classList.toggle('active',el.getAttribute('data-mod')===id);});
+  $$('.module-item').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-target')===id);});
+  if(current&&current.stop)current.stop();
+  current=modules[id];
+  $('#modTitle').textContent=current.title;$('#modKicker').textContent=current.kicker;$('#modSub').textContent=current.sub;
+  current.resize();        // 同步 fit 画布（切换后立即可绘制/可点击，不依赖下一帧）
+  current.metrics();
+  requestAnimationFrame(function(){current.resize();});
+}
+$$('.module-item').forEach(function(b){b.addEventListener('click',function(){activate(b.getAttribute('data-target'));});});
+$$('[data-reveal-toggle]').forEach(function(b){b.setAttribute('data-label',b.textContent);});
+$$('.mod-view').forEach(function(v){setupReveal(v);});
+
+var resizeTimer=null;
+window.addEventListener('resize',function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(function(){if(current)current.resize();},120);});
+
+activate('m1');
+})();
+</script>
+</body>
+</html>

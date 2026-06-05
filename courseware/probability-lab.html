@@ -168,6 +168,45 @@ button{font:inherit}
 .formula-sheet div{font-size:12.5px;line-height:1.5}
 .formula-sheet code{font-family:var(--mono);background:var(--surface-strong);border-radius:5px;padding:1px 6px;color:var(--accent-dark)}
 
+/* 模块5 · 伯特兰盒子 */
+.bertrand-host .box-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:14px}
+.coin-box{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:9px 14px;text-align:center;min-width:116px}
+.coin-box .cb-name{font-size:12px;font-weight:700;color:var(--accent-dark);margin-bottom:5px}
+.coin{display:inline-block;font-size:25px;line-height:1;margin:0 2px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))}
+.proof-block{border:1px solid var(--accent-soft);border-radius:10px;background:#fbfdff;padding:13px 15px}
+.proof-block.placeholder{text-align:center;color:var(--muted);font-size:14px;line-height:1.75;background:var(--surface-strong);border-style:dashed}
+.pb-title{font-size:14px;font-weight:800;color:var(--accent-dark);margin-bottom:8px}
+.pb-text{font-size:13px;color:var(--muted);line-height:1.6;margin:0 0 9px}
+.pb-text b{color:var(--text)}
+.bad-text{color:var(--bad)!important;font-weight:700}
+.pb-concl{font-size:14px;font-weight:700;margin:6px 0 0}
+.enum-list{display:grid;gap:7px;margin-bottom:8px}
+.enum-case{display:flex;align-items:center;gap:7px;font-size:13px;padding:8px 11px;border-radius:8px;border:1px solid var(--line);background:var(--surface)}
+.enum-case .coin{font-size:17px}
+.enum-case.ok{border-color:var(--good);background:var(--good-soft)}
+.enum-case.no{border-color:var(--bad);background:var(--bad-soft)}
+.ok-tag{margin-left:auto;color:var(--good);white-space:nowrap}
+.no-tag{margin-left:auto;color:var(--bad);white-space:nowrap}
+.weigh-row{display:flex;gap:10px;margin:4px 0 9px}
+.weigh{flex:1;border-radius:8px;padding:9px 11px;font-size:13px;text-align:center}
+.weigh.a{background:var(--good-soft);border:1px solid var(--good)}
+.weigh.b{background:var(--surface-strong);border:1px solid var(--line)}
+.weigh .muted{font-size:11px;color:var(--muted)}
+.bayes-eq{display:grid;gap:7px;font-size:13px;line-height:1.5}
+.bayes-eq code{font-family:var(--mono);background:var(--surface-strong);border-radius:5px;padding:2px 7px;color:var(--accent-dark);font-size:12px}
+.bayes-final{margin-top:3px;padding-top:8px;border-top:1px dashed var(--line)}
+.bayes-final code{background:var(--accent-soft)}
+.sim-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 10px}
+.sim-stats>div{text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 4px}
+.sim-stats .sv{display:block;font-size:18px;font-weight:800;font-family:var(--mono)}
+.sim-stats .sv.hi{color:var(--accent-dark)}
+.sim-stats .sv.good{color:var(--good)}
+.sim-stats .sk{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.sim-bar{position:relative;height:14px;border-radius:999px;background:var(--surface-strong);border:1px solid var(--line);overflow:hidden;margin:6px 0}
+.sim-bar-fill{height:100%;background:var(--accent);border-radius:999px;transition:width .2s}
+.sim-bar-ref{position:absolute;top:-3px;width:0;height:20px;border-left:2px dashed var(--good)}
+.last-draw{margin-top:8px!important;text-align:center}
+
 @media (max-width:1099px){
   .lab-shell{grid-template-columns:1fr}
   .lab-nav{border-right:0;border-bottom:1px solid var(--line);padding-right:0;padding-bottom:14px}
@@ -198,8 +237,9 @@ button{font:inherit}
       <button class="module-item" data-target="m2"><span class="module-index">02</span><span><b>两骰之和</b><span>古典概型 · 枚举36格</span></span></button>
       <button class="module-item" data-target="m3"><span class="module-index">03</span><span><b>高尔顿钉板</b><span>路径计数 · 钟形浮现</span></span></button>
       <button class="module-item" data-target="m4"><span class="module-index">04</span><span><b>约会问题</b><span>几何概型 · 面积即概率</span></span></button>
-      <button class="module-item" data-target="m5"><span class="module-index">05</span><span><b>三门问题</b><span>条件概率 · 换还是不换</span></span></button>
-      <button class="module-item" data-target="m6"><span class="module-index">06</span><span><b>知识总结</b><span>概率地图 · 闯关自检</span></span></button>
+      <button class="module-item" data-target="mbox"><span class="module-index">05</span><span><b>伯特兰盒子</b><span>条件概率 · 枚举·古典·贝叶斯</span></span></button>
+      <button class="module-item" data-target="m5"><span class="module-index">06</span><span><b>三门问题</b><span>条件概率 · 换还是不换</span></span></button>
+      <button class="module-item" data-target="m6"><span class="module-index">07</span><span><b>知识总结</b><span>概率地图 · 闯关自检</span></span></button>
     </nav>
     <div class="ach-card">
       <div class="ach-head"><b>🏆 探索成就</b><span class="mini"><b data-ach-count>0</b>/<b data-ach-total>0</b></span></div>
@@ -342,6 +382,45 @@ button{font:inherit}
     </section>
 
     <!-- 模块5：三门问题 -->
+    <!-- 模块5（显示）：伯特兰盒子问题 -->
+    <section class="mod-view" data-mod="mbox">
+      <div class="control-rack">
+        <div class="segmented" data-method>
+          <button class="active" data-m="enum">① 枚举法</button>
+          <button data-m="classic">② 古典概型</button>
+          <button data-m="bayes">③ 贝叶斯</button>
+          <button data-m="sim">④ 模拟验证</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="tool-btn" data-act="one" style="display:none">摸到 1 次金币</button>
+        <button class="tool-btn primary" data-act="auto" style="display:none">自动摸币</button>
+        <button class="tool-btn" data-act="reset">重置</button>
+      </div>
+      <div class="board-wrap"><div class="summary-host bertrand-host"></div></div>
+      <section class="prompt-panel">
+        <div class="rules-card">
+          <span class="rk-title">🪙 伯特兰盒子悖论</span>
+          <span>三个外表相同的盒子，各装 2 枚硬币：<b>盒A 🟡🟡</b>（金金）、<b>盒B 🟡⚪</b>（金银）、<b>盒C ⚪⚪</b>（银银）。</span>
+          <span>随机选一个盒子、再随机摸出一枚 —— 结果是<b>金币 🟡</b>。问：这个盒子里<b>另一枚也是金币</b>的概率是多少？</span>
+        </div>
+        <div class="predict" data-predict data-fb="选择一个预测，然后用上方四种方法逐一验证。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">摸出的是金币，那么"同盒另一枚也是金币"的概率是？</p>
+          <div class="opts">
+            <button class="opt" data-correct="false">1/4</button>
+            <button class="opt" data-correct="false">1/3</button>
+            <button class="opt" data-correct="false">1/2（凭直觉：不是 A 就是 B）</button>
+            <button class="opt" data-correct="true">2/3</button>
+          </div>
+          <div class="feedback">选择一个预测，然后用上方四种方法逐一验证。</div>
+        </div>
+        <div class="reveal-bar"><button class="reveal-toggle" data-reveal-toggle>显示结论</button></div>
+        <div class="conclusion" data-conclusion>
+          <b>为什么是 2/3 而不是 1/2？</b>直觉把"盒A vs 盒B"当成各 ½，但<b>"摸到金币"这条信息改变了权重</b>：盒A 有 2 枚金币（2 种摸到金的方式），盒B 只有 1 枚（1 种）。所以摸到的金币<b>等可能来自 3 枚金币</b>（金金盒 2 枚 + 金银盒 1 枚），其中 2 枚的"同盒另一枚"是金 → <span class="formula">P = 2/3</span>。这与三门问题<b>同源</b>：都是被新信息更新后的<b>条件概率</b>。
+        </div>
+      </section>
+    </section>
+
     <section class="mod-view" data-mod="m5">
       <div class="control-rack">
         <div class="segmented" data-doors>
@@ -388,14 +467,14 @@ button{font:inherit}
       </div>
       <div class="board-wrap">
         <div class="summary-host">
-          <p class="summary-intro">本讲用 <b>5 个动手实验</b> 认识了概率的全貌：从「频率逼近概率」，到 <b>古典 / 几何 / 条件</b> 三大概型，再到 <b>加乘原理</b>。下面是知识地图与公式 —— 看完往下做个<b>闯关小测</b>，检验你的掌握程度。</p>
+          <p class="summary-intro">本讲用 <b>6 个动手实验</b> 认识了概率的全貌：从「频率逼近概率」，到 <b>古典 / 几何 / 条件</b> 三大概型，再到 <b>加乘原理与贝叶斯</b>。下面是知识地图与公式 —— 看完往下做个<b>闯关小测</b>，检验你的掌握程度。</p>
           <div class="concept-grid">
             <div class="concept-card"><div class="cc-head">🎲 随机事件与概率<span class="cc-tag">实验①</span></div><div class="cc-body">必然事件 <b>P=1</b>、不可能 <b>P=0</b>、随机事件 <b>0&lt;P&lt;1</b>。重复试验时<b>频率 → 概率</b>（大数定律）。</div></div>
             <div class="concept-card"><div class="cc-head">🧮 古典概型<span class="cc-tag">实验②</span></div><div class="cc-body"><b>有限</b> + <b>等可能</b>。<span class="f">P = 有利结果数 ÷ 总结果数</span></div></div>
             <div class="concept-card"><div class="cc-head">🔔 计数与分布<span class="cc-tag">实验③</span></div><div class="cc-body">枚举 / 加乘 / 排列组合求数目；路径数 <span class="f">C(n,k)</span> 叠加成<b>二项分布</b>。</div></div>
             <div class="concept-card"><div class="cc-head">📐 几何概型<span class="cc-tag">实验④</span></div><div class="cc-body"><b>连续无限</b>，等可能从计数推广到度量。<span class="f">P = 有利度量 ÷ 总度量</span>（长度/面积/体积）</div></div>
-            <div class="concept-card"><div class="cc-head">✖️ 加乘原理<span class="cc-tag">实验①⑤</span></div><div class="cc-body">互斥相加 <span class="f">P(A∪B)=P(A)+P(B)</span>；独立相乘 <span class="f">P(A∩B)=P(A)·P(B)</span>；对立 <span class="f">P=1−P(反)</span>（正难则反）。</div></div>
-            <div class="concept-card"><div class="cc-head">🚪 条件概率与信息<span class="cc-tag">实验⑤</span></div><div class="cc-body">新信息会<b>更新</b>概率。三门问题：换门胜率 <b>2/3</b>，是坚持（1/3）的两倍。</div></div>
+            <div class="concept-card"><div class="cc-head">✖️ 加乘原理<span class="cc-tag">实验①⑥</span></div><div class="cc-body">互斥相加 <span class="f">P(A∪B)=P(A)+P(B)</span>；独立相乘 <span class="f">P(A∩B)=P(A)·P(B)</span>；对立 <span class="f">P=1−P(反)</span>（正难则反）。</div></div>
+            <div class="concept-card"><div class="cc-head">🚪 条件概率 · 贝叶斯<span class="cc-tag">实验⑤⑥</span></div><div class="cc-body">新信息会<b>更新</b>概率（贝叶斯）。伯特兰盒子：摸到金后同盒另一枚也金 = <b>2/3</b>；三门问题：换门胜率 <b>2/3</b>。直觉的 1/2 都忽略了信息权重。</div></div>
           </div>
           <div class="quiz-box"></div>
         </div>
@@ -476,7 +555,8 @@ var state={unlockedCount:0,
   m3Total:0,m3SawPath:false,
   m4MatchAny:false,m4Meet59:false,
   m5SwitchN:0,m5SwitchWin:false,m5Saw100:false,m5Tree:false,
-  m6Pass:false};
+  m6Pass:false,
+  mboxSim:false,mboxProofs:false};
 
 var ach=createAchievements({storageKey:'prob-lab-v1',
   defs:[
@@ -489,6 +569,8 @@ var ach=createAchievements({storageKey:'prob-lab-v1',
     {id:'meet59',icon:'🤝',name:'相遇 5/9', desc:'等待=20 分时模拟概率逼近 5/9',       check:function(s){return s.m4Meet59;}},
     {id:'switch',icon:'🚪',name:'换门信徒', desc:'自动模拟 ≥300 局，换门胜率 >60%',    check:function(s){return s.m5SwitchWin;}},
     {id:'door100',icon:'💯',name:'百门顿悟',desc:'在 100 门规模下跑一次自动模拟',      check:function(s){return s.m5Saw100;}},
+    {id:'box',   icon:'🪙',name:'盒子悖论', desc:'伯特兰盒子摸金 ≥300 次，频率逼近 2/3',check:function(s){return s.mboxSim;}},
+    {id:'proofs',icon:'🧠',name:'三推归一', desc:'看完枚举·古典·贝叶斯三种推导',       check:function(s){return s.mboxProofs;}},
     {id:'grad',  icon:'🎓',name:'学成出师', desc:'完成知识小测，答对 ≥5 题',           check:function(s){return s.m6Pass;}},
     {id:'master',icon:'👑',name:'概率大师', desc:'解锁前面任意 8 项成就',             check:function(s){return s.unlockedCount>=8;}}
   ],
@@ -511,7 +593,7 @@ function roundRect(ctx,x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.move
   ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
 
 /* ---------- 预测框 / 结论 / 指标 通用件 ---------- */
-function setupPredict(view){
+function setupPredict(view,onChoose){
   var box=$('[data-predict]',view);if(!box)return null;
   var opts=$$('.opt',box),fb=$('.feedback',box),baseFb=box.getAttribute('data-fb')||'';
   var chosen=null,revealed=false;
@@ -534,7 +616,7 @@ function setupPredict(view){
   });});
   opts.forEach(function(o){o.addEventListener('click',function(){
     if(revealed)return;opts.forEach(function(x){x.classList.remove('sel');});o.classList.add('sel');chosen=o;
-    fb.textContent='预测已记录 —— 现在亲手模拟来验证它。';unlock();
+    fb.textContent='预测已记录 —— 现在亲手模拟来验证它。';unlock();if(typeof onChoose==='function')onChoose();
   });});
   lock();
   return {
@@ -544,7 +626,8 @@ function setupPredict(view){
       var ok=chosen.getAttribute('data-correct')==='true';chosen.classList.remove('dim');
       if(!ok)chosen.classList.add('wrong');
       fb.innerHTML=(ok?'✅ 预测正确！':'❎ 出乎意料吧？')+' '+insight;},
-    reset:function(){revealed=false;chosen=null;opts.forEach(function(o){o.className='opt';});fb.textContent=baseFb;lock();}
+    reset:function(){revealed=false;chosen=null;opts.forEach(function(o){o.className='opt';});fb.textContent=baseFb;lock();},
+    nudge:nudge
   };
 }
 function setupReveal(view){
@@ -850,7 +933,7 @@ function ModuleMonty(){
         ctx.fillStyle='#66777d';ctx.font='12px sans-serif';ctx.fillText(d[0]+'胜率',x+bw/2,by+15);});
       ctx.fillStyle='#e05a4f';ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText('— 红线＝理论值',bx,by-bh-4);}}
   newGame();
-  return {title:'三门问题 · 条件概率',kicker:'实验 05',sub:'主持人开门后，换还是不换？',
+  return {title:'三门问题 · 条件概率',kicker:'实验 06',sub:'主持人开门后，换还是不换？',
     metrics:function(){buildMetrics([
       {key:'games',label:'模拟局数',init:'0'},{key:'stay',label:'坚持胜率',init:'—'},
       {key:'switch',label:'更换胜率',init:'—',cls:'good'},{key:'tstay',label:'坚持理论',init:pct(1/N)},
@@ -860,7 +943,102 @@ function ModuleMonty(){
 }
 
 /* ============================================================
-   模块 6 · 知识总结 + 闯关自检
+   模块 5（显示）· 伯特兰盒子问题（id=mbox）—— 逻辑推导为主
+   ============================================================ */
+function ModuleBertrand(){
+  var view=$('[data-mod="mbox"]'),host=$('.bertrand-host',view);
+  var method='enum',viewed={enum:false,classic:false,bayes:false};
+  var goldDraws=0,otherGold=0,lastDraw=null,auto=false,raf=0,THEORY=2/3;
+  var oneBtn=$('[data-act="one"]',view),autoBtn=$('[data-act="auto"]',view);
+  var predict=setupPredict(view,function(){viewed.enum=true;checkProofs();render();});
+
+  function checkProofs(){
+    if(viewed.enum&&viewed.classic&&viewed.bayes){
+      state.mboxProofs=true;ach.check(state);
+      if(predict.chosen)predict.reveal('枚举 / 古典 / 贝叶斯三种推导<b>殊途同归</b>，都得 <b>2/3</b>。');
+    }
+  }
+  function toggleSim(on){oneBtn.style.display=on?'':'none';autoBtn.style.display=on?'':'none';}
+  $$('[data-method] button',view).forEach(function(b){b.addEventListener('click',function(){
+    if(!predict.chosen){predict.nudge();return;}
+    $$('[data-method] button',view).forEach(function(x){x.classList.remove('active');});b.classList.add('active');
+    method=b.getAttribute('data-m');
+    if(method==='enum'||method==='classic'||method==='bayes'){viewed[method]=true;checkProofs();}
+    toggleSim(method==='sim');render();
+  });});
+
+  function drawGold(){ // 条件是「摸到金币」：摸到银币不计，内部重摸直到金币
+    var box,coin,other,coins,i,guard=0;
+    do{box=rnd(3);coins=box===0?['金','金']:box===1?['金','银']:['银','银'];i=rnd(2);coin=coins[i];other=coins[1-i];guard++;}
+    while(coin!=='金'&&guard<60);
+    goldDraws++;if(other==='金')otherGold++;lastDraw={box:box,other:other};
+  }
+  function drawMany(n){for(var k=0;k<n;k++)drawGold();
+    if(goldDraws>=300&&Math.abs(otherGold/goldDraws-THEORY)<0.03){state.mboxSim=true;ach.check(state);}
+    if(goldDraws>=300&&predict.chosen)predict.reveal('模拟频率稳稳逼近 <b>2/3 ≈ 66.7%</b> —— 直觉的 1/2 是错的。');
+    render();}
+  oneBtn.addEventListener('click',function(){drawMany(1);});
+  function startAuto(){if(auto)return;auto=true;autoBtn.textContent='⏸ 暂停';
+    var tick=function(){if(!auto)return;drawMany(goldDraws<200?3:20);if(goldDraws>=3000){stopAuto();return;}raf=requestAnimationFrame(tick);};raf=requestAnimationFrame(tick);}
+  function stopAuto(){auto=false;if(raf)cancelAnimationFrame(raf);raf=0;autoBtn.textContent='自动摸币';}
+  autoBtn.addEventListener('click',function(){auto?stopAuto():startAuto();});
+  $('[data-act="reset"]',view).addEventListener('click',function(){stopAuto();goldDraws=0;otherGold=0;lastDraw=null;predict.reset();
+    method='enum';$$('[data-method] button',view).forEach(function(x,i){x.classList.toggle('active',i===0);});toggleSim(false);render();});
+
+  var BOXES='<div class="box-row">'+
+    '<div class="coin-box"><div class="cb-name">盒A · 金金</div><span class="coin g">🟡</span><span class="coin g">🟡</span></div>'+
+    '<div class="coin-box"><div class="cb-name">盒B · 金银</div><span class="coin g">🟡</span><span class="coin s">⚪</span></div>'+
+    '<div class="coin-box"><div class="cb-name">盒C · 银银</div><span class="coin s">⚪</span><span class="coin s">⚪</span></div></div>';
+  function enumHtml(){return '<div class="proof-block"><div class="pb-title">① 枚举法：给金币逐一编号</div>'+
+    '<p class="pb-text">6 枚硬币里金币共 <b>3 枚</b>。已知"摸到金币"，它<b>等可能</b>是这 3 枚之一 —— 逐一看它的"同盒另一枚"：</p>'+
+    '<div class="enum-list">'+
+    '<div class="enum-case ok"><span class="coin">🟡</span>金A₁（盒A）→ 同盒另一枚是 <span class="coin">🟡</span>金<b class="ok-tag">✓ 另一枚也金</b></div>'+
+    '<div class="enum-case ok"><span class="coin">🟡</span>金A₂（盒A）→ 同盒另一枚是 <span class="coin">🟡</span>金<b class="ok-tag">✓ 另一枚也金</b></div>'+
+    '<div class="enum-case no"><span class="coin">🟡</span>金B₁（盒B）→ 同盒另一枚是 <span class="coin">⚪</span>银<b class="no-tag">✗ 另一枚是银</b></div>'+
+    '</div><p class="pb-concl">3 种等可能里有 <b>2 种</b>"另一枚也是金" → <span class="formula">P = 2/3</span></p></div>';}
+  function classicHtml(){return '<div class="proof-block"><div class="pb-title">② 古典概型：陷阱在"谁等可能"</div>'+
+    '<p class="pb-text">直觉说"不是盒A就是盒B，各 ½"——<b class="bad-text">错</b>。摸到金币后，等可能的不是 <b>2 个盒子</b>，而是 <b>3 枚金币</b>：</p>'+
+    '<div class="weigh-row"><div class="weigh a">盒A 金币数 = <b>2</b><br><span class="muted">2 种摸到金的方式</span></div>'+
+    '<div class="weigh b">盒B 金币数 = <b>1</b><br><span class="muted">1 种方式</span></div></div>'+
+    '<p class="pb-concl">按金币数加权：<span class="formula">P(盒A | 金) = 2 ÷ (2+1) = 2/3</span></p></div>';}
+  function bayesHtml(){return '<div class="proof-block"><div class="pb-title">③ 贝叶斯：用新信息更新概率</div>'+
+    '<div class="bayes-eq"><div>先验：<code>P(A)=P(B)=P(C)=1/3</code></div>'+
+    '<div>似然：<code>P(金|A)=1</code>　<code>P(金|B)=1/2</code>　<code>P(金|C)=0</code></div>'+
+    '<div>全概率：<code>P(金) = 1·⅓ + ½·⅓ + 0·⅓ = ½</code></div>'+
+    '<div class="bayes-final">后验：<code>P(A|金) = P(金|A)·P(A) ÷ P(金) = (1·⅓) ÷ ½ = <b>2/3</b></code></div></div></div>';}
+  function simHtml(){var f=goldDraws?otherGold/goldDraws:0;
+    var last=lastDraw?('上一次摸到金币来自 <b>'+['盒A 金金','盒B 金银','盒C 银银'][lastDraw.box]+'</b>，同盒另一枚是 <b>'+lastDraw.other+'</b>'):'点击"摸到 1 次金币"开始（摸到银币的情形按规则丢弃）。';
+    return '<div class="proof-block"><div class="pb-title">④ 模拟验证：让频率说话</div>'+
+    '<p class="pb-text">反复随机选盒、摸币，<b>只统计摸到金币</b>的情形，看"另一枚也是金"的频率：</p>'+
+    '<div class="sim-stats"><div><span class="sv">'+goldDraws+'</span><span class="sk">摸到金币</span></div>'+
+    '<div><span class="sv">'+otherGold+'</span><span class="sk">另一枚也金</span></div>'+
+    '<div><span class="sv hi">'+(goldDraws?pct(f):'—')+'</span><span class="sk">模拟频率</span></div>'+
+    '<div><span class="sv good">66.7%</span><span class="sk">理论 2/3</span></div></div>'+
+    '<div class="sim-bar"><div class="sim-bar-fill" style="width:'+(f*100).toFixed(1)+'%"></div><div class="sim-bar-ref" style="left:66.7%"></div></div>'+
+    '<p class="pb-text last-draw">'+last+'</p></div>';}
+  function render(){var body;
+    if(!predict.chosen)body='<div class="proof-block placeholder">👇 先在下方<b>做出预测</b>，再点上方 <b>① 枚举 / ② 古典 / ③ 贝叶斯 / ④ 模拟</b> 四种方法，逐一验证答案的真相。</div>';
+    else if(method==='classic')body=classicHtml();
+    else if(method==='bayes')body=bayesHtml();
+    else if(method==='sim')body=simHtml();
+    else body=enumHtml();
+    host.innerHTML=BOXES+body;refreshMetrics();}
+  function refreshMetrics(){var f=goldDraws?otherGold/goldDraws:0;
+    setMetric('theory','2/3 ≈ 66.7%');setMetric('gold',goldDraws);setMetric('og',otherGold);
+    setMetric('freq',goldDraws?pct(f):'—','hi');
+    setMetric('proofs',((viewed.enum?1:0)+(viewed.classic?1:0)+(viewed.bayes?1:0))+' / 3');}
+  render();
+  return {title:'伯特兰盒子问题 · 条件概率',kicker:'实验 05',sub:'摸到金币后，同盒另一枚也是金的概率？',
+    metrics:function(){buildMetrics([
+      {key:'theory',label:'理论概率',init:'2/3 ≈ 66.7%'},{key:'gold',label:'摸到金币',init:'0'},
+      {key:'og',label:'另一枚也金',init:'0'},{key:'freq',label:'模拟频率',init:'—',cls:'hi'},
+      {key:'proofs',label:'已看推导',init:'0 / 3'}],
+      '枚举 / 古典 / 贝叶斯三种推导都指向 2/3；模拟频率也会逼近 2/3。直觉的 1/2 忽略了金金盒摸到金的方式多一倍。');refreshMetrics();},
+    resize:function(){},stop:stopAuto};
+}
+
+/* ============================================================
+   模块 7（显示）· 知识总结 + 闯关自检
    ============================================================ */
 function ModuleSummary(){
   var view=$('[data-mod="m6"]'),host=$('.quiz-box',view);
@@ -882,12 +1060,15 @@ function ModuleSummary(){
      tip:'两次相互独立，用乘法原理：1/6 × 1/6 = 1/36。'},
     {q:'掷两次骰子，"至少出现一个 6"的概率是？',
      opts:['1/6','1/3','11/36','1/36'],ans:2,
-     tip:'正难则反：1 − P(一个 6 都没有) = 1 − (5/6)² = 1 − 25/36 = 11/36。'}
+     tip:'正难则反：1 − P(一个 6 都没有) = 1 − (5/6)² = 1 − 25/36 = 11/36。'},
+    {q:'三个盒子各 2 枚硬币：金金 / 金银 / 银银。随机摸出一枚是金币，它来自"金金"盒（同盒另一枚也金）的概率是？',
+     opts:['1/2','2/3','1/3','3/4'],ans:1,
+     tip:'枚举 3 枚金币（金金盒 2 枚 + 金银盒 1 枚）等可能，2 枚来自金金盒 → 2/3；贝叶斯同理。直觉 1/2 忽略了金金盒摸到金的方式多一倍。'}
   ];
   var idx=0,chosen=null,correct=0,finished=false;
-  function rankOf(c){if(c>=6)return['🏆','概率大师','全部答对，概率全貌已了然于胸！'];
-    if(c>=4)return['🎯','概率高手','大部分已掌握，个别再回看对应实验。'];
-    if(c>=2)return['📘','概率学徒','基础已具备，建议重玩实验①–⑤巩固。'];
+  function rankOf(c){if(c>=7)return['🏆','概率大师','全部答对，概率全貌已了然于胸！'];
+    if(c>=5)return['🎯','概率高手','大部分已掌握，个别再回看对应实验。'];
+    if(c>=3)return['📘','概率学徒','基础已具备，建议重玩实验①–⑥巩固。'];
     return['🌱','初学乍练','别灰心，回到前面的实验亲手玩一玩再来。'];}
   function refreshMetrics(){
     var ans=finished?QUIZ.length:(idx+(chosen!=null?1:0));
@@ -921,7 +1102,7 @@ function ModuleSummary(){
   function restart(){idx=0;chosen=null;correct=0;finished=false;render();}
   $('[data-act="restart"]',view).addEventListener('click',restart);
   render();
-  return {title:'概率知识总结 · 闯关自检',kicker:'小结 06',sub:'把五个实验串成一张概率知识地图',
+  return {title:'概率知识总结 · 闯关自检',kicker:'小结 07',sub:'把六个实验串成一张概率知识地图',
     metrics:function(){buildMetrics([
       {key:'done',label:'已答题',init:'0 / '+QUIZ.length},{key:'right',label:'答对',init:'0'},
       {key:'rate',label:'正确率',init:'—',cls:'hi'},{key:'rank',label:'当前段位',init:'闯关中…'}],
@@ -930,7 +1111,7 @@ function ModuleSummary(){
 }
 
 /* ---------- 路由 ---------- */
-var modules={m1:ModuleLLN(),m2:ModuleDice(),m3:ModuleGalton(),m4:ModuleMeet(),m5:ModuleMonty(),m6:ModuleSummary()};
+var modules={m1:ModuleLLN(),m2:ModuleDice(),m3:ModuleGalton(),m4:ModuleMeet(),mbox:ModuleBertrand(),m5:ModuleMonty(),m6:ModuleSummary()};
 var current=null;
 function activate(id){
   $$('.mod-view').forEach(function(el){el.classList.toggle('active',el.getAttribute('data-mod')===id);});

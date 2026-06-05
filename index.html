@@ -22,7 +22,7 @@
     --bg:#0f172a; --bg2:#1e293b;
     --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
     --brand:#4f46e5; --brand2:#7c3aed;
-    --geo:#0ea5e9; --alg:#10b981; --num:#f59e0b; --app:#ef4444; --fun:#8b5cf6; --prob:#ec4899;
+    --geo:#0ea5e9; --alg:#10b981; --num:#f59e0b; --app:#ef4444; --fun:#8b5cf6; --prob:#ec4899; --psy:#14b8a6;
     --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.08);
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -155,7 +155,7 @@ const CATEGORIES = [
   {key:"num", name:"数论与组合", color:"var(--num)"},
   {key:"prob", name:"概率统计",  color:"var(--prob)"},
   {key:"app", name:"应用问题",   color:"var(--app)"},
-  {key:"fun", name:"趣味与思维", color:"var(--fun)"},
+  {key:"psy", name:"心理 · 认知", color:"var(--psy)"},
 ];
 
 // 字段说明：title 标题 / cat 分类 / file 文件 / desc 简介 / tags 关键词 / isNew 新课件(可选)
@@ -200,7 +200,7 @@ const COURSEWARE = [
 
   // 概率统计
   {title:"概率实验室", cat:"prob", file:"probability-lab.html", isNew:true,
-   desc:"六个反直觉的概率实验——大数定律、两骰之和、高尔顿钉板、约会问题、三门问题，外加知识总结闯关；先预测、再亲手模拟，让频率打败直觉。", tags:["概率","大数定律","古典概型","几何概型","三门问题","蒙特卡洛"]},
+   desc:"六个反直觉的概率实验——大数定律、两骰之和、高尔顿钉板、约会问题、伯特兰盒子、三门问题，外加知识总结闯关；先预测、再用枚举·古典·贝叶斯·模拟逐一验证。", tags:["概率","大数定律","古典概型","几何概型","条件概率","贝叶斯","伯特兰盒子","三门问题","蒙特卡洛"]},
   {title:"蒙提霍尔三门问题", cat:"prob", file:"monty-hall.html", isNew:true,
    desc:"换还是不换？亲手玩三门赢汽车，再用上千次模拟看频率收敛、战绩堆成钟形分布，最后用概率树看懂为什么换门胜率是 2/3。", tags:["概率","条件概率","三门问题","贝叶斯","大数定律","蒙特卡洛"]},
 
@@ -208,10 +208,12 @@ const COURSEWARE = [
   {title:"经济问题", cat:"app", file:"economics.html",
    desc:"交互实验课件，用数学模型分析利润、成本与定价等经济情境。", tags:["应用","建模","利润"]},
 
-  // 趣味与思维
-  {title:"工作记忆训练游戏", cat:"fun", file:"working-memory-game.html", isNew:true,
-   desc:"通过记忆广度小游戏训练工作记忆，挑战你的专注与短时记忆容量。", tags:["思维","记忆","游戏"]},
-  {title:"测测你的反应有多快！", cat:"fun", file:"reaction-time.html", isNew:true,
+  // 心理 · 认知
+  {title:"神奇的视错觉", cat:"psy", file:"optical-illusions.html", isNew:true,
+   desc:"九大经典视错觉一关一关亲手戳穿：米勒-莱尔、艾宾浩斯、庞佐、咖啡墙、赫尔曼/闪烁格、阿德尔森棋盘阴影、卡尼莎三角、运动诱导盲、负后像。先预测，再用工具证明它们其实相等/不存在，并量化你的「错觉强度」。", tags:["知觉","视错觉","侧抑制","明度恒常","主观轮廓","PSE"]},
+  {title:"工作记忆训练游戏", cat:"psy", file:"working-memory-game.html", isNew:true,
+   desc:"通过记忆广度小游戏训练工作记忆，挑战你的专注与短时记忆容量。", tags:["认知","记忆","工作记忆","游戏"]},
+  {title:"测测你的反应有多快！", cat:"psy", file:"reaction-time.html", isNew:true,
    desc:"F1 起跑灯式反应时实验：测反应极限、亲手画出 Hick 对数曲线、登录后上榜与同学比拼。", tags:["反应时","认知","Hick","游戏","榜单"]},
 ];
 

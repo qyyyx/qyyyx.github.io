@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>神奇的视错觉 · 眼见为何不实</title>
+<style>
+:root{
+  --bg:#0b1020; --bg2:#121a30; --card:#18223c; --card2:#202c4a;
+  --ink:#eef3ff; --muted:#9fb0d4; --line:#2a3a5c;
+  --brand:#4f86f7; --brand2:#7aa7ff; --go:#22c55e; --stop:#ef4444; --warn:#f59e0b; --gold:#fbbf24;
+  --shadow:0 10px 40px rgba(0,0,0,.45);
+  /* 给 achievements.css 的别名（深色主题映射） */
+  --surface:var(--card); --surface-strong:var(--card2); --accent:var(--brand);
+  --accent-dark:var(--brand2); --accent-soft:rgba(79,134,247,.25); --text:var(--ink);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,-apple-system,sans-serif;
+  background:radial-gradient(1200px 600px at 50% -10%,#16223f 0%,var(--bg) 55%);
+  color:var(--ink); min-height:100vh; -webkit-font-smoothing:antialiased; overflow-x:hidden}
+button{font-family:inherit;cursor:pointer;color:inherit}
+.hidden{display:none!important}
+b{color:var(--brand2)}
+
+/* header */
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(11,16,32,.7);
+  position:sticky;top:0;z-index:30;backdrop-filter:blur(8px)}
+.logo{font-weight:800;font-size:18px;display:flex;align-items:center;gap:9px}
+.logo .eye{font-size:22px}
+.logo small{font-weight:500;font-size:12px;color:var(--muted);margin-left:4px}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.ach-mini{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.ach-progress-track{width:90px}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 13px;
+  border-radius:10px;font-size:13px;font-weight:600;transition:.15s;min-height:40px}
+.btn:hover{border-color:var(--brand);color:var(--brand2)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:#3b6fe0}
+.btn.sm{padding:6px 11px;min-height:34px;font-size:12px}
+
+/* console grid */
+.console{display:grid;grid-template-columns:228px minmax(0,1fr) 320px;gap:16px;
+  max-width:1320px;margin:0 auto;padding:16px 18px 80px;align-items:start}
+
+/* nav */
+.modnav{position:sticky;top:74px;display:flex;flex-direction:column;gap:14px}
+.navgroup{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px}
+.navtitle{font-size:12px;font-weight:700;color:var(--brand2);letter-spacing:.5px;margin:2px 4px 8px}
+.navtitle .fam{opacity:.6;font-weight:500}
+.module-item{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:none;
+  background:transparent;color:var(--muted);padding:9px 10px;border-radius:9px;font-size:13.5px;
+  font-weight:600;transition:.13s}
+.module-item:hover{background:var(--card2);color:var(--ink)}
+.module-item.active{background:var(--brand);color:#fff}
+.module-item .ic{font-size:16px}
+.module-item.done::after{content:"✓";margin-left:auto;color:var(--go);font-weight:800}
+.module-item.active.done::after{color:#cffcde}
+
+/* workspace */
+.stage-area{min-width:0}
+.mod-head{margin-bottom:12px}
+.mod-head .kicker{font-size:12px;color:var(--warn);font-weight:700;letter-spacing:1px}
+.mod-head h2{font-size:clamp(20px,3.4vw,27px);margin:3px 0}
+.mod-head .sub{color:var(--muted);font-size:14px;line-height:1.5}
+.illusion-view{display:none}
+.illusion-view.active{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* predict */
+.predict{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.predict.nudge{animation:nudge .5s ease}
+@keyframes nudge{0%,100%{box-shadow:none}30%,70%{box-shadow:0 0 0 3px rgba(79,134,247,.5)}}
+.eyebrow{font-size:11px;font-weight:700;color:var(--brand2);letter-spacing:1px}
+.predict .q{font-size:15px;font-weight:600;margin:6px 0 4px}
+.opts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.opt{flex:1 1 auto;min-width:120px;text-align:center;background:var(--card2);border:1px solid var(--line);
+  color:var(--ink);padding:11px 12px;border-radius:11px;font-size:14px;font-weight:600;transition:.13s}
+.opt:hover{border-color:var(--brand)}
+.opt.sel{border-color:var(--brand);background:rgba(79,134,247,.22)}
+.opt.correct{border-color:var(--go);background:rgba(34,197,94,.2)}
+.opt.wrong{border-color:var(--stop);background:rgba(239,68,68,.16)}
+.opt.dim{opacity:.5}
+.feedback{margin-top:9px;font-size:13px;color:var(--muted);line-height:1.5;min-height:18px}
+
+/* stage */
+.stage-wrap{border-radius:16px;border:1px solid var(--line);overflow:hidden;position:relative;
+  display:flex;align-items:center;justify-content:center}
+.stage-wrap.gray{background:#777}
+.stage-wrap.white{background:#fff}
+.stage-wrap.black{background:#000}
+.stage-wrap svg,.stage-wrap canvas{display:block;width:100%;height:auto}
+.stage-wrap.fixed canvas{height:100%}
+.stage-cap{position:absolute;left:10px;bottom:8px;font-size:11px;padding:3px 8px;border-radius:999px;
+  background:rgba(0,0,0,.4);color:#fff;pointer-events:none}
+.stage-wrap.white .stage-cap{background:rgba(0,0,0,.55)}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-top:12px;
+  background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 16px}
+.ctl{display:flex;flex-direction:column;gap:4px;min-width:150px;flex:1 1 160px}
+.ctl label{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.ctl label b{color:var(--brand2);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;height:36px;accent-color:var(--brand);cursor:pointer}
+.seg{display:inline-flex;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg button{border:none;background:transparent;color:var(--muted);padding:8px 13px;border-radius:8px;font-size:13px;font-weight:600;min-height:34px}
+.seg button.on{background:var(--brand);color:#fff}
+.ctl-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-left:auto}
+.lock-hint{font-size:12px;color:var(--warn);font-weight:600}
+.btn.is-locked{opacity:.5;border-style:dashed}
+.toggle-btn{border:1px solid var(--line);background:var(--card2);color:var(--ink);padding:9px 13px;border-radius:10px;font-size:13px;font-weight:600;min-height:40px}
+.toggle-btn.on{background:rgba(79,134,247,.22);border-color:var(--brand);color:var(--brand2)}
+
+/* data panel */
+.datapanel{position:sticky;top:74px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 16px}
+.panel h3{font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.5px;margin-bottom:10px;text-transform:uppercase}
+dl#metrics{display:grid;grid-template-columns:1fr auto;gap:8px 10px}
+dl#metrics dt{color:var(--muted);font-size:13px}
+dl#metrics dd{font-weight:800;font-size:15px;text-align:right;font-variant-numeric:tabular-nums}
+dl#metrics dd.good{color:var(--go)} dl#metrics dd.warn{color:var(--warn)} dl#metrics dd.big{color:var(--brand2)}
+#metricNote{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.55}
+.distbar{height:10px;border-radius:999px;background:var(--card2);position:relative;margin:8px 0 4px;overflow:visible}
+.distbar .fill{position:absolute;left:0;top:0;height:100%;border-radius:999px;background:linear-gradient(90deg,#22c55e,#f59e0b,#ef4444);opacity:.5}
+.distbar .you{position:absolute;top:-4px;width:3px;height:18px;background:#fff;border-radius:2px;box-shadow:0 0 6px #fff}
+.sci [data-reveal-toggle]{width:100%}
+.sci-body{display:none;margin-top:12px;font-size:13.5px;line-height:1.65;color:#cdd9f5}
+.sci-body.open{display:block;animation:fade .2s ease}
+.sci-body h4{color:var(--brand2);font-size:14px;margin:10px 0 4px}
+.sci-body p{margin:6px 0}
+.sci-body .real{margin-top:10px;padding:9px 11px;background:var(--card2);border-radius:10px;border-left:3px solid var(--warn);font-size:12.5px;color:var(--muted)}
+
+/* badges / inline */
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700}
+.pill.go{background:rgba(34,197,94,.18);color:#86efac}
+.pill.warn{background:rgba(245,158,11,.18);color:#fcd34d}
+
+/* summary module */
+.maplead{color:var(--muted);font-size:14px;margin-bottom:12px;line-height:1.6}
+.mapgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:11px}
+.mapcard{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px}
+.mapcard .mech{font-weight:800;color:var(--brand2);font-size:14px}
+.mapcard .desc{font-size:12.5px;color:var(--muted);margin:6px 0 8px;line-height:1.5}
+.mapcard .links{display:flex;gap:5px;flex-wrap:wrap}
+.mapcard .links span{font-size:11px;background:var(--card2);border-radius:6px;padding:2px 7px;color:#cdd9f5}
+.quiz{margin-top:18px}
+.quizq{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px 16px;margin-bottom:11px}
+.quizq .qt{font-weight:600;font-size:14.5px;margin-bottom:9px}
+.quizq .qt span{color:var(--warn);font-weight:800;margin-right:6px}
+.quizopt{display:block;width:100%;text-align:left;background:var(--card2);border:1px solid var(--line);color:var(--ink);
+  padding:10px 13px;border-radius:10px;margin-top:7px;font-size:13.5px;transition:.12s}
+.quizopt:hover{border-color:var(--brand)}
+.quizopt.correct{border-color:var(--go);background:rgba(34,197,94,.18)}
+.quizopt.wrong{border-color:var(--stop);background:rgba(239,68,68,.16)}
+.quizopt.dim{opacity:.5}
+.rankbox{margin-top:14px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.rankbox .score{font-size:30px;font-weight:800;color:var(--brand2)}
+.rankbox .rank{font-size:18px;font-weight:800;margin-top:4px}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(4,8,18,.74);display:flex;align-items:center;justify-content:center;padding:16px;z-index:60}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:18px;max-width:520px;width:100%;max-height:86vh;overflow:auto;padding:22px;box-shadow:var(--shadow)}
+.modal h2{font-size:19px;margin-bottom:4px}
+.modal .msub{color:var(--muted);font-size:13px;margin-bottom:14px}
+.modal-x{display:flex;justify-content:flex-end;margin-top:14px}
+
+/* === achievements.css（内联底座，颜色走上方 :root 别名） === */
+.ach-toast-stack{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:10px;z-index:9999;pointer-events:none}
+.ach-toast{min-width:230px;max-width:310px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);box-shadow:0 6px 20px rgba(0,0,0,.4);animation:ach-toast-in .25s ease-out}
+.ach-toast-title{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--accent-dark);font-weight:600}
+.ach-toast-name{margin-top:4px;font-size:15px;font-weight:700;color:var(--text)}
+.ach-toast-desc{margin-top:2px;font-size:12px;color:var(--muted)}
+@keyframes ach-toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.ach-progress-track{height:8px;border-radius:999px;background:var(--surface-strong);overflow:hidden}
+.ach-progress-track>[data-ach-progress]{display:block;height:100%;width:0%;border-radius:999px;background:var(--accent);transition:width .3s ease}
+.ach-row{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);opacity:.55;margin-bottom:8px}
+.ach-row.is-unlocked{opacity:1;border-color:var(--accent-soft)}
+.ach-row .ach-icon{font-size:22px;text-align:center}
+.ach-row .ach-name{font-weight:600;color:var(--text)}
+.ach-row .ach-desc{font-size:12px;color:var(--muted)}
+.ach-row .ach-status{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+.ach-row.is-unlocked .ach-status{color:var(--accent-dark)}
+
+/* responsive */
+@media(max-width:1080px){
+  .console{grid-template-columns:minmax(0,1fr);gap:14px}
+  .modnav{position:static;flex-direction:row;overflow-x:auto;gap:10px;padding-bottom:4px}
+  .navgroup{min-width:200px;flex:0 0 auto}
+  .datapanel{position:static}
+}
+@media(max-width:560px){
+  header{padding:10px 12px} .logo small{display:none}
+  .console{padding:12px 12px 70px}
+  .ctl{flex-basis:100%} .ctl-actions{margin-left:0;width:100%}
+  .opt{min-width:0;flex-basis:calc(50% - 4px)}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="eye">👁️</span>神奇的视错觉<small>眼见为何不实 · 知觉实验室</small></div>
+  <div class="hdr-right">
+    <div class="ach-mini"><span>成就</span><div class="ach-progress-track"><span data-ach-progress></span></div><span><b data-ach-count>0</b>/<span data-ach-total>0</span></span></div>
+    <button class="btn sm" id="trophyBtn">🏆 成就</button>
+  </div>
+</header>
+
+<div class="console">
+  <!-- ===== 左：模块导航 ===== -->
+  <nav class="modnav">
+    <div class="navgroup">
+      <div class="navtitle">A · 几何错觉 <span class="fam">大小/长度</span></div>
+      <button class="module-item" data-target="ml"><span class="ic">📏</span>① 米勒-莱尔</button>
+      <button class="module-item" data-target="eb"><span class="ic">⭕</span>② 艾宾浩斯</button>
+      <button class="module-item" data-target="po"><span class="ic">🛤️</span>③ 庞佐</button>
+    </div>
+    <div class="navgroup">
+      <div class="navtitle">B · 亮度 / 网格 <span class="fam">对比/侧抑制</span></div>
+      <button class="module-item" data-target="cw"><span class="ic">🧱</span>④ 咖啡墙</button>
+      <button class="module-item" data-target="gr"><span class="ic">▦</span>⑤ 赫尔曼·闪烁格</button>
+      <button class="module-item" data-target="ad"><span class="ic">♟️</span>⑥ 棋盘阴影</button>
+    </div>
+    <div class="navgroup">
+      <div class="navtitle">C · 主观 / 运动 <span class="fam">填充/适应</span></div>
+      <button class="module-item" data-target="ka"><span class="ic">🔺</span>⑦ 卡尼莎三角</button>
+      <button class="module-item" data-target="mib"><span class="ic">🟡</span>⑧ 运动诱导盲</button>
+      <button class="module-item" data-target="ai"><span class="ic">🚩</span>⑨ 负后像</button>
+    </div>
+    <div class="navgroup">
+      <div class="navtitle">★ 收口</div>
+      <button class="module-item" data-target="sum"><span class="ic">🎓</span>⑩ 总结 · 闯关自检</button>
+    </div>
+  </nav>
+
+  <!-- ===== 中：实验区 ===== -->
+  <main class="stage-area">
+    <div class="mod-head"><span class="kicker" id="modKicker"></span><h2 id="modTitle"></h2><p class="sub" id="modSub"></p></div>
+    <div class="views">
+
+      <!-- ① 米勒-莱尔 -->
+      <section class="illusion-view" data-mod="ml">
+        <div class="predict" data-predict data-fb="选一个预测，再亲手把两条线调到「看起来一样长」，然后测量验证。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">上下两条<b>红线主干</b>，哪条更长？（不含箭头）</p>
+          <div class="opts">
+            <button class="opt">上面更长</button>
+            <button class="opt">下面更长</button>
+            <button class="opt" data-correct="true">其实一样长</button>
+          </div>
+          <div class="feedback"></div>
+        </div>
+        <div class="stage-wrap white"><svg viewBox="0 0 560 280" data-svg></svg><span class="stage-cap">向外的鳍 &gt;—&lt; vs 向内的鳍 &lt;—&gt;</span></div>
+        <div class="controls">
+          <div class="ctl"><label>调整下方线主干长度 <b data-k="len">200</b> px</label><input type="range" data-slider min="120" max="280" value="200"></div>
+          <div class="ctl-actions">
+            <button class="btn" data-act="measure" data-needs-predict>📐 测量证明</button>
+            <button class="btn sm" data-act="reset">重置</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ② 艾宾浩斯 -->
+      <section class="illusion-view" data-mod="eb">
+        <div class="predict" data-predict data-fb="把左边的中心橙圆调到和右边的中心橙圆「看起来一样大」，再移走包围圆验证。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">两个<b>中心橙圆</b>，哪个更大？</p>
+          <div class="opts">
+            <button class="opt">左边更大</button>
+            <button class="opt">右边更大</button>
+            <button class="opt" data-correct="true">其实一样大</button>
+          </div>
+          <div class="feedback"></div>
+        </div>
+        <div class="stage-wrap white"><svg viewBox="0 0 560 300" data-svg></svg><span class="stage-cap">左：被大圆包围 · 右：被小圆包围</span></div>
+        <div class="controls">
+          <div class="ctl"><label>调整左侧中心圆半径 <b data-k="r">38</b> px</label><input type="range" data-slider min="24" max="56" value="38" step="0.5"></div>
+          <div class="ctl-actions">
+            <button class="btn" data-act="measure" data-needs-predict>📐 移走包围圆</button>
+            <button class="btn sm" data-act="reset">重置</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ③ 庞佐 -->
+      <section class="illusion-view" data-mod="po">
+        <div class="predict" data-predict data-fb="把下面的黄条调到和上面的黄条「看起来一样长」，再移除铁轨验证。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">铁轨上下两条<b>黄条</b>，哪条更长？</p>
+          <div class="opts">
+            <button class="opt">上面更长</button>
+            <button class="opt">下面更长</button>
+            <button class="opt" data-correct="true">其实一样长</button>
+          </div>
+          <div class="feedback"></div>
+        </div>
+        <div class="stage-wrap black"><svg viewBox="0 0 560 320" data-svg></svg><span class="stage-cap">向远处收敛的「铁轨」</span></div>
+        <div class="controls">
+          <div class="ctl"><label>调整下方黄条长度 <b data-k="len">150</b> px</label><input type="range" data-slider min="90" max="230" value="150"></div>
+          <div class="ctl-actions">
+            <button class="btn" data-act="measure" data-needs-predict>📐 移除铁轨</button>
+            <button class="btn sm" data-act="reset">重置</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ④ 咖啡墙 -->
+      <section class="illusion-view" data-mod="cw">
+        <div class="predict" data-predict data-fb="拖动「错位量」滑杆，观察砖行从倾斜到水平；再叠上参考线验证它们一直是平行的。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">这些<b>水平砖行</b>是真的倾斜了吗？</p>
+          <div class="opts">
+            <button class="opt">真的斜了</button>
+            <button class="opt" data-correct="true">看着斜，其实平行</button>
+          </div>
+          <div class="feedback"></div>
+        </div>
+        <div class="stage-wrap gray"><canvas data-canvas></canvas><span class="stage-cap">黑白砖 + 错位 + 中灰砖缝</span></div>
+        <div class="controls">
+          <div class="ctl"><label>相邻行错位 <b data-k="off">50</b>%</label><input type="range" data-slider="off" min="0" max="100" value="50"></div>
+          <div class="ctl"><label>砖缝粗细 <b data-k="mor">3</b> px</label><input type="range" data-slider="mor" min="0" max="10" value="3"></div>
+          <div class="ctl-actions">
+            <button class="toggle-btn" data-act="guides" data-needs-predict>📏 叠水平参考线</button>
+            <button class="btn sm" data-act="reset">重置</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑤ 赫尔曼 / 闪烁格 -->
+      <section class="illusion-view" data-mod="gr">
+        <div class="predict" data-predict data-fb="盯着网格中央，用眼角余光看其它交叉口；再点「放大一个路口」，看看灰点是否真的画在那里。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">交叉路口那些<b>灰色/黑色斑点</b>，真的画在图上吗？</p>
+          <div class="opts">
+            <button class="opt">画上去了</button>
+            <button class="opt" data-correct="true">没画，是脑补的</button>
+          </div>
+          <div class="feedback"></div>
+        </div>
+        <div class="stage-wrap black"><canvas data-canvas></canvas><span class="stage-cap" data-cap>赫尔曼格：盯一点，余光看别处</span></div>
+        <div class="controls">
+          <div class="ctl"><label>类型</label><div class="seg" data-seg="type"><button data-v="hermann" class="on">赫尔曼格</button><button data-v="scint">闪烁格</button></div></div>
+          <div class="ctl"><label>格子间距 <b data-k="sp">66</b> px</label><input type="range" data-slider="sp" min="44" max="96" value="66"></div>
+          <div class="ctl-actions">
+            <button class="toggle-btn" data-act="zoom" data-needs-predict>🔍 放大一个路口</button>
+            <button class="btn sm" data-act="reset">重置</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑥ 阿德尔森棋盘阴影 -->
+      <section class="illusion-view" data-mod="ad">
+        <div class="predict" data-predict data-fb="A 在阴影外、B 在阴影里。先预测，再点「把 B 滑到 A 旁边」——它们会显示同一种灰。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">方块 <b>A</b>（阴影外）和方块 <b>B</b>（阴影内），哪个颜色更深？</p>
+          <div class="opts">
+            <button class="opt">A 更深</button>
+            <button class="opt">B 更深</button>
+            <button class="opt" data-correct="true">其实完全同色</button>
+          </div>
+          <div class="feedback"></div>
+        </div>
+        <div class="stage-wrap gray fixed" style="aspect-ratio:560/360"><canvas data-canvas></canvas><span class="stage-cap">圆柱在棋盘上投下阴影</span></div>
+        <div class="controls">
+          <div class="ctl-actions" style="margin-left:0">
+            <button class="btn" data-act="slide" data-needs-predict>🧩 把 B 滑到 A 旁</button>
+            <button class="toggle-btn" data-act="bridge">🌉 同灰连接条</button>
+            <button class="toggle-btn" data-act="shadow">💡 去掉阴影</button>
+            <button class="btn sm" data-act="reset">重置</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑦ 卡尼莎三角 -->
+      <section class="illusion-view" data-mod="ka">
+        <div class="predict" data-predict data-fb="慢慢旋转「吃豆人」开口，三角会出现又消失；再点验证，看中央到底有没有边、是不是更白。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">中间那个<b>白色三角</b>，它的边是真画上去的吗？它比背景更白吗？</p>
+          <div class="opts">
+            <button class="opt">有边，也更白</button>
+            <button class="opt" data-correct="true">没有边，也不更白</button>
+          </div>
+          <div class="feedback"></div>
+        </div>
+        <div class="stage-wrap white"><svg viewBox="0 0 460 380" data-svg></svg><span class="stage-cap">三个缺口圆 +（可选）三个折角</span></div>
+        <div class="controls">
+          <div class="ctl"><label>旋转开口（对齐 → 转开）<b data-k="rot">0</b>°</label><input type="range" data-slider min="0" max="180" value="0"></div>
+          <div class="ctl-actions">
+            <button class="toggle-btn" data-act="prove" data-needs-predict>🎯 证明：取色对比</button>
+            <button class="btn sm" data-act="reset">重置</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑧ 运动诱导盲 -->
+      <section class="illusion-view" data-mod="mib">
+        <div class="predict" data-predict data-fb="死死盯住中央红十字（别动眼睛），用余光留意三个黄点；停转后它们会立刻全部回来。">
+          <span class="eyebrow">先预测</span>
+          <p class="q">盯住中央十字时，三个静止的<b>亮黄点</b>会发生什么？</p>
+          <div class="opts">
+            <button class="opt">一直清清楚楚</button>
+            <button class="opt" data-correct="true">会间歇性消失</button>
+          </div>
+          <div class="feedback"></div>
+        </div>
+        <div class="stage-wrap black fixed" style="aspect-ratio:560/360"><canvas data-canvas></canvas><span class="stage-cap">盯住中央红十字，别移动视线</span></div>
+        <div class="controls">
+          <div class="ctl"><label>背景转速 <b data-k="spd">5</b></label><input type="range" data-slider="spd" min="0" max="10" value="5"></div>
+          <div class="ctl-actions">
+            <button class="toggle-btn" data-act="run" data-needs-predict>▶️ 开始旋转</button>
+            <button class="btn sm" data-act="reset">重置</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑨ 负后像 -->
+      <section class="illusion-view" data-mod="ai">
+        <div class="predict" data-predict data-fb="盯住色块中央的小黑点不要动；倒计时结束切到白屏，你会看到——补色！">
+          <span class="eyebrow">先预测</span>
+          <p class="q">盯住一块<b>青绿色</b>看久了，切到白屏的瞬间会浮现什么颜色？</p>
+          <div class="opts">
+            <button class="opt">还是青绿色</button>
+            <button class="opt">什么都没有</button>
+            <button class="opt" data-correct="true">相反的红/品红</button>
+          </div>
+          <div class="feedback"></div>
+        </div>
+        <div class="stage-wrap black fixed" style="aspect-ratio:560/340"><canvas data-canvas></canvas><span class="stage-cap" data-cap>盯住中央小黑点</span></div>
+        <div class="controls">
+          <div class="ctl"><label>适应色</label><div class="seg" data-seg="color"><button data-v="cyan" class="on">青</button><button data-v="green">绿</button><button data-v="magenta">品红</button><button data-v="yellow">黄</button></div></div>
+          <div class="ctl"><label>注视时长 <b data-k="dur">12</b> 秒</label><input type="range" data-slider="dur" min="6" max="20" value="12"></div>
+          <div class="ctl-actions">
+            <button class="btn primary" data-act="start" data-needs-predict>▶ 开始注视</button>
+            <button class="btn sm" data-act="reset">重置</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑩ 总结 · 闯关自检 -->
+      <section class="illusion-view" data-mod="sum">
+        <p class="maplead">九个错觉，其实在演示大脑加工视觉的<b>五种「捷径」</b>。把每个错觉对号入座，再做 6 题自检。</p>
+        <div class="mapgrid" id="mapGrid"></div>
+        <div class="quiz" id="quizBox"></div>
+        <div class="rankbox hidden" id="rankBox"><div class="score" id="quizScore"></div><div class="rank" id="quizRank"></div><p class="sub" id="quizTip" style="color:var(--muted);font-size:13px;margin-top:6px"></p></div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ===== 右：数据面板 ===== -->
+  <aside class="datapanel">
+    <div class="panel"><h3>实验数据</h3><dl id="metrics"></dl><div id="metricNote"></div></div>
+    <div class="panel sci"><button class="btn" data-reveal-toggle>🔬 显示科学原理</button><div class="sci-body" id="sciBody"></div></div>
+  </aside>
+</div>
+
+<!-- 奖杯弹窗 -->
+<div id="achModal" class="modal-bg hidden">
+  <div class="modal">
+    <h2>🏆 知觉侦探·成就</h2>
+    <p class="msub">奖励「看穿假象」的发现，不是点击次数。已解锁 <b data-ach-count>0</b>/<span data-ach-total>0</span></p>
+    <div id="achList"></div>
+    <div class="modal-x"><button class="btn sm" id="achReset">重置进度</button><button class="btn primary sm" id="achClose" style="margin-left:8px">关闭</button></div>
+  </div>
+</div>
+
+<!-- ===== achievements.js（内联工坊底座） ===== -->
+<script>
+(function (global) {
+  'use strict';
+  function createAchievements(options) {
+    options = options || {};
+    var defs = options.defs || [];
+    var storageKey = options.storageKey || 'courseware-achievements-v1';
+    var toastDuration = options.toastDuration || 4200;
+    var onUnlock = typeof options.onUnlock === 'function' ? options.onUnlock : null;
+    var unlocked = new Set();
+    function findDef(id){for(var i=0;i<defs.length;i++){if(defs[i].id===id)return defs[i];}return null;}
+    function load(){try{var raw=global.localStorage.getItem(storageKey);if(raw)JSON.parse(raw).forEach(function(id){unlocked.add(id);});}catch(e){}}
+    function save(){try{global.localStorage.setItem(storageKey,JSON.stringify(Array.from(unlocked)));}catch(e){}}
+    function toastStack(){var el=document.getElementById('achToastStack');if(!el){el=document.createElement('div');el.id='achToastStack';el.className='ach-toast-stack';document.body.appendChild(el);}return el;}
+    function showToast(def){var el=document.createElement('div');el.className='ach-toast';el.innerHTML='<div class="ach-toast-title"><span>🏆</span>解锁成就</div><div class="ach-toast-name">'+(def.icon||'')+' '+def.name+'</div><div class="ach-toast-desc">'+(def.desc||'')+'</div>';toastStack().appendChild(el);setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},toastDuration);}
+    function updateProgress(){var got=count(),tot=Math.max(1,total());document.querySelectorAll('[data-ach-progress]').forEach(function(bar){bar.style.width=Math.round(got/tot*100)+'%';});document.querySelectorAll('[data-ach-count]').forEach(function(c){c.textContent=count();});document.querySelectorAll('[data-ach-total]').forEach(function(t){t.textContent=total();});}
+    function fire(def){save();showToast(def);updateProgress();if(onUnlock)onUnlock(def);}
+    function unlock(id){if(unlocked.has(id))return false;var def=findDef(id);if(!def)return false;unlocked.add(id);fire(def);return true;}
+    function check(state){var fresh=[];for(var i=0;i<defs.length;i++){var def=defs[i];if(def.check&&!unlocked.has(def.id)&&def.check(state)){unlocked.add(def.id);fresh.push(def);}}if(fresh.length){fresh.forEach(fire);}return fresh;}
+    function has(id){return unlocked.has(id);}
+    function count(){return defs.filter(function(d){return unlocked.has(d.id);}).length;}
+    function total(){return defs.length;}
+    function reset(){unlocked.clear();save();updateProgress();}
+    function renderList(container){if(!container)return;container.innerHTML='';defs.forEach(function(def){var got=unlocked.has(def.id);var row=document.createElement('div');row.className='ach-row'+(got?' is-unlocked':'');row.innerHTML='<div class="ach-icon">'+(got?(def.icon||'🏆'):'🔒')+'</div><div class="ach-meta"><div class="ach-name">'+def.name+'</div><div class="ach-desc">'+(def.desc||'')+'</div></div><div class="ach-status">'+(got?'✓ 已解锁':'未解锁')+'</div>';container.appendChild(row);});updateProgress();}
+    load();updateProgress();
+    return {check:check,unlock:unlock,has:has,count:count,total:total,reset:reset,renderList:renderList};
+  }
+  global.createAchievements = createAchievements;
+})(window);
+</script>
+
+<!-- ===== 知觉实验底座 + 各错觉模块 ===== -->
+<script>
+(function(){
+"use strict";
+var $=function(s,r){return (r||document).querySelector(s);};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));};
+var clamp=function(v,a,b){return Math.max(a,Math.min(b,v));};
+var TAU=Math.PI*2;
+
+/* ---------- 统计（仿反应时 RT.stats，用于 PSE） ---------- */
+var stats={
+  mean:function(a){return a.length?a.reduce(function(x,y){return x+y;},0)/a.length:0;},
+  median:function(a){if(!a.length)return 0;var s=a.slice().sort(function(x,y){return x-y;});var m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;},
+  sd:function(a){if(a.length<2)return 0;var m=stats.mean(a);return Math.sqrt(a.reduce(function(x,y){return x+(y-m)*(y-m);},0)/(a.length-1));}
+};
+/* 固定种子伪随机：让「其他同学」分布离线可复现 */
+function seeded(seed){var s=seed>>>0;return function(){s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+
+/* ---------- Canvas DPR 舞台（仿概率 lab makeStage） ---------- */
+function makeStage(canvas){
+  var ctx=canvas.getContext('2d');
+  var api={canvas:canvas,ctx:ctx,w:0,h:0,fit:function(){
+    var r=canvas.getBoundingClientRect();if(!r.width||!r.height)return false;
+    var dpr=Math.min(2,window.devicePixelRatio||1);
+    canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);api.w=r.width;api.h=r.height;return true;}};
+  return api;
+}
+/* ---------- SVG helper ---------- */
+var SVGNS='http://www.w3.org/2000/svg';
+function svg(tag,attrs){var e=document.createElementNS(SVGNS,tag);if(attrs)for(var k in attrs)e.setAttribute(k,attrs[k]);return e;}
+
+/* ---------- 预测门禁（仿概率 lab setupPredict，is-locked 不裸 disabled） ---------- */
+function setupPredict(view){
+  var box=$('[data-predict]',view);if(!box)return null;
+  var opts=$$('.opt',box),fb=$('.feedback',box),baseFb=box.getAttribute('data-fb')||'';
+  var chosen=null,revealed=false;
+  var runBtns=$$('[data-needs-predict]',view);
+  var hint=document.createElement('span');hint.className='lock-hint';hint.textContent='🔒 先预测';
+  if(runBtns[0]&&runBtns[0].parentNode){runBtns[0].parentNode.insertBefore(hint,runBtns[0]);}
+  function lock(){hint.style.display='';runBtns.forEach(function(b){b.classList.add('is-locked');});}
+  function unlock(){hint.style.display='none';runBtns.forEach(function(b){b.classList.remove('is-locked');});}
+  function nudge(){try{box.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}box.classList.remove('nudge');void box.offsetWidth;box.classList.add('nudge');fb.innerHTML='👆 请先选一个<b>预测</b>，再开始实验。';}
+  hint.addEventListener('click',nudge);
+  runBtns.forEach(function(b){b.addEventListener('click',function(e){if(b.classList.contains('is-locked')){e.preventDefault();e.stopImmediatePropagation();nudge();}});});
+  opts.forEach(function(o){o.addEventListener('click',function(){if(revealed)return;opts.forEach(function(x){x.classList.remove('sel');});o.classList.add('sel');chosen=o;fb.textContent='预测已记录 —— 现在亲手验证它。';unlock();});});
+  if(baseFb)fb.textContent=baseFb;
+  lock();
+  return {
+    get chosen(){return chosen;},
+    get done(){return revealed;},
+    reveal:function(insight){if(revealed||!chosen)return;revealed=true;
+      opts.forEach(function(o){o.classList.add(o.getAttribute('data-correct')==='true'?'correct':'dim');});
+      var ok=chosen.getAttribute('data-correct')==='true';chosen.classList.remove('dim');if(!ok)chosen.classList.add('wrong');
+      fb.innerHTML=(ok?'✅ 预测正确！':'❎ 被骗到了吧？')+' '+insight;},
+    reset:function(){revealed=false;chosen=null;opts.forEach(function(o){o.className='opt';});fb.textContent=baseFb;lock();}
+  };
+}
+
+/* ---------- 右栏数据 ---------- */
+var metricsEl=$('#metrics'),metricNoteEl=$('#metricNote');
+function buildMetrics(schema,note){metricsEl.innerHTML='';(schema||[]).forEach(function(m){var row=document.createElement('div');row.style.display='contents';row.innerHTML='<dt>'+m.label+'</dt><dd data-k="'+m.key+'"'+(m.cls?(' class="'+m.cls+'"'):'')+'>'+(m.init||'—')+'</dd>';metricsEl.appendChild(row);});metricNoteEl.innerHTML=note||'';}
+function setMetric(key,val,cls){var dd=metricsEl.querySelector('[data-k="'+key+'"]');if(dd){dd.textContent=val;if(cls!==undefined)dd.className=cls;}}
+
+/* ---------- 科学卡（共享，按模块填充，默认折叠） ---------- */
+var sciBody=$('#sciBody'),sciToggle=$('[data-reveal-toggle]');
+sciToggle.addEventListener('click',function(){var open=sciBody.classList.toggle('open');sciToggle.textContent=open?'🔬 收起科学原理':'🔬 显示科学原理';if(open){state.readSci=true;ach.check(state);}});
+function setSci(html){sciBody.innerHTML=html;sciBody.classList.remove('open');sciToggle.textContent='🔬 显示科学原理';}
+
+/* ---------- PSE 记录器（几何族，本地优先） ---------- */
+var PSE_KEY='illusion-pse-v1';
+function loadPSE(){try{return JSON.parse(localStorage.getItem(PSE_KEY))||{};}catch(e){return {};}}
+function savePSE(o){try{localStorage.setItem(PSE_KEY,JSON.stringify(o));}catch(e){}}
+function recordPSE(illusion,strengthPct){var o=loadPSE();(o[illusion]=o[illusion]||[]).push(Math.round(strengthPct*10)/10);savePSE(o);state.pseCount++;state[illusion]=true;ach.check(state);return o[illusion];}
+/* 「其他同学」分布：每个错觉一组固定种子样本（围绕典型错觉量） */
+function classDist(illusion){var typ={ml:22,eb:18,po:20}[illusion]||20;var r=seeded(illusion.charCodeAt(0)*7919+illusion.length);var arr=[];for(var i=0;i<40;i++){arr.push(clamp(typ+(r()+r()+r()-1.5)*16,1,55));}return arr;}
+function pctBeats(arr,v){var c=0;arr.forEach(function(x){if(v<x)c++;});return Math.round(c/arr.length*100);}
+
+/* ---------- 成就状态 ---------- */
+var state={unlockedCount:0,pseCount:0,readSci:false,quizBest:0,
+  ml:false,eb:false,po:false,cw:false,gr:false,ad:false,ka:false,mib:false,ai:false};
+function famGeo(){return state.ml||state.eb||state.po;}
+function famBright(){return state.cw||state.gr||state.ad;}
+function famSubj(){return state.ka||state.mib||state.ai;}
+var ach=createAchievements({
+  storageKey:'illusion-suite-ach-v1',
+  defs:[
+    {id:'ml',icon:'📏',name:'戳穿米勒-莱尔',desc:'把带箭头的两条线调到主观相等并测量',check:function(s){return s.ml;}},
+    {id:'eb',icon:'⭕',name:'移走光环',desc:'识破艾宾浩斯：参照物骗了你的大小判断',check:function(s){return s.eb;}},
+    {id:'po',icon:'🛤️',name:'看穿铁轨',desc:'识破庞佐：透视让等长变不等',check:function(s){return s.po;}},
+    {id:'cw',icon:'🧱',name:'拉直砖墙',desc:'证明咖啡墙的砖行其实根根平行',check:function(s){return s.cw;}},
+    {id:'gr',icon:'👻',name:'幽灵灰点',desc:'发现网格交叉口的斑点根本不存在',check:function(s){return s.gr;}},
+    {id:'ad',icon:'♟️',name:'看穿棋盘',desc:'发现阿德尔森 A、B 两格物理同色',check:function(s){return s.ad;}},
+    {id:'ka',icon:'🔺',name:'无中生有',desc:'看见并戳穿不存在的卡尼莎三角',check:function(s){return s.ka;}},
+    {id:'mib',icon:'🟡',name:'眼见为虚',desc:'亲历运动诱导盲：黄点凭空消失',check:function(s){return s.mib;}},
+    {id:'ai',icon:'🚩',name:'补色显灵',desc:'让负后像浮现，命中互补色',check:function(s){return s.ai;}},
+    {id:'quant',icon:'📊',name:'量化错觉',desc:'完成一次 PSE 测量，给错觉打出强度分',check:function(s){return s.pseCount>=1;}},
+    {id:'detective',icon:'🕵️',name:'知觉侦探',desc:'三大族错觉各戳穿至少一个',check:function(){return famGeo()&&famBright()&&famSubj();}},
+    {id:'scholar',icon:'🎓',name:'学成出师',desc:'总结自检答对 5 题及以上',check:function(s){return s.quizBest>=5;}},
+    {id:'master',icon:'👁️',name:'知觉大师',desc:'解锁前面所有成就',check:function(s){return s.unlockedCount>=12;}}
+  ],
+  onUnlock:function(){state.unlockedCount=ach.count();markNavDone();ach.check(state);}
+});
+ach.renderList($('#achList'));
+function markNavDone(){var map={ml:'ml',eb:'eb',po:'po',cw:'cw',gr:'gr',ad:'ad',ka:'ka',mib:'mib',ai:'ai'};Object.keys(map).forEach(function(k){if(state[k]){var b=$('.module-item[data-target="'+k+'"]');if(b)b.classList.add('done');}});}
+/* 奖杯弹窗 */
+$('#trophyBtn').addEventListener('click',function(){ach.renderList($('#achList'));$('#achModal').classList.remove('hidden');});
+$('#achClose').addEventListener('click',function(){$('#achModal').classList.add('hidden');});
+$('#achModal').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');});
+$('#achReset').addEventListener('click',function(){if(confirm('确定重置全部成就与 PSE 记录？')){ach.reset();try{localStorage.removeItem(PSE_KEY);}catch(e){}Object.keys(state).forEach(function(k){if(typeof state[k]==='boolean')state[k]=false;});state.pseCount=0;state.quizBest=0;$$('.module-item').forEach(function(b){b.classList.remove('done');});ach.renderList($('#achList'));}});
+
+/* ===== 几何族共享：PSE 分布条 ===== */
+function showDist(strength,beat){
+  var pos=clamp(strength/50*100,2,98);
+  metricNoteEl.innerHTML='你的错觉强度落点（对比 40 位同学）：'+
+    '<div class="distbar"><div class="fill"></div><div class="you" style="left:'+pos+'%"></div></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)"><span>0% 没被骗</span><span>50%+</span></div>'+
+    '你比 <b>'+beat+'%</b> 的同学<b>更不容易</b>上当。再多测几次，看自己的中位数。';
+}
+
+/* ===== ① 米勒-莱尔 (SVG) ===== */
+function ModuleMullerLyer(){
+  var view=$('[data-mod="ml"]'),s=$('[data-svg]',view),predict=setupPredict(view);
+  var slider=$('[data-slider]',view),lenLabel=$('[data-k="len"]',view);
+  var TOP=200,measured=false;
+  var SCHEMA=[{label:'B 你设的长度',key:'set'},{label:'A 基准',key:'truth',init:'200 px'},{label:'错觉强度',key:'str',cls:'big',init:'—'},{label:'你的中位',key:'med',init:'—'}];
+  var NOTE='把下方 B 调到和上方 A「看起来一样长」，再点测量。';
+  function bottomLen(){return parseInt(slider.value,10);}
+  function fin(x,y,end,inward){var dx=21*(inward?-end:end);return '<line x1="'+x+'" y1="'+y+'" x2="'+(x+dx)+'" y2="'+(y-15)+'"/><line x1="'+x+'" y1="'+y+'" x2="'+(x+dx)+'" y2="'+(y+15)+'"/>';}
+  function draw(){
+    var L=bottomLen();lenLabel.textContent=L;var cx=280,h='';
+    if(!measured){
+      var t0=cx-TOP/2,t1=cx+TOP/2,ty=95;
+      h+='<g stroke="#e0312e" stroke-width="4" stroke-linecap="round" fill="none"><line x1="'+t0+'" y1="'+ty+'" x2="'+t1+'" y2="'+ty+'"/>'+fin(t0,ty,-1,false)+fin(t1,ty,1,false)+'</g>';
+      var b0=cx-L/2,b1=cx+L/2,by=190;
+      h+='<g stroke="#e0312e" stroke-width="4" stroke-linecap="round" fill="none"><line x1="'+b0+'" y1="'+by+'" x2="'+b1+'" y2="'+by+'"/>'+fin(b0,by,-1,true)+fin(b1,by,1,true)+'</g>';
+      h+='<text x="26" y="100" fill="#999" font-size="15" font-weight="700">A</text><text x="26" y="196" fill="#999" font-size="15" font-weight="700">B</text>';
+    }else{
+      var x0=70,ty=95,by=190;
+      h+='<g stroke="#e0312e" stroke-width="4" stroke-linecap="round"><line x1="'+x0+'" y1="'+ty+'" x2="'+(x0+TOP)+'" y2="'+ty+'"/><line x1="'+x0+'" y1="'+by+'" x2="'+(x0+L)+'" y2="'+by+'"/></g>';
+      h+='<g stroke="#2563eb" stroke-width="1.5" stroke-dasharray="5 4"><line x1="'+x0+'" y1="70" x2="'+x0+'" y2="215"/><line x1="'+(x0+TOP)+'" y1="80" x2="'+(x0+TOP)+'" y2="120"/><line x1="'+(x0+L)+'" y1="165" x2="'+(x0+L)+'" y2="210"/></g>';
+      h+='<text x="'+x0+'" y="58" fill="#1d4ed8" font-size="13">↓ 对齐左端，去掉鳍，直接比</text>';
+      h+='<text x="'+(x0+TOP+8)+'" y="100" fill="#111" font-size="14" font-weight="700">A = '+TOP+'</text>';
+      h+='<text x="'+(x0+L+8)+'" y="195" fill="#111" font-size="14" font-weight="700">B = '+L+'</text>';
+    }
+    s.innerHTML=h;
+  }
+  function measure(){
+    measured=true;draw();var L=bottomLen();var str=Math.abs(L-TOP)/TOP*100;
+    var arr=recordPSE('ml',str);markNavDone();
+    setMetric('set',L+' px');setMetric('str',str.toFixed(1)+'%',str>5?'warn':'big');setMetric('med',stats.median(arr).toFixed(1)+'%');
+    showDist(str,pctBeats(classDist('ml'),str));
+    predict.reveal('两条主干<b>本该一样长</b>。你把 B 设成 '+L+'（A=200），错觉强度 <b>'+str.toFixed(1)+'%</b>——向内的鳍让 B 显短，你不自觉把它调长了。');
+  }
+  function reset(){measured=false;slider.value=200;predict.reset();buildMetrics(SCHEMA,NOTE);draw();}
+  slider.addEventListener('input',function(){measured=false;draw();});
+  $('[data-act="measure"]',view).addEventListener('click',function(){if(this.classList.contains('is-locked'))return;measure();});
+  $('[data-act="reset"]',view).addEventListener('click',reset);
+  return {kicker:'A 族 · 几何错觉',title:'米勒-莱尔：箭头骗了你的尺子',sub:'两条等长的线，加上朝向不同的「鳍」，看起来就不一样长。',
+    schema:SCHEMA,note:NOTE,
+    sci:'<h4>为什么会这样？</h4><p>向外张开的鳍像「近处的墙角」，向内收的鳍像「远处的屋角」。大脑把鳍当成<b>景深线索</b>，按「远的东西要更大才合理」去校正长度，于是同样长的线被判成不等。</p><p>也有更低级的解释：视觉早期会把整个图形（含鳍）做一次模糊平均，端点位置因此被「拉偏」。</p><div class="real">🌍 现实：建筑透视、服装显高显瘦、箭头标识设计，都在利用同一套线索。</div>',
+    enter:draw,resize:draw,stop:null};
+}
+
+/* ===== ② 艾宾浩斯 (SVG) ===== */
+function ModuleEbbinghaus(){
+  var view=$('[data-mod="eb"]'),s=$('[data-svg]',view),predict=setupPredict(view);
+  var slider=$('[data-slider]',view),rLabel=$('[data-k="r"]',view);
+  var RR=38,measured=false;
+  var SCHEMA=[{label:'左圆 r (你设)',key:'set'},{label:'右圆 r 基准',key:'truth',init:'38 px'},{label:'错觉强度',key:'str',cls:'big',init:'—'},{label:'你的中位',key:'med',init:'—'}];
+  var NOTE='把左侧中心橙圆调到和右侧「看起来一样大」，再移走包围圆。';
+  function rL(){return parseFloat(slider.value);}
+  function ring(cx,cy,n,dist,r,fill){var g='';for(var i=0;i<n;i++){var a=i/n*TAU-Math.PI/2;g+='<circle cx="'+(cx+dist*Math.cos(a)).toFixed(1)+'" cy="'+(cy+dist*Math.sin(a)).toFixed(1)+'" r="'+r+'" fill="'+fill+'"/>';}return g;}
+  function draw(){
+    var r=rL();rLabel.textContent=r.toFixed(0);var h='';
+    if(!measured){
+      h+=ring(150,150,6,82,30,'#7f8fb0');
+      h+=ring(410,150,8,52,10,'#7f8fb0');
+      h+='<circle cx="150" cy="150" r="'+r+'" fill="#f59e0b"/>';
+      h+='<circle cx="410" cy="150" r="'+RR+'" fill="#f59e0b"/>';
+      h+='<text x="150" y="270" fill="#888" font-size="13" text-anchor="middle">大圈包围（显小）</text>';
+      h+='<text x="410" y="270" fill="#888" font-size="13" text-anchor="middle">小圈包围（显大）</text>';
+    }else{
+      h+='<circle cx="205" cy="150" r="'+r+'" fill="#f59e0b"/><circle cx="365" cy="150" r="'+RR+'" fill="#f59e0b"/>';
+      h+='<g stroke="#2563eb" stroke-width="1.5" stroke-dasharray="5 4"><line x1="'+(205-r)+'" y1="150" x2="'+(205+r)+'" y2="150"/><line x1="'+(365-RR)+'" y1="150" x2="'+(365+RR)+'" y2="150"/></g>';
+      h+='<text x="205" y="'+(150-r-10)+'" fill="#111" font-size="14" font-weight="700" text-anchor="middle">左 r='+r.toFixed(0)+'</text>';
+      h+='<text x="365" y="'+(150-RR-10)+'" fill="#111" font-size="14" font-weight="700" text-anchor="middle">右 r='+RR+'</text>';
+      h+='<text x="280" y="280" fill="#1d4ed8" font-size="13" text-anchor="middle">移走包围圆，谁大谁小一目了然</text>';
+    }
+    s.innerHTML=h;
+  }
+  function measure(){measured=true;draw();var r=rL();var str=Math.abs(r-RR)/RR*100;var arr=recordPSE('eb',str);markNavDone();
+    setMetric('set',r.toFixed(0)+' px');setMetric('str',str.toFixed(1)+'%',str>4?'warn':'big');setMetric('med',stats.median(arr).toFixed(1)+'%');
+    showDist(str,pctBeats(classDist('eb'),str));
+    predict.reveal('两个中心圆<b>本该一样大</b>。你把左圆设成 r='+r.toFixed(0)+'（基准 38），错觉强度 <b>'+str.toFixed(1)+'%</b>——大圈包围让中心显小，你就把它调大了。');}
+  function reset(){measured=false;slider.value=38;predict.reset();buildMetrics(SCHEMA,NOTE);draw();}
+  slider.addEventListener('input',function(){measured=false;draw();});
+  $('[data-act="measure"]',view).addEventListener('click',function(){if(this.classList.contains('is-locked'))return;measure();});
+  $('[data-act="reset"]',view).addEventListener('click',reset);
+  return {kicker:'A 族 · 几何错觉',title:'艾宾浩斯：大小是「比」出来的',sub:'同样大的圆，被大圈包围显小、被小圈包围显大。',
+    schema:SCHEMA,note:NOTE,
+    sci:'<h4>为什么会这样？</h4><p>大脑判断大小靠的是<b>相对关系</b>，不是绝对尺寸。中心圆和邻居一比：身边都是大块头就显小，身边都是小不点就显大。</p><p>这说明知觉给每个物体都配了一把会被上下文「重新校准」的尺子。</p><div class="real">🌍 现实：菜量用小盘显多、商品摆位、海报主体周围放什么陪衬，都在操纵这把尺子。</div>',
+    enter:draw,resize:draw,stop:null};
+}
+
+/* ===== ③ 庞佐 (SVG) ===== */
+function ModulePonzo(){
+  var view=$('[data-mod="po"]'),s=$('[data-svg]',view),predict=setupPredict(view);
+  var slider=$('[data-slider]',view),lenLabel=$('[data-k="len"]',view);
+  var TOP=150,measured=false;
+  var SCHEMA=[{label:'下条 (你设)',key:'set'},{label:'上条 基准',key:'truth',init:'150 px'},{label:'错觉强度',key:'str',cls:'big',init:'—'},{label:'你的中位',key:'med',init:'—'}];
+  var NOTE='把下方黄条调到和上方「看起来一样长」，再移除铁轨。';
+  function L(){return parseInt(slider.value,10);}
+  function draw(){
+    var l=L();lenLabel.textContent=l;var cx=280,h='';
+    if(!measured){
+      h+='<g stroke="#9ca3af" stroke-width="3"><line x1="170" y1="310" x2="262" y2="44"/><line x1="390" y1="310" x2="298" y2="44"/></g>';
+      h+='<g stroke="#374151" stroke-width="1.5" stroke-dasharray="3 9"><line x1="200" y1="300" x2="276" y2="60"/><line x1="360" y1="300" x2="284" y2="60"/></g>';
+      h+='<rect x="'+(cx-TOP/2)+'" y="116" width="'+TOP+'" height="11" rx="3" fill="#facc15"/>';
+      h+='<rect x="'+(cx-l/2)+'" y="252" width="'+l+'" height="11" rx="3" fill="#facc15"/>';
+      h+='<text x="'+(cx+TOP/2+8)+'" y="126" fill="#cbd5e1" font-size="13">上（远）</text>';
+      h+='<text x="'+(cx+l/2+8)+'" y="262" fill="#cbd5e1" font-size="13">下（近）</text>';
+    }else{
+      var x0=120;
+      h+='<rect x="'+x0+'" y="120" width="'+TOP+'" height="11" rx="3" fill="#facc15"/><rect x="'+x0+'" y="200" width="'+l+'" height="11" rx="3" fill="#facc15"/>';
+      h+='<g stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="5 4"><line x1="'+x0+'" y1="100" x2="'+x0+'" y2="230"/><line x1="'+(x0+TOP)+'" y1="110" x2="'+(x0+TOP)+'" y2="150"/><line x1="'+(x0+l)+'" y1="185" x2="'+(x0+l)+'" y2="225"/></g>';
+      h+='<text x="'+(x0+TOP+8)+'" y="130" fill="#fff" font-size="14" font-weight="700">上 = '+TOP+'</text>';
+      h+='<text x="'+(x0+l+8)+'" y="210" fill="#fff" font-size="14" font-weight="700">下 = '+l+'</text>';
+      h+='<text x="'+x0+'" y="88" fill="#93c5fd" font-size="13">移走铁轨，对齐左端再比</text>';
+    }
+    s.innerHTML=h;
+  }
+  function measure(){measured=true;draw();var l=L();var str=Math.abs(l-TOP)/TOP*100;var arr=recordPSE('po',str);markNavDone();
+    setMetric('set',l+' px');setMetric('str',str.toFixed(1)+'%',str>5?'warn':'big');setMetric('med',stats.median(arr).toFixed(1)+'%');
+    showDist(str,pctBeats(classDist('po'),str));
+    predict.reveal('两条黄条<b>本该一样长</b>。你把下条设成 '+l+'（上条 150），错觉强度 <b>'+str.toFixed(1)+'%</b>——铁轨的透视让「更远」的上条显长。');}
+  function reset(){measured=false;slider.value=150;predict.reset();buildMetrics(SCHEMA,NOTE);draw();}
+  slider.addEventListener('input',function(){measured=false;draw();});
+  $('[data-act="measure"]',view).addEventListener('click',function(){if(this.classList.contains('is-locked'))return;measure();});
+  $('[data-act="reset"]',view).addEventListener('click',reset);
+  return {kicker:'A 族 · 几何错觉',title:'庞佐：透视让等长变不等',sub:'放在收敛「铁轨」上的两条等长线，靠上的（像更远）显得更长。',
+    schema:SCHEMA,note:NOTE,
+    sci:'<h4>为什么会这样？</h4><p>收敛的线条=典型的<b>透视/景深</b>线索。大脑认为靠上的线「更远」，再按<b>大小恒常</b>推理：远处的东西若在眼里一样大，真实就该更大——于是把它「放大」。</p><div class="real">🌍 现实：道路、走廊、铁轨照片里的人物比例判断；电影布景的纵深营造。</div>',
+    enter:draw,resize:draw,stop:null};
+}
+/* ===== ④ 咖啡墙 (Canvas) ===== */
+function ModuleCafeWall(){
+  var view=$('[data-mod="cw"]'),stage=makeStage($('[data-canvas]',view)),predict=setupPredict(view);
+  var sOff=$('[data-slider="off"]',view),sMor=$('[data-slider="mor"]',view),guides=false;
+  var SCHEMA=[{label:'相邻行错位',key:'off',init:'50%'},{label:'砖缝粗细',key:'mor',init:'3 px'},{label:'倾斜感',key:'tilt',cls:'big',init:'强'}];
+  var NOTE='错位越大、砖缝越细越斜；错位=0 立刻变平。点「叠水平参考线」看真相。';
+  function off(){return parseInt(sOff.value,10);}
+  function mor(){return parseInt(sMor.value,10);}
+  function tiltWord(){var o=off(),m=mor();if(o===0)return'消失';if(m===0)return'很弱';return(o>=15&&o<=85&&m<=7)?'强':'中';}
+  function draw(){
+    if(!stage.fit())return;var w=stage.w,h=stage.h,ctx=stage.ctx;
+    var pitch=Math.max(26,h/8),tw=pitch*1.5,m=mor(),frac=off()/100;
+    ctx.fillStyle='#808080';ctx.fillRect(0,0,w,h);
+    var rows=Math.ceil(h/pitch)+1;
+    for(var r=0;r<rows;r++){
+      var shift=(r%2)?frac*tw:0;
+      var y=r*pitch;
+      for(var x=-tw;x<w+tw;x+=tw){
+        var bx=x+shift;
+        ctx.fillStyle='#0a0a0a';ctx.fillRect(bx,y+m/2,tw/2,pitch-m);
+        ctx.fillStyle='#f4f4f4';ctx.fillRect(bx+tw/2,y+m/2,tw/2,pitch-m);
+      }
+    }
+    if(guides){ctx.strokeStyle='#ff3b3b';ctx.lineWidth=2;for(var g=0;g<=rows;g++){var gy=g*pitch;ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(w,gy);ctx.stroke();}}
+    setMetric('off',off()+'%');setMetric('mor',m+' px');setMetric('tilt',tiltWord(),tiltWord()==='强'?'warn':'big');
+  }
+  function toggleGuides(){if($('[data-act="guides"]',view).classList.contains('is-locked'))return;guides=!guides;var b=$('[data-act="guides"]',view);b.classList.toggle('on',guides);b.textContent=guides?'📏 隐藏参考线':'📏 叠水平参考线';
+    if(guides&&!state.cw){state.cw=true;markNavDone();ach.check(state);predict.reveal('每条红线都<b>笔直水平、根根平行</b>！「倾斜」是黑白边缘 + 中灰砖缝在视皮层被整合出的方向假象，砖块本身排得整整齐齐。');}
+    draw();}
+  function reset(){guides=false;sOff.value=50;sMor.value=3;var b=$('[data-act="guides"]',view);b.classList.remove('on');b.textContent='📏 叠水平参考线';predict.reset();buildMetrics(SCHEMA,NOTE);draw();}
+  sOff.addEventListener('input',draw);sMor.addEventListener('input',draw);
+  $('[data-act="guides"]',view).addEventListener('click',toggleGuides);
+  $('[data-act="reset"]',view).addEventListener('click',reset);
+  return {kicker:'B 族 · 亮度 / 网格',title:'咖啡墙：砖行明明是平的',sub:'黑白砖错位排列、配上中灰砖缝，整面墙看起来像在扭斜。',
+    schema:SCHEMA,note:NOTE,
+    sci:'<h4>为什么会这样？</h4><p>在黑白方块交界处，灰色砖缝的明度居中，视觉早期的<b>边缘探测</b>会把它「归并」到深色或浅色一侧，使每条缝产生一点点方向性位移；一行行累加，整条线就被看成楔形倾斜。</p><p>把砖缝去掉（粗细=0）或对齐（错位=0），错觉立刻垮掉。</p><div class="real">🌍 现实：真实的「咖啡墙」是英国布里斯托一家咖啡馆的瓷砖外墙，得名于此。</div>',
+    enter:draw,resize:draw,stop:null};
+}
+
+/* ===== ⑤ 赫尔曼 / 闪烁格 (Canvas) ===== */
+function ModuleGrid(){
+  var view=$('[data-mod="gr"]'),stage=makeStage($('[data-canvas]',view)),predict=setupPredict(view);
+  var sSp=$('[data-slider="sp"]',view),cap=$('[data-cap]',view),type='hermann',zoom=false;
+  var SCHEMA=[{label:'类型',key:'type',init:'赫尔曼格'},{label:'格子间距',key:'sp',init:'66 px'},{label:'交叉口灰点',key:'dots',cls:'big',init:'脑补出现'}];
+  var NOTE='盯住一点、用余光看别处，斑点就冒出来；放大单个路口，它立刻消失。';
+  function sp(){return parseInt(sSp.value,10);}
+  function draw(){
+    if(!stage.fit())return;var w=stage.w,h=stage.h,ctx=stage.ctx,pitch=sp(),street=Math.max(7,pitch/6);
+    if(zoom){drawZoom(w,h,ctx,street);return;}
+    if(type==='hermann'){
+      ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);
+      ctx.fillStyle='#111';var sq=pitch-street;
+      for(var y=street;y<h-2;y+=pitch)for(var x=street;x<w-2;x+=pitch)ctx.fillRect(x,y,sq,sq);
+    }else{
+      ctx.fillStyle='#262626';ctx.fillRect(0,0,w,h);
+      ctx.fillStyle='#9a9a9a';
+      for(var gx=pitch;gx<w;gx+=pitch)ctx.fillRect(gx-street/2,0,street,h);
+      for(var gy=pitch;gy<h;gy+=pitch)ctx.fillRect(0,gy-street/2,w,street);
+      ctx.fillStyle='#ffffff';
+      for(var iy=pitch;iy<h;iy+=pitch)for(var ix=pitch;ix<w;ix+=pitch){ctx.beginPath();ctx.arc(ix,iy,street*0.62,0,TAU);ctx.fill();}
+    }
+    setMetric('type',type==='hermann'?'赫尔曼格':'闪烁格');setMetric('sp',pitch+' px');setMetric('dots','脑补出现','big');
+  }
+  function drawZoom(w,h,ctx,street){
+    var s=Math.min(w,h)*0.62;var cx=w/2,cy=h/2,half=s/2,band=s*0.18;
+    if(type==='hermann'){
+      ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.fillStyle='#111';
+      ctx.fillRect(cx-half,cy-half,half-band/2,half-band/2);
+      ctx.fillRect(cx+band/2,cy-half,half-band/2,half-band/2);
+      ctx.fillRect(cx-half,cy+band/2,half-band/2,half-band/2);
+      ctx.fillRect(cx+band/2,cy+band/2,half-band/2,half-band/2);
+    }else{
+      ctx.fillStyle='#262626';ctx.fillRect(0,0,w,h);ctx.fillStyle='#9a9a9a';
+      ctx.fillRect(cx-band/2,cy-half,band,s);ctx.fillRect(cx-half,cy-band/2,s,band);
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,band*0.62,0,TAU);ctx.fill();
+    }
+    ctx.fillStyle=type==='hermann'?'#1d4ed8':'#fde68a';ctx.font='bold 15px sans-serif';ctx.textAlign='center';
+    ctx.fillText('放大这个路口 → 这里什么斑点都没画！',cx,h-14);
+  }
+  function toggleZoom(){if($('[data-act="zoom"]',view).classList.contains('is-locked'))return;zoom=!zoom;var b=$('[data-act="zoom"]',view);b.classList.toggle('on',zoom);b.textContent=zoom?'🔍 退出放大':'🔍 放大一个路口';cap.textContent=zoom?'放大视图：斑点凭空消失':(type==='hermann'?'赫尔曼格：盯一点，余光看别处':'闪烁格：余光看，白点忽明忽暗');
+    if(zoom&&!state.gr){state.gr=true;markNavDone();ach.check(state);predict.reveal('放大后，交叉口干干净净——<b>灰点/黑点根本不在图上</b>。它来自视网膜与视皮层的<b>侧抑制</b>：在你视线之外的路口被四面包围，抑制更强，看着就更暗。');}
+    draw();}
+  function setType(v){type=v;cap.textContent=zoom?'放大视图：斑点凭空消失':(type==='hermann'?'赫尔曼格：盯一点，余光看别处':'闪烁格：余光看，白点忽明忽暗');$$('[data-seg="type"] button',view).forEach(function(b){b.classList.toggle('on',b.getAttribute('data-v')===v);});draw();}
+  function reset(){type='hermann';zoom=false;sSp.value=66;var b=$('[data-act="zoom"]',view);b.classList.remove('on');b.textContent='🔍 放大一个路口';$$('[data-seg="type"] button',view).forEach(function(x){x.classList.toggle('on',x.getAttribute('data-v')==='hermann');});predict.reset();buildMetrics(SCHEMA,NOTE);cap.textContent='赫尔曼格：盯一点，余光看别处';draw();}
+  sSp.addEventListener('input',draw);
+  $$('[data-seg="type"] button',view).forEach(function(b){b.addEventListener('click',function(){setType(b.getAttribute('data-v'));});});
+  $('[data-act="zoom"]',view).addEventListener('click',toggleZoom);
+  $('[data-act="reset"]',view).addEventListener('click',reset);
+  return {kicker:'B 族 · 亮度 / 网格',title:'赫尔曼格 / 闪烁格：幽灵般的灰点',sub:'交叉路口冒出灰色（或忽闪的黑色）斑点，可你一去看它，它就躲开。',
+    schema:SCHEMA,note:NOTE,
+    sci:'<h4>为什么会这样？</h4><p>视网膜神经节细胞用<b>侧抑制</b>算对比：一个细胞被周围的亮光抑制。交叉路口处，感受野四面都是亮街道，抑制比街道中段更强，于是大脑判定那里「更暗」——灰点就是这么算出来的，纸上并没有。</p><p>盯住它时由视力最好的中央凹处理，侧抑制弱，灰点便消失。</p><div class="real">🌍 现实：侧抑制让我们能放大边缘、看清轮廓，是高效视觉的副作用。</div>',
+    enter:draw,resize:draw,stop:null};
+}
+
+/* ===== ⑥ 阿德尔森棋盘阴影 (Canvas) ===== */
+function ModuleAdelson(){
+  var view=$('[data-mod="ad"]'),stage=makeStage($('[data-canvas]',view)),predict=setupPredict(view);
+  var SHARED='#8f8f8f',shadowOff=false,bridge=false,slide=0,raf=0;
+  var SCHEMA=[{label:'A 灰度值',key:'va',init:'—'},{label:'B 灰度值',key:'vb',init:'—'},{label:'是否同色',key:'same',cls:'big',init:'？'}];
+  var NOTE='看着 B 比 A 亮很多，但代码里它们填的是同一个灰度值。';
+  function cellRect(w,h,c,r){var cw=w/7,ch=h/5;return {x:c*cw,y:r*ch,w:cw,h:ch,cx:c*cw+cw/2,cy:r*ch+ch/2};}
+  function draw(){
+    if(!stage.fit())return;var w=stage.w,h=stage.h,ctx=stage.ctx,cw=w/7,ch=h/5;
+    for(var r=0;r<5;r++)for(var c=0;c<7;c++){ctx.fillStyle=((r+c)%2)?'#6d6d6d':'#bcbcbc';ctx.fillRect(c*cw,r*ch,cw+1,ch+1);}
+    // 圆柱
+    var cylx=4.9*cw,cylw=1.0*cw;
+    var grd=ctx.createLinearGradient(cylx,0,cylx+cylw,0);grd.addColorStop(0,'#1f7a6b');grd.addColorStop(.5,'#3fc7ad');grd.addColorStop(1,'#176256');
+    ctx.fillStyle=grd;ctx.fillRect(cylx,-ch*0.6,cylw,ch*1.7);
+    ctx.fillStyle='#5fe0c6';ctx.beginPath();ctx.ellipse(cylx+cylw/2,-ch*0.6,cylw/2,ch*0.16,0,0,TAU);ctx.fill();
+    // 阴影（平行四边形，覆盖 B）
+    if(!shadowOff){ctx.fillStyle='rgba(8,10,40,0.42)';ctx.beginPath();ctx.moveTo(4.1*cw,0);ctx.lineTo(w,0);ctx.lineTo(w,h);ctx.lineTo(2.5*cw,h);ctx.closePath();ctx.fill();}
+    // 同灰连接条
+    var A=cellRect(w,h,1,1),B=cellRect(w,h,5,3);
+    if(bridge){ctx.fillStyle=SHARED;ctx.fillRect(A.cx,Math.min(A.cy,B.cy)-ch*0.14,B.cx-A.cx,ch*0.28);}
+    // A、B 两格：强制同一灰度值（盖在阴影之上）
+    ctx.fillStyle=SHARED;ctx.fillRect(A.x,A.y,A.w+1,A.h+1);
+    if(slide<=0)ctx.fillRect(B.x,B.y,B.w+1,B.h+1);
+    label(ctx,A.cx,A.cy,'A');
+    if(slide<=0)label(ctx,B.cx,B.cy,'B');
+    // 滑动中的 B 副本：从 B 原位滑到 A 右侧同一行
+    if(slide>0){var ex=A.x+A.w,ey=A.y,px=B.x+(ex-B.x)*slide,py=B.y+(ey-B.y)*slide;
+      ctx.fillStyle=SHARED;ctx.fillRect(px,py,B.w,B.h);label(ctx,px+B.w/2,py+B.h/2,'B');}
+  }
+  function label(ctx,x,y,t){ctx.fillStyle='#fff';ctx.font='bold 17px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=3;ctx.strokeText(t,x,y);ctx.fillText(t,x,y);ctx.textBaseline='alphabetic';}
+  function reveal(){if(state.ad)return;state.ad=true;markNavDone();ach.check(state);
+    setMetric('va',SHARED);setMetric('vb',SHARED);setMetric('same','完全相同 ✓','good');
+    predict.reveal('A 和 B <b>填的是同一个灰度值 '+SHARED+'</b>！大脑知道 B 在阴影里，便自动「提亮」它来还原真实表面——这叫<b>明度恒常</b>，平时帮你认出阴影下的物体，这里却骗了你。');}
+  function doSlide(){if($('[data-act="slide"]',view).classList.contains('is-locked'))return;if(raf)return;var t0=performance.now();
+    (function step(t){slide=clamp((t-t0)/900,0,1);draw();if(slide<1){raf=requestAnimationFrame(step);}else{raf=0;reveal();}})(t0);
+    setTimeout(function(){if(!state.ad){slide=1;if(raf){cancelAnimationFrame(raf);raf=0;}draw();reveal();}},1100);}
+  function toggleBridge(){bridge=!bridge;var b=$('[data-act="bridge"]',view);b.classList.toggle('on',bridge);draw();if(bridge)reveal();}
+  function toggleShadow(){shadowOff=!shadowOff;var b=$('[data-act="shadow"]',view);b.classList.toggle('on',shadowOff);b.textContent=shadowOff?'💡 恢复阴影':'💡 去掉阴影';draw();}
+  function reset(){if(raf){cancelAnimationFrame(raf);raf=0;}slide=0;bridge=false;shadowOff=false;$('[data-act="bridge"]',view).classList.remove('on');var sb=$('[data-act="shadow"]',view);sb.classList.remove('on');sb.textContent='💡 去掉阴影';predict.reset();buildMetrics(SCHEMA,NOTE);draw();}
+  $('[data-act="slide"]',view).addEventListener('click',doSlide);
+  $('[data-act="bridge"]',view).addEventListener('click',toggleBridge);
+  $('[data-act="shadow"]',view).addEventListener('click',toggleShadow);
+  $('[data-act="reset"]',view).addEventListener('click',reset);
+  return {kicker:'B 族 · 亮度 / 网格',title:'阿德尔森棋盘：A 和 B 真的同色',sub:'阴影外的「深格」A 与阴影里的「浅格」B，物理上是完全相同的灰。',
+    schema:SCHEMA,note:NOTE,
+    sci:'<h4>为什么会这样？</h4><p>大脑要的不是「照到眼睛的光」，而是「物体表面本来的颜色」（反射率）。它判断 B 落在阴影中、本该更暗却没那么暗，于是推断 B 表面其实很浅，把它「提亮」；A 在亮处、周围又都是浅格，于是被判成深格。</p><p>这套<b>明度恒常</b>平时极其有用——它让你在树荫下也能认出白纸是白的。</p><div class="real">🌍 现实：MIT 的 Edward Adelson 1995 年设计；摄影修图、自动驾驶的阴影判读都要对抗它。</div>',
+    enter:draw,resize:draw,stop:function(){if(raf){cancelAnimationFrame(raf);raf=0;}}};
+}
+/* ===== ⑦ 卡尼莎三角 (SVG) ===== */
+function ModuleKanizsa(){
+  var view=$('[data-mod="ka"]'),s=$('[data-svg]',view),predict=setupPredict(view);
+  var slider=$('[data-slider]',view),rotLabel=$('[data-k="rot"]',view),proved=false;
+  var SCHEMA=[{label:'开口旋转',key:'rot',init:'0°'},{label:'主观三角',key:'tri',cls:'big',init:'清晰可见'},{label:'真实的边',key:'edge',init:'无'}];
+  var NOTE='慢慢转开口：对齐时三角浮现，转开就消失。点验证取色对比。';
+  var V=[[230,98],[128,286],[332,286]],C=[230,224],R=48;
+  function rot(){return parseInt(slider.value,10);}
+  function pac(cx,cy,mouthDeg){
+    var h='<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="#141414"/>';
+    var pts=[[cx,cy]],steps=7,half=33;
+    for(var i=0;i<=steps;i++){var a=(mouthDeg-half+2*half*i/steps)*Math.PI/180;pts.push([cx+(R+2)*Math.cos(a),cy+(R+2)*Math.sin(a)]);}
+    return h+'<polygon points="'+pts.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join(' ')+'" fill="#ffffff"/>';
+  }
+  function triWord(){var r=rot();return r<22?'清晰可见':(r<70?'变淡':'消失');}
+  function draw(){
+    rotLabel.textContent=rot();var h='';
+    V.forEach(function(v){var base=Math.atan2(C[1]-v[1],C[0]-v[0])*180/Math.PI;h+=pac(v[0],v[1],base+rot());});
+    if(proved){
+      h+='<polygon points="230,150 175,250 285,250" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="5 4"/>';
+      h+='<circle cx="230" cy="216" r="11" fill="#fff" stroke="#999"/><circle cx="410" cy="60" r="11" fill="#fff" stroke="#999"/>';
+      h+='<text x="230" y="200" fill="#1d4ed8" font-size="12" text-anchor="middle">中央 #fff</text>';
+      h+='<text x="410" y="44" fill="#1d4ed8" font-size="12" text-anchor="middle">背景 #fff</text>';
+      h+='<text x="230" y="345" fill="#1d4ed8" font-size="13" text-anchor="middle">中央=背景=纯白：那条边，其实没有</text>';
+    }
+    s.innerHTML=h;
+    setMetric('rot',rot()+'°');setMetric('tri',triWord(),triWord()==='清晰可见'?'big':'warn');setMetric('edge','无');
+  }
+  function prove(){if($('[data-act="prove"]',view).classList.contains('is-locked'))return;proved=!proved;var b=$('[data-act="prove"]',view);b.classList.toggle('on',proved);b.textContent=proved?'🎯 隐藏取色':'🎯 证明：取色对比';
+    if(proved&&!state.ka){state.ka=true;markNavDone();ach.check(state);predict.reveal('中央和背景<b>取到的颜色完全相同（纯白）</b>，也没有任何线条。三角的边和「更白」都是大脑用「一个白三角盖住三个圆」这个<b>最简解释</b>填补出来的。');}
+    draw();}
+  function reset(){proved=false;slider.value=0;var b=$('[data-act="prove"]',view);b.classList.remove('on');b.textContent='🎯 证明：取色对比';predict.reset();buildMetrics(SCHEMA,NOTE);draw();}
+  slider.addEventListener('input',function(){if(proved){proved=false;$('[data-act="prove"]',view).classList.remove('on');$('[data-act="prove"]',view).textContent='🎯 证明：取色对比';}draw();});
+  $('[data-act="prove"]',view).addEventListener('click',prove);
+  $('[data-act="reset"]',view).addEventListener('click',reset);
+  return {kicker:'C 族 · 主观 / 运动',title:'卡尼莎三角：无中生有的白三角',sub:'三个缺口圆，让你看见一个并不存在、边缘还很清晰的白三角。',
+    schema:SCHEMA,note:NOTE,
+    sci:'<h4>为什么会这样？</h4><p>三个缺口摆在一起，对大脑来说「一个白三角恰好盖住三个完整圆」远比「三个无缘无故被啃掉一口的圆」更简洁合理。于是视觉系统主动<b>补出</b>三角的边（主观轮廓），还把它「填」得比背景更白。</p><p>把缺口转开，这个解释不再成立，三角随之消失。</p><div class="real">🌍 现实：填充能力让我们在遮挡、缺损下仍认出完整物体；logo、隐藏字设计常借此「藏」图形。</div>',
+    enter:draw,resize:draw,stop:null};
+}
+
+/* ===== ⑧ 运动诱导盲 (Canvas rAF) ===== */
+function ModuleMIB(){
+  var view=$('[data-mod="mib"]'),stage=makeStage($('[data-canvas]',view)),predict=setupPredict(view);
+  var sSpd=$('[data-slider="spd"]',view),runBtn=$('[data-act="run"]',view);
+  var angle=0,running=false,ranOnce=false,raf=0;
+  var SCHEMA=[{label:'背景转速',key:'spd',init:'5'},{label:'状态',key:'st',cls:'big',init:'静止'},{label:'三个黄点',key:'dots',init:'都在'}];
+  var NOTE='盯住中央红十字别动，余光留意黄点；旋转时它们会间歇消失，停转立刻全回来。';
+  function spd(){return parseInt(sSpd.value,10);}
+  function render(){
+    var w=stage.w,h=stage.h,ctx=stage.ctx;if(!w)return;
+    ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
+    ctx.save();ctx.translate(w/2,h/2);ctx.rotate(angle);ctx.fillStyle='#3f6fe6';
+    var Rr=Math.min(w,h)*0.46,step=Math.max(24,Rr/6);
+    for(var x=-Rr;x<=Rr;x+=step)for(var y=-Rr;y<=Rr;y+=step){if(x*x+y*y>Rr*Rr)continue;ctx.fillRect(x-5,y-1.5,10,3);ctx.fillRect(x-1.5,y-5,3,10);}
+    ctx.restore();
+    var pos=[[w/2,h*0.16],[w*0.19,h*0.8],[w*0.81,h*0.8]];
+    pos.forEach(function(p){ctx.fillStyle='#ffe000';ctx.shadowColor='#ffe000';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(p[0],p[1],8,0,TAU);ctx.fill();ctx.shadowBlur=0;});
+    ctx.strokeStyle='#ff3b3b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(w/2-9,h/2);ctx.lineTo(w/2+9,h/2);ctx.moveTo(w/2,h/2-9);ctx.lineTo(w/2,h/2+9);ctx.stroke();
+  }
+  function frame(){if(!running)return;angle+=spd()*0.012;render();raf=requestAnimationFrame(frame);}
+  function startLoop(){if(!raf&&running)frame();}
+  function stopLoop(){if(raf){cancelAnimationFrame(raf);raf=0;}}
+  function toggleRun(){if(runBtn.classList.contains('is-locked'))return;running=!running;runBtn.classList.toggle('on',running);runBtn.textContent=running?'⏸️ 停转看真相':'▶️ 开始旋转';
+    setMetric('spd',spd());setMetric('st',running?'旋转中':'已暂停','big');
+    if(running){ranOnce=true;startLoop();}
+    else{stopLoop();render();if(ranOnce&&!state.mib){state.mib=true;markNavDone();ach.check(state);predict.reveal('停转的一刹那，三个黄点<b>立刻全部清清楚楚</b>——它们一直都在！是高速运动的背景<b>压制</b>了你对静止目标的知觉，这叫运动诱导盲。');}}
+  }
+  function reset(){stopLoop();running=false;ranOnce=false;angle=0;sSpd.value=5;runBtn.classList.remove('on');runBtn.textContent='▶️ 开始旋转';predict.reset();buildMetrics(SCHEMA,NOTE);render();}
+  sSpd.addEventListener('input',function(){setMetric('spd',spd());});
+  runBtn.addEventListener('click',toggleRun);
+  $('[data-act="reset"]',view).addEventListener('click',reset);
+  return {kicker:'C 族 · 主观 / 运动',title:'运动诱导盲：盯着看，它就没了',sub:'死盯中央十字，运动的蓝色背景会让外周清晰的黄点间歇性消失。',
+    schema:SCHEMA,note:NOTE,
+    sci:'<h4>为什么会这样？</h4><p>当主导的全局运动信号很强时，大脑会把稳定不变的静止目标当作「背景噪声」而暂时<b>抑制</b>掉它的知觉——明明信号一直在视网膜上，意识里却「不见了」。</p><p>停止运动、或移动视线，抑制解除，黄点立刻回来。</p><div class="real">🌍 现实：与注意、适应有关；提示我们「没看见」不等于「不存在」（驾驶、监控的盲区）。</div>',
+    enter:function(){stage.fit();if(running)startLoop();else render();},resize:function(){stage.fit();render();},
+    stop:stopLoop};
+}
+
+/* ===== ⑨ 负后像 (Canvas 定时) ===== */
+function ModuleAfterimage(){
+  var view=$('[data-mod="ai"]'),stage=makeStage($('[data-canvas]',view)),predict=setupPredict(view);
+  var sDur=$('[data-slider="dur"]',view),durLabel=$('[data-k="dur"]',view),cap=$('[data-cap]',view);
+  var phase='idle',color='cyan',endT=0,raf=0;
+  var HEX={cyan:'#12c9c9',green:'#19c219',magenta:'#d21fd2',yellow:'#d2d21f'};
+  var CN={cyan:'青',green:'绿',magenta:'品红',yellow:'黄'};
+  var COMP={cyan:'红色',green:'品红色',magenta:'绿色',yellow:'蓝色'};
+  var SCHEMA=[{label:'适应色',key:'col',init:'青'},{label:'阶段',key:'ph',cls:'big',init:'未开始'},{label:'残像颜色',key:'comp',init:'待揭晓'}];
+  var NOTE='盯住中央黑点别动；倒计时结束切到白屏，残像会浮现成补色。';
+  function dur(){return parseInt(sDur.value,10);}
+  function render(){
+    var w=stage.w,h=stage.h,ctx=stage.ctx;if(!w)return;
+    if(phase==='reveal'){ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.strokeStyle='rgba(0,0,0,.3)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(w/2-9,h/2);ctx.lineTo(w/2+9,h/2);ctx.moveTo(w/2,h/2-9);ctx.lineTo(w/2,h/2+9);ctx.stroke();return;}
+    ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
+    var bw=w*0.5,bh=h*0.64,bx=(w-bw)/2,by=(h-bh)/2;
+    ctx.fillStyle=HEX[color];ctx.fillRect(bx,by,bw,bh);
+    ctx.fillStyle='#000';ctx.beginPath();ctx.arc(w/2,h/2,5,0,TAU);ctx.fill();
+  }
+  function loop(){if(phase!=='adapt')return;var rem=(endT-performance.now())/1000;if(rem<=0){phase='reveal';render();finish();return;}cap.textContent='盯住中央黑点，别动… '+rem.toFixed(1)+'s';setMetric('ph','注视中 '+rem.toFixed(0)+'s','warn');render();raf=requestAnimationFrame(loop);}
+  function finish(){cap.textContent='盯住原处不动，看补色残像浮现…';setMetric('ph','看白屏！','good');setMetric('comp',COMP[color]);
+    if(!state.ai){state.ai=true;markNavDone();ach.check(state);}
+    predict.reveal('白屏上浮现的是 <b>'+COMP[color]+'</b>。盯着 '+CN[color]+' 色看久了，对应的视锥细胞「累」了；移开后对立通道反弹占上风，于是你看到它的<b>补色</b>。');}
+  function start(){if($('[data-act="start"]',view).classList.contains('is-locked'))return;if(phase==='adapt')return;phase='adapt';endT=performance.now()+dur()*1000;loop();}
+  function setColor(v){color=v;phase='idle';if(raf){cancelAnimationFrame(raf);raf=0;}$$('[data-seg="color"] button',view).forEach(function(b){b.classList.toggle('on',b.getAttribute('data-v')===v);});setMetric('col',CN[v]);setMetric('comp','待揭晓');setMetric('ph','未开始');cap.textContent='盯住色块中央黑点，点「开始注视」';render();}
+  function reset(){if(raf){cancelAnimationFrame(raf);raf=0;}phase='idle';sDur.value=12;durLabel.textContent=12;predict.reset();buildMetrics(SCHEMA,NOTE);setMetric('col',CN[color]);cap.textContent='盯住色块中央黑点，点「开始注视」';render();}
+  sDur.addEventListener('input',function(){durLabel.textContent=dur();});
+  $$('[data-seg="color"] button',view).forEach(function(b){b.addEventListener('click',function(){setColor(b.getAttribute('data-v'));});});
+  $('[data-act="start"]',view).addEventListener('click',start);
+  $('[data-act="reset"]',view).addEventListener('click',reset);
+  return {kicker:'C 族 · 主观 / 运动',title:'负后像：盯久了，颜色会反转',sub:'盯住一块饱和色十几秒，切到白屏的瞬间会浮现它的补色。',
+    schema:SCHEMA,note:NOTE,
+    sci:'<h4>为什么会这样？</h4><p>视网膜有红、绿、蓝三种视锥，按「红-绿」「蓝-黄」<b>对立</b>方式工作。长时间盯住一种颜色，对应视锥被持续刺激而<b>适应（疲劳）</b>；当你看向白色（含各种光）时，疲劳的一方反应弱，对立的一方占上风，于是浮现补色残像。</p><div class="real">🌍 现实：手术服多用青绿色，正好中和长时间盯红色血液产生的残像，减轻医生视觉疲劳。</div>',
+    enter:function(){stage.fit();render();},resize:function(){stage.fit();render();},
+    stop:function(){if(raf){cancelAnimationFrame(raf);raf=0;}}};
+}
+/* ===== ⑩ 总结 · 闯关自检 (DOM) ===== */
+function ModuleSummary(){
+  var grid=$('#mapGrid'),quizBox=$('#quizBox'),rankBox=$('#rankBox');
+  var MAP=[
+    {mech:'知觉是「推断」',desc:'用透视、阴影线索猜测真实世界，再按恒常律校正。',links:['庞佐','棋盘阴影','米勒-莱尔']},
+    {mech:'一切都是相对的',desc:'大小、明暗都靠和邻居比，参照物一换，判断就跟着变。',links:['艾宾浩斯']},
+    {mech:'神经在抢生意（侧抑制）',desc:'细胞互相抑制以放大边缘，副作用是凭空冒灰点、扭出斜线。',links:['赫尔曼/闪烁格','咖啡墙']},
+    {mech:'大脑爱填空',desc:'用「最简解释」补出并不存在的边和面。',links:['卡尼莎三角']},
+    {mech:'动的盖住静的',desc:'强运动信号会压制稳定不变的目标，让它「消失」。',links:['运动诱导盲']},
+    {mech:'看久了会累（适应）',desc:'感受器疲劳 + 对立加工，产生补色后像。',links:['负后像']}
+  ];
+  var QUIZ=[
+    {q:'视错觉最根本说明了：',opts:['我们的眼睛坏了','我们看到的是大脑对世界的「推断/猜测」','错觉图是假图'],a:1},
+    {q:'阿德尔森棋盘里的 A 格和 B 格：',opts:['B 明显更亮','物理上是完全相同的灰','A 是黑的、B 是白的'],a:1},
+    {q:'咖啡墙看着歪斜的砖行，其实：',opts:['真的是斜的','根根水平、彼此平行','在缓慢移动'],a:1},
+    {q:'赫尔曼格交叉口的灰点来自：',opts:['打印误差','视网膜/视皮层的侧抑制','屏幕反光'],a:1},
+    {q:'盯青色久了切白屏看到红色，因为：',opts:['白屏偷偷变红了','视锥适应 + 对立加工，产生补色','眼睛在流泪'],a:1},
+    {q:'卡尼莎三角那条清晰的「边」：',opts:['是用浅灰画的','图上根本没有，是大脑填的','是反光形成的'],a:1}
+  ];
+  function buildMap(){grid.innerHTML='';MAP.forEach(function(m){var d=document.createElement('div');d.className='mapcard';d.innerHTML='<div class="mech">'+m.mech+'</div><div class="desc">'+m.desc+'</div><div class="links">'+m.links.map(function(l){return '<span>'+l+'</span>';}).join('')+'</div>';grid.appendChild(d);});}
+  var answered,correct;
+  function buildQuiz(){answered=0;correct=0;rankBox.classList.add('hidden');quizBox.innerHTML='';QUIZ.forEach(function(Q,qi){
+    var wrap=document.createElement('div');wrap.className='quizq';wrap.innerHTML='<div class="qt"><span>Q'+(qi+1)+'</span>'+Q.q+'</div>';
+    Q.opts.forEach(function(opt,oi){var b=document.createElement('button');b.className='quizopt';b.textContent=opt;
+      b.addEventListener('click',function(){if(wrap.dataset.done)return;wrap.dataset.done='1';answered++;
+        var btns=wrap.querySelectorAll('.quizopt');btns.forEach(function(x,xi){if(xi===Q.a)x.classList.add('correct');else x.classList.add('dim');});
+        if(oi===Q.a)correct++;else{b.classList.remove('dim');b.classList.add('wrong');}
+        if(answered===QUIZ.length)finishQuiz();});
+      wrap.appendChild(b);});
+    quizBox.appendChild(wrap);});}
+  function finishQuiz(){rankBox.classList.remove('hidden');$('#quizScore').textContent=correct+' / '+QUIZ.length;
+    var rank=correct>=6?'🏅 知觉大师':correct>=5?'🥈 知觉侦探':correct>=3?'🥉 见习观察员':'🔰 新手';
+    $('#quizRank').textContent=rank;$('#quizTip').textContent=correct>=5?'你已经能看穿大脑的把戏了！':'回到各个错觉再玩玩，你会更懂大脑在「猜」什么。';
+    if(correct>state.quizBest){state.quizBest=correct;ach.check(state);}
+    try{rankBox.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}}
+  buildMap();
+  return {kicker:'★ 收口',title:'总结 · 闯关自检',sub:'九个错觉，五种大脑捷径。对号入座，再做 6 题自检。',
+    schema:[{label:'已戳穿错觉',key:'done',cls:'big',init:'0 / 9'},{label:'自检最佳',key:'best',init:'0 / 6'}],
+    note:'每戳穿一个错觉都会点亮成就；这里把它们连成一张「知觉地图」。',
+    sci:'<h4>一句话总结</h4><p>眼睛只负责采光，<b>「看见」是大脑的主动建构</b>。它用一整套高效捷径（推断、对比、侧抑制、填充、适应、运动抑制）让我们在真实世界又快又准——视错觉，正是这些捷径在精心设计的图形上「露的马脚」。</p><div class="real">🔬 这也是认知科学的方法：用「系统出错的边界」反推它平时怎么工作。</div>',
+    enter:function(){buildQuiz();var n=[state.ml,state.eb,state.po,state.cw,state.gr,state.ad,state.ka,state.mib,state.ai].filter(Boolean).length;setMetric('done',n+' / 9',n>=9?'good':'big');setMetric('best',state.quizBest+' / 6');},
+    resize:function(){},stop:null};
+}
+
+/* ---------- 路由 ---------- */
+var modules={ml:ModuleMullerLyer(),eb:ModuleEbbinghaus(),po:ModulePonzo(),cw:ModuleCafeWall(),gr:ModuleGrid(),ad:ModuleAdelson(),ka:ModuleKanizsa(),mib:ModuleMIB(),ai:ModuleAfterimage(),sum:ModuleSummary()};
+var current=null;
+function activate(id){
+  $$('.illusion-view').forEach(function(el){el.classList.toggle('active',el.getAttribute('data-mod')===id);});
+  $$('.module-item').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-target')===id);});
+  if(current&&current.stop)current.stop();
+  current=modules[id];
+  $('#modKicker').textContent=current.kicker||'';$('#modTitle').textContent=current.title||'';$('#modSub').textContent=current.sub||'';
+  buildMetrics(current.schema,current.note);
+  setSci(current.sci||'');
+  if(current.enter)current.enter();
+  if(current.resize)current.resize();
+  requestAnimationFrame(function(){if(current&&current.resize)current.resize();});
+}
+$$('.module-item').forEach(function(b){b.addEventListener('click',function(){activate(b.getAttribute('data-target'));});});
+var resizeTimer=null;
+window.addEventListener('resize',function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(function(){if(current&&current.resize)current.resize();},120);});
+markNavDone();
+activate('ml');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1875 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>元胞自动机实验室：简单规则，复杂世界</title>
+  <style>
+:root {
+  --bg: #f4f7f8;
+  --surface: #ffffff;
+  --surface-strong: #eef4f5;
+  --line: #d7e1e3;
+  --text: #152529;
+  --muted: #66777d;
+  --accent: #3b82f6;
+  --accent-dark: #2563eb;
+  --accent-soft: #dbeafe;
+  --warning: #c47a1c;
+  --proof: #f3c44e;
+  --good: #15803d;
+  --bad: #b91c1c;
+  --ink: #1f2937;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+button, select {
+  font: inherit;
+}
+
+.topbar {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.subtitle, .eyebrow {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.eyebrow {
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.layout {
+  display: grid;
+  gap: 16px;
+  padding: 16px 24px;
+  min-height: calc(100vh - 64px);
+  grid-template-columns: 240px minmax(420px, 1fr) 320px;
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    "nav stage data"
+    "prompt prompt prompt";
+}
+
+.panel-shell {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 6px 22px rgba(20, 45, 55, 0.06);
+}
+
+.nav { grid-area: nav; padding: 16px; }
+.stage { grid-area: stage; padding: 16px; min-width: 0; }
+.data { grid-area: data; padding: 16px; }
+.prompt { grid-area: prompt; padding: 14px 16px; }
+
+.nav h2, .data h2, .stage h2 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+
+.module-list {
+  display: grid;
+  gap: 10px;
+}
+
+.module-card {
+  width: 100%;
+  min-height: 76px;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.module-card strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.module-card span {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.module-card.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.stage-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.stage-head h2 {
+  color: var(--text);
+  text-transform: none;
+  font-size: 20px;
+  margin: 0;
+}
+
+.stage-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn, .toolbar button, .toolbar select, .trophy-btn, .phase-tabs button, .quiz-option, .icon-btn {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.btn.primary, .toolbar button.primary, .phase-tabs button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn.subtle, .toolbar button.subtle {
+  background: var(--surface-strong);
+}
+
+.toolbar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.trophy-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fffbeb;
+  border-color: #f6d879;
+}
+
+.stage-body {
+  position: relative;
+  width: 100%;
+  min-height: 560px;
+  aspect-ratio: 16 / 10;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #fbfdfe;
+  touch-action: none;
+}
+
+.html-stage {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  padding: 18px;
+}
+
+.hidden { display: none !important; }
+
+.metrics {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--surface-strong);
+  padding: 6px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric span:first-child {
+  color: var(--muted);
+}
+
+.metric strong {
+  text-align: right;
+}
+
+.rule-card, .muted-box {
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
+  border-radius: 8px;
+  padding: 12px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.rule-card {
+  margin-bottom: 12px;
+}
+
+.rule-bits {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.bit-cell {
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  padding: 6px 2px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bit-cell strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.conclusion {
+  display: grid;
+  gap: 8px;
+}
+
+.conclusion-body {
+  min-height: 84px;
+}
+
+.phase-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.prompt p {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.toast-stack {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--proof);
+  border-left: 4px solid var(--proof);
+  border-radius: 8px;
+  padding: 10px 14px;
+  min-width: 240px;
+  max-width: 320px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.12);
+  animation: toastIn .25s ease-out, toastOut .4s ease-in 3.6s forwards;
+  pointer-events: auto;
+}
+
+.toast .t-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--warning);
+}
+
+.toast .t-name {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 2px 0;
+}
+
+.toast .t-desc {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+@keyframes toastIn {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@keyframes toastOut {
+  to { transform: translateX(20px); opacity: 0; }
+}
+
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 30, 40, 0.45);
+  z-index: 998;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-bg.open { display: flex; }
+
+.modal {
+  width: min(640px, 100%);
+  max-height: 88vh;
+  overflow: auto;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  padding: 18px;
+}
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.modal-head h2 {
+  margin: 0;
+}
+
+.icon-btn {
+  min-width: 40px;
+  padding: 8px;
+  background: var(--surface-strong);
+}
+
+.progress {
+  height: 10px;
+  background: var(--surface-strong);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+}
+
+.ach-list {
+  display: grid;
+  gap: 8px;
+}
+
+.ach-row {
+  display: grid;
+  grid-template-columns: 38px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.ach-row.unlocked {
+  border-color: var(--proof);
+  background: #fffbeb;
+}
+
+.ach-icon { font-size: 22px; }
+.ach-name { font-weight: 700; }
+.ach-desc { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.ach-status { font-size: 12px; color: var(--muted); }
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.quiz-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.quiz-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 14px;
+}
+
+.quiz-card h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.quiz-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quiz-option.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.quiz-option.correct {
+  border-color: var(--good);
+  color: var(--good);
+}
+
+.quiz-option.wrong {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+.quiz-feedback {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.intro-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(260px, 1fr) minmax(260px, 0.9fr);
+  min-height: 100%;
+}
+
+.intro-main {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 18px;
+  min-height: 420px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.intro-demo {
+  display: grid;
+  grid-template-columns: repeat(5, 42px);
+  grid-template-rows: repeat(5, 42px);
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+}
+
+.intro-demo span {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  border-radius: 6px;
+}
+
+.intro-demo span.on {
+  background: var(--accent);
+  border-color: var(--accent-dark);
+}
+
+.intro-step {
+  width: min(520px, 90%);
+  text-align: center;
+}
+
+.intro-step h3 {
+  margin: 6px 0 8px;
+  font-size: 22px;
+}
+
+.intro-step p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.intro-cards {
+  display: grid;
+  gap: 12px;
+}
+
+.intro-cards article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.intro-cards strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--accent-dark);
+}
+
+.intro-cards span {
+  display: block;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 1120px) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "nav"
+      "stage"
+      "data"
+      "prompt";
+  }
+
+  .module-list {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+  }
+
+  .module-card {
+    min-width: 210px;
+  }
+
+  .stage-body {
+    min-height: 500px;
+  }
+
+  .intro-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .topbar {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .layout {
+    padding: 12px;
+  }
+
+  .stage-head {
+    flex-direction: column;
+  }
+
+  .toolbar {
+    justify-content: flex-start;
+  }
+
+  .stage-body {
+    min-height: 420px;
+    aspect-ratio: 1 / 1;
+  }
+
+  .intro-main {
+    min-height: 360px;
+  }
+
+  .intro-demo {
+    grid-template-columns: repeat(5, 32px);
+    grid-template-rows: repeat(5, 32px);
+  }
+
+  .phase-tabs {
+    overflow-x: auto;
+  }
+}
+
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">B10 · 涌现 / 网格引擎</p>
+      <h1>元胞自动机实验室</h1>
+      <p class="subtitle">简单规则 -> 复杂世界</p>
+    </div>
+    <button class="trophy-btn" id="openAchievements" type="button">
+      <span>成就</span>
+      <strong><span id="trophyCount">0</span>/<span id="trophyTotal">0</span></strong>
+    </button>
+  </header>
+
+  <main class="layout">
+    <aside class="nav panel-shell">
+      <h2>实验路径</h2>
+      <div class="module-list" id="moduleList"></div>
+    </aside>
+
+    <section class="stage panel-shell">
+      <div class="stage-head">
+        <div>
+          <h2 id="stageTitle">生命游戏</h2>
+          <p id="stageSubtitle"></p>
+        </div>
+        <div class="toolbar" id="toolbar"></div>
+      </div>
+      <div class="stage-body" id="stageBody">
+        <canvas id="mainCanvas" aria-label="元胞自动机实验画布"></canvas>
+        <div class="html-stage hidden" id="htmlStage"></div>
+      </div>
+    </section>
+
+    <aside class="data panel-shell">
+      <h2>数据面板</h2>
+      <div class="metrics" id="metrics"></div>
+      <div class="rule-card" id="ruleCard"></div>
+      <div class="conclusion">
+        <button id="revealToggle" class="btn subtle" type="button">显示结论</button>
+        <div class="conclusion-body muted-box" id="conclusionBody"></div>
+      </div>
+    </aside>
+
+    <footer class="prompt panel-shell">
+      <div class="phase-tabs" id="phaseTabs">
+        <button type="button" data-phase="observe">观察</button>
+        <button type="button" data-phase="verify">验证</button>
+        <button type="button" data-phase="prove">证明</button>
+      </div>
+      <p id="promptText"></p>
+    </footer>
+  </main>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+  <div class="modal-bg" id="achievementModal" role="dialog" aria-labelledby="achievementTitle">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="achievementTitle">发现成就</h2>
+        <button class="icon-btn" id="closeAchievements" type="button" aria-label="关闭">x</button>
+      </div>
+      <div class="progress"><span id="achievementProgress"></span></div>
+      <div class="ach-list" id="achievementList"></div>
+      <div class="modal-actions">
+        <button class="btn subtle" id="resetAchievements" type="button">清空成就</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  root.CAEngine = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  const LIFE_PATTERNS = {
+    glider: {
+      name: '滑翔机',
+      kind: 'spaceship',
+      period: 4,
+      cells: [[0, 1], [1, 2], [2, 0], [2, 1], [2, 2]],
+    },
+    blinker: {
+      name: '闪烁子',
+      kind: 'oscillator',
+      period: 2,
+      cells: [[0, 0], [1, 0], [2, 0]],
+    },
+    toad: {
+      name: '蟾蜍',
+      kind: 'oscillator',
+      period: 2,
+      cells: [[1, 0], [1, 1], [1, 2], [0, 1], [0, 2], [0, 3]],
+    },
+    beacon: {
+      name: '信标',
+      kind: 'oscillator',
+      period: 2,
+      cells: [[0, 0], [0, 1], [1, 0], [2, 3], [3, 2], [3, 3]],
+    },
+    pulsar: {
+      name: '脉冲星',
+      kind: 'oscillator',
+      period: 3,
+      cells: [
+        [0, 2], [0, 3], [0, 4], [0, 8], [0, 9], [0, 10],
+        [2, 0], [2, 5], [2, 7], [2, 12],
+        [3, 0], [3, 5], [3, 7], [3, 12],
+        [4, 0], [4, 5], [4, 7], [4, 12],
+        [5, 2], [5, 3], [5, 4], [5, 8], [5, 9], [5, 10],
+        [7, 2], [7, 3], [7, 4], [7, 8], [7, 9], [7, 10],
+        [8, 0], [8, 5], [8, 7], [8, 12],
+        [9, 0], [9, 5], [9, 7], [9, 12],
+        [10, 0], [10, 5], [10, 7], [10, 12],
+        [12, 2], [12, 3], [12, 4], [12, 8], [12, 9], [12, 10],
+      ],
+    },
+  };
+
+  function createGrid(rows, cols, fill = 0) {
+    const grid = new Uint8Array(rows * cols);
+    if (fill) grid.fill(fill);
+    return grid;
+  }
+
+  function cloneGrid(grid) {
+    return new Uint8Array(grid);
+  }
+
+  function idx(cols, r, c) {
+    return r * cols + c;
+  }
+
+  function inBounds(rows, cols, r, c) {
+    return r >= 0 && r < rows && c >= 0 && c < cols;
+  }
+
+  function wrap(n, size) {
+    return (n % size + size) % size;
+  }
+
+  function getCell(grid, rows, cols, r, c, wrapEdges = false) {
+    if (wrapEdges) return grid[idx(cols, wrap(r, rows), wrap(c, cols))];
+    if (!inBounds(rows, cols, r, c)) return 0;
+    return grid[idx(cols, r, c)];
+  }
+
+  function setCell(grid, rows, cols, r, c, value, wrapEdges = false) {
+    let rr = r;
+    let cc = c;
+    if (wrapEdges) {
+      rr = wrap(r, rows);
+      cc = wrap(c, cols);
+    } else if (!inBounds(rows, cols, r, c)) {
+      return false;
+    }
+    grid[idx(cols, rr, cc)] = value ? 1 : 0;
+    return true;
+  }
+
+  function countLive(grid) {
+    let count = 0;
+    for (let i = 0; i < grid.length; i++) count += grid[i] ? 1 : 0;
+    return count;
+  }
+
+  function countLifeNeighbors(grid, rows, cols, r, c, wrapEdges = false) {
+    let total = 0;
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        total += getCell(grid, rows, cols, r + dr, c + dc, wrapEdges);
+      }
+    }
+    return total;
+  }
+
+  function stepLife(grid, rows, cols, wrapEdges = false) {
+    const next = createGrid(rows, cols, 0);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const alive = grid[idx(cols, r, c)] === 1;
+        const n = countLifeNeighbors(grid, rows, cols, r, c, wrapEdges);
+        next[idx(cols, r, c)] = alive ? (n === 2 || n === 3 ? 1 : 0) : (n === 3 ? 1 : 0);
+      }
+    }
+    return next;
+  }
+
+  function placePattern(grid, rows, cols, pattern, originR, originC, mode = 'set', wrapEdges = false) {
+    for (const [dr, dc] of pattern) {
+      const r = originR + dr;
+      const c = originC + dc;
+      let rr = r;
+      let cc = c;
+      if (wrapEdges) {
+        rr = wrap(r, rows);
+        cc = wrap(c, cols);
+      } else if (!inBounds(rows, cols, r, c)) {
+        continue;
+      }
+      const i = idx(cols, rr, cc);
+      grid[i] = mode === 'toggle' ? (grid[i] ? 0 : 1) : 1;
+    }
+    return grid;
+  }
+
+  function gridSignature(grid) {
+    let out = '';
+    for (let i = 0; i < grid.length; i++) out += grid[i] ? '1' : '0';
+    return out;
+  }
+
+  function createAntState(rows, cols, r = Math.floor(rows / 2), c = Math.floor(cols / 2), dir = 0) {
+    return {
+      rows,
+      cols,
+      grid: createGrid(rows, cols, 0),
+      ant: { r, c, dir },
+      steps: 0,
+      escaped: false,
+    };
+  }
+
+  function stepLangtonInPlace(state, wrapEdges = true) {
+    const { rows, cols, grid, ant } = state;
+    if (!wrapEdges && !inBounds(rows, cols, ant.r, ant.c)) {
+      state.escaped = true;
+      return state;
+    }
+    const r = wrapEdges ? wrap(ant.r, rows) : ant.r;
+    const c = wrapEdges ? wrap(ant.c, cols) : ant.c;
+    const i = idx(cols, r, c);
+    const onBlack = grid[i] === 1;
+    ant.dir = onBlack ? (ant.dir + 3) % 4 : (ant.dir + 1) % 4;
+    grid[i] = onBlack ? 0 : 1;
+    if (ant.dir === 0) ant.r = r - 1;
+    if (ant.dir === 1) ant.c = c + 1;
+    if (ant.dir === 2) ant.r = r + 1;
+    if (ant.dir === 3) ant.c = c - 1;
+    if (wrapEdges) {
+      ant.r = wrap(ant.r, rows);
+      ant.c = wrap(ant.c, cols);
+    } else if (!inBounds(rows, cols, ant.r, ant.c)) {
+      state.escaped = true;
+    }
+    state.steps += 1;
+    return state;
+  }
+
+  function ruleBits(rule) {
+    assertRule(rule);
+    const bits = [];
+    for (let pattern = 7; pattern >= 0; pattern--) {
+      bits.push((rule >> pattern) & 1);
+    }
+    return bits;
+  }
+
+  function elementaryNextRow(row, rule, wrapEdges = false) {
+    assertRule(rule);
+    const width = row.length;
+    const next = new Uint8Array(width);
+    for (let i = 0; i < width; i++) {
+      const left = i > 0 ? row[i - 1] : (wrapEdges ? row[width - 1] : 0);
+      const center = row[i];
+      const right = i < width - 1 ? row[i + 1] : (wrapEdges ? row[0] : 0);
+      const pattern = (left << 2) | (center << 1) | right;
+      next[i] = (rule >> pattern) & 1;
+    }
+    return next;
+  }
+
+  function elementaryHistory(seed, width, steps, rule, wrapEdges = false) {
+    let row = seed instanceof Uint8Array ? new Uint8Array(seed) : Uint8Array.from(seed);
+    if (row.length !== width) throw new Error('seed length must match width');
+    const history = [row];
+    for (let i = 1; i < steps; i++) {
+      row = elementaryNextRow(row, rule, wrapEdges);
+      history.push(row);
+    }
+    return history;
+  }
+
+  function singleSeed(width) {
+    const seed = new Uint8Array(width);
+    seed[Math.floor(width / 2)] = 1;
+    return seed;
+  }
+
+  function randomSeed(width, probability = 0.5, rng = Math.random) {
+    const seed = new Uint8Array(width);
+    for (let i = 0; i < width; i++) seed[i] = rng() < probability ? 1 : 0;
+    return seed;
+  }
+
+  function makeRng(seed) {
+    let x = seed >>> 0;
+    return function rng() {
+      x += 0x6D2B79F5;
+      let t = x;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function assertRule(rule) {
+    if (!Number.isInteger(rule) || rule < 0 || rule > 255) {
+      throw new RangeError('elementary CA rule must be an integer from 0 to 255');
+    }
+  }
+
+  return {
+    LIFE_PATTERNS,
+    createGrid,
+    cloneGrid,
+    idx,
+    getCell,
+    setCell,
+    countLive,
+    countLifeNeighbors,
+    stepLife,
+    placePattern,
+    gridSignature,
+    createAntState,
+    stepLangtonInPlace,
+    ruleBits,
+    elementaryNextRow,
+    elementaryHistory,
+    singleSeed,
+    randomSeed,
+    makeRng,
+  };
+});
+
+
+</script>
+  <script>
+(function () {
+  'use strict';
+
+  const CA = window.CAEngine;
+  const $ = (sel) => document.querySelector(sel);
+
+  const MODULES = [
+    {
+      id: 'intro',
+      label: 'M0 入门地图',
+      short: '玩法 / 背景 / 意义',
+      title: 'M0 元胞自动机：简单规则怎样长出复杂世界',
+      subtitle: '先看懂这类实验的五个部件，再进入生命游戏、Langton 蚂蚁和初等 CA。',
+      prompts: {
+        observe: '先看“五要素”：网格、状态、邻域、规则、迭代。后面每个实验都只是换了其中一两个部件。',
+        verify: '点“下一步”推进微演示：每一步都只改变局部规则，但全局图案会越来越不像人工画出来的。',
+        prove: '能把一个复杂图案解释成“初态 + 规则 + 反复迭代”，就抓住了元胞自动机的数学语言。',
+      },
+      conclusion: '元胞自动机的价值在于：用极小的局部规则，模拟生命、交通、传播、分形和计算等复杂现象。',
+    },
+    {
+      id: 'life',
+      label: 'M1 生命游戏',
+      short: '滑翔机 / 振荡子',
+      title: '生命游戏：画一个会动的世界',
+      subtitle: '点格子造一个初始宇宙，再用 B3/S23 规则观察它会稳定、振荡还是移动。',
+      prompts: {
+        observe: '先加载“滑翔机”或“闪烁子”，只看前 3 代：有哪些格子像是自己在移动？有哪些格子只是来回摆动？',
+        verify: '单步推进时，挑一个出生的新格子，数一数它上一代周围是不是刚好有 3 个活邻居。',
+        prove: '滑翔机每 4 代平移一格。它移动的是“形状”，不是某一个细胞本身在走路。',
+      },
+      conclusion: '生命游戏只有一条同步规则：活格 2/3 邻居存活，死格 3 邻居出生。稳定、振荡、滑翔机都来自同一条局部规则。',
+    },
+    {
+      id: 'ant',
+      label: 'M2 Langton 蚂蚁',
+      short: '白右黑左',
+      title: 'Langton 蚂蚁：混乱会自己修路吗',
+      subtitle: '蚂蚁只会看脚下颜色：白格右转，黑格左转，翻转当前格，再前进一步。',
+      prompts: {
+        observe: '先点“下一步”10 次，记录蚂蚁每一步只用了哪些局部信息。',
+        verify: '点“快进 1000 步”多次，看黑格数量和路径形状怎样从规整变成混乱。',
+        prove: '约 10000 步后出现重复的高速公路。这说明规则确定，不代表长期行为容易预测。',
+      },
+      conclusion: 'Langton 蚂蚁的每一步极简单，但长期会经历简单、混乱、重复高速公路三段。这是“涌现”的典型体验。',
+    },
+    {
+      id: 'eca',
+      label: 'M3 初等 CA',
+      short: 'Rule 30 / 90 / 110',
+      title: '初等 CA：一行规则长出一张图',
+      subtitle: '一维元胞自动机每个格子只看左、中、右三个状态；把每一代往下堆，就得到时间-空间图。',
+      prompts: {
+        observe: '切换 Rule 30、90、110，比较三张图：哪张像随机纹理，哪张像分形，哪张介于两者之间？',
+        verify: '观察右侧 111 到 000 的规则表，选一列手算下一代，再和画布对照。',
+        prove: 'Rule 90 的下一代等于左右邻居异或，所以单点初态会长出谢尔宾斯基三角形。',
+      },
+      conclusion: '初等 CA 只有 256 条规则。Rule 30 展现混沌纹理，Rule 90 展现分形，Rule 110 展现复杂计算直觉。',
+    },
+    {
+      id: 'quiz',
+      label: 'M4 总结闯关',
+      short: '把现象说成数学',
+      title: '总结闯关：把现象翻译成数学语言',
+      subtitle: '用 5 个判断题检查：你是否真的抓住了“局部规则 -> 全局结构”。',
+      prompts: {
+        observe: '先不看结论，回想三类实验共同拥有哪几个部件。',
+        verify: '答题时把每个判断都对应回一个实验：生命游戏、蚂蚁或初等 CA。',
+        prove: '如果能解释“同步更新”“邻域”“规则表”，就已经抓住了元胞自动机的数学骨架。',
+      },
+      conclusion: '元胞自动机不是某一个游戏，而是一类模型：规则局部、更新迭代、结构全局。',
+    },
+  ];
+
+  const QUIZ = [
+    {
+      id: 'sync',
+      text: '生命游戏里，所有格子应根据“上一代”的邻居数同时更新。',
+      answer: true,
+      explain: '正确。若按先后顺序更新，后面的格子会看到已经改变过的邻居，规则就变了。',
+    },
+    {
+      id: 'glider',
+      text: '滑翔机移动，表示同一批细胞像小虫一样在网格上爬行。',
+      answer: false,
+      explain: '不对。移动的是图案，细胞只是按规则出生和死亡。',
+    },
+    {
+      id: 'ant-local',
+      text: 'Langton 蚂蚁每一步只需要知道脚下格子的颜色和自己的方向。',
+      answer: true,
+      explain: '正确。白右黑左、翻格、前进就是全部规则。',
+    },
+    {
+      id: 'rule90',
+      text: 'Rule 90 从单个活格开始，会出现类似谢尔宾斯基三角形的分形图案。',
+      answer: true,
+      explain: '正确。Rule 90 等价于左右邻居异或，与帕斯卡三角形 mod 2 有联系。',
+    },
+    {
+      id: 'simple-random',
+      text: '只要规则是确定的，就不可能产生看起来像随机的图案。',
+      answer: false,
+      explain: '不对。Rule 30 就是确定规则产生复杂、近似随机纹理的经典例子。',
+    },
+  ];
+
+  const ACHIEVEMENTS = [
+    { id: 'intro-map', icon: '0', name: '看懂地图', desc: '完成 M0 的 5 步入门演示。', check: s => s.discoveries.introComplete },
+    { id: 'life-edit', icon: '□', name: '造物第一格', desc: '亲手点亮或擦除生命游戏中的格子。', check: s => s.discoveries.lifeEdited },
+    { id: 'life-glider', icon: '>', name: '放飞滑翔机', desc: '加载滑翔机并观察它开始移动。', check: s => s.discoveries.loadedGlider },
+    { id: 'life-oscillator', icon: '~', name: '振荡观察员', desc: '加载一个振荡子并发现周期变化。', check: s => s.discoveries.lifePeriod },
+    { id: 'ant-step', icon: '^', name: '第一步蚂蚁', desc: '推进 Langton 蚂蚁的第一步。', check: s => s.discoveries.antStepped },
+    { id: 'ant-highway', icon: '#', name: '高速公路见证者', desc: '让 Langton 蚂蚁推进到 10000 步以上。', check: s => s.ant.engine.steps >= 10000 },
+    { id: 'eca-rule90', icon: '△', name: '分形侦探', desc: '用 Rule 90 生成至少 60 行时间-空间图。', check: s => s.eca.rule === 90 && s.eca.history.length >= 60 },
+    { id: 'eca-rule30', icon: '*', name: '混沌纹理', desc: '用 Rule 30 生成至少 60 行时间-空间图。', check: s => s.eca.rule === 30 && s.eca.history.length >= 60 },
+    { id: 'eca-all', icon: '3', name: '三规则比较', desc: '切换并运行 Rule 30、90、110 三条规则。', check: s => s.discoveries.usedRules.size === 3 },
+    { id: 'quiz-pass', icon: '✓', name: '涌现研究员', desc: '总结闯关至少答对 4 题。', check: s => s.quiz.submitted && quizScore() >= 4 },
+    { id: 'master', icon: '+', name: '复杂世界入门', desc: '解锁前面所有发现型成就。', check: s => unlockedWithoutMaster(s).length >= ACHIEVEMENTS.length - 1 },
+  ];
+
+  const canvas = $('#mainCanvas');
+  const ctx = canvas.getContext('2d');
+  const htmlStage = $('#htmlStage');
+  const stageBody = $('#stageBody');
+
+  let dpr = Math.max(1, window.devicePixelRatio || 1);
+  let drawInfo = null;
+  let raf = 0;
+  let lastTick = 0;
+
+  const app = {
+    active: 'intro',
+    phase: 'observe',
+    reveal: false,
+    running: false,
+    intro: { step: 0 },
+    life: newLifeState(),
+    ant: { engine: CA.createAntState(81, 81, 40, 40, 0), batch: 25 },
+    eca: newEcaState(90, 'single'),
+    quiz: { answers: {}, submitted: false },
+    discoveries: {
+      introComplete: false,
+      lifeEdited: false,
+      loadedGlider: false,
+      lifePeriod: false,
+      antStepped: false,
+      usedRules: new Set([90]),
+    },
+  };
+
+  const userState = {
+    unlocked: loadUnlocked(),
+  };
+
+  function newLifeState() {
+    const rows = 38;
+    const cols = 54;
+    const grid = CA.createGrid(rows, cols, 0);
+    CA.placePattern(grid, rows, cols, CA.LIFE_PATTERNS.glider.cells, 9, 9);
+    CA.placePattern(grid, rows, cols, CA.LIFE_PATTERNS.blinker.cells, 20, 28);
+    return {
+      rows,
+      cols,
+      grid,
+      generation: 0,
+      selectedPattern: 'glider',
+      signatures: new Map([[CA.gridSignature(grid), 0]]),
+      period: null,
+      paintValue: 1,
+      painting: false,
+      lastPattern: '演示初态',
+    };
+  }
+
+  function newEcaState(rule, seedMode) {
+    const width = 121;
+    const seed = seedMode === 'random'
+      ? CA.randomSeed(width, 0.42, CA.makeRng(Date.now() & 0xffff))
+      : CA.singleSeed(width);
+    return {
+      width,
+      rule,
+      seedMode,
+      seed,
+      history: [seed],
+    };
+  }
+
+  function moduleConfig(id = app.active) {
+    return MODULES.find(m => m.id === id);
+  }
+
+  function setActive(id) {
+    app.active = id;
+    app.running = false;
+    app.reveal = false;
+    renderAll();
+  }
+
+  function renderAll() {
+    renderModules();
+    renderHeader();
+    renderToolbar();
+    renderMetrics();
+    renderRuleCard();
+    renderConclusion();
+    renderPrompt();
+    renderAchievementsCount();
+    renderStageMode();
+    fitCanvas();
+    draw();
+    checkAchievements();
+  }
+
+  function renderModules() {
+    const list = $('#moduleList');
+    list.innerHTML = '';
+    for (const mod of MODULES) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'module-card' + (mod.id === app.active ? ' active' : '');
+      btn.innerHTML = `<strong>${mod.label}</strong><span>${mod.short}</span>`;
+      btn.addEventListener('click', () => setActive(mod.id));
+      list.appendChild(btn);
+    }
+  }
+
+  function renderHeader() {
+    const mod = moduleConfig();
+    $('#stageTitle').textContent = mod.title;
+    $('#stageSubtitle').textContent = mod.subtitle;
+  }
+
+  function renderToolbar() {
+    const toolbar = $('#toolbar');
+    toolbar.innerHTML = '';
+    if (app.active === 'intro') renderIntroToolbar(toolbar);
+    if (app.active === 'life') renderLifeToolbar(toolbar);
+    if (app.active === 'ant') renderAntToolbar(toolbar);
+    if (app.active === 'eca') renderEcaToolbar(toolbar);
+    if (app.active === 'quiz') renderQuizToolbar(toolbar);
+  }
+
+  function renderIntroToolbar(toolbar) {
+    addButton(toolbar, '下一步', () => {
+      app.intro.step = Math.min(4, app.intro.step + 1);
+      if (app.intro.step === 4) app.discoveries.introComplete = true;
+      renderAll();
+    }, 'primary');
+    addButton(toolbar, '重置', () => {
+      app.intro.step = 0;
+      renderAll();
+    }, 'subtle');
+    addButton(toolbar, '进入 M1', () => setActive('life'), 'primary');
+  }
+
+  function renderLifeToolbar(toolbar) {
+    addButton(toolbar, '下一步', () => { stepLifeOnce(); renderAll(); });
+    addButton(toolbar, app.running ? '暂停' : '播放', () => { app.running = !app.running; renderAll(); }, 'primary');
+    addButton(toolbar, '重置', () => { app.life = newLifeState(); renderAll(); }, 'subtle');
+    addButton(toolbar, '清空', () => {
+      app.life.grid = CA.createGrid(app.life.rows, app.life.cols, 0);
+      resetLifeSignatures();
+      app.life.lastPattern = '空白宇宙';
+      renderAll();
+    }, 'subtle');
+    addButton(toolbar, '随机', () => {
+      const rng = CA.makeRng(Date.now() & 0xffff);
+      for (let i = 0; i < app.life.grid.length; i++) app.life.grid[i] = rng() < 0.22 ? 1 : 0;
+      resetLifeSignatures();
+      app.life.lastPattern = '随机初态';
+      renderAll();
+    }, 'subtle');
+
+    const select = document.createElement('select');
+    select.setAttribute('aria-label', '选择生命游戏图案');
+    for (const [id, def] of Object.entries(CA.LIFE_PATTERNS)) {
+      const option = document.createElement('option');
+      option.value = id;
+      option.textContent = `${def.name} · ${def.kind === 'oscillator' ? `周期 ${def.period}` : '移动结构'}`;
+      if (id === app.life.selectedPattern) option.selected = true;
+      select.appendChild(option);
+    }
+    select.addEventListener('change', () => {
+      app.life.selectedPattern = select.value;
+    });
+    toolbar.appendChild(select);
+
+    addButton(toolbar, '加载图案', () => {
+      loadLifePattern(app.life.selectedPattern);
+      renderAll();
+    }, 'primary');
+  }
+
+  function renderAntToolbar(toolbar) {
+    addButton(toolbar, '下一步', () => { stepAnt(1); renderAll(); });
+    addButton(toolbar, '验证 100 步', () => { stepAnt(100); renderAll(); });
+    addButton(toolbar, '快进 1000 步', () => { stepAnt(1000); renderAll(); }, 'primary');
+    addButton(toolbar, app.running ? '暂停' : '播放', () => { app.running = !app.running; renderAll(); }, 'primary');
+    addButton(toolbar, '重置', () => {
+      app.ant.engine = CA.createAntState(81, 81, 40, 40, 0);
+      renderAll();
+    }, 'subtle');
+  }
+
+  function renderEcaToolbar(toolbar) {
+    for (const rule of [30, 90, 110]) {
+      addButton(toolbar, `Rule ${rule}`, () => {
+        app.eca = newEcaState(rule, app.eca.seedMode);
+        app.discoveries.usedRules.add(rule);
+        renderAll();
+      }, app.eca.rule === rule ? 'primary' : '');
+    }
+    const select = document.createElement('select');
+    select.setAttribute('aria-label', '选择初态');
+    for (const item of [{ id: 'single', text: '单点初态' }, { id: 'random', text: '随机初态' }]) {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.text;
+      option.selected = app.eca.seedMode === item.id;
+      select.appendChild(option);
+    }
+    select.addEventListener('change', () => {
+      app.eca = newEcaState(app.eca.rule, select.value);
+      renderAll();
+    });
+    toolbar.appendChild(select);
+    addButton(toolbar, '下一步', () => { stepEca(1); renderAll(); });
+    addButton(toolbar, app.running ? '暂停' : '连续验证', () => { app.running = !app.running; renderAll(); }, 'primary');
+    addButton(toolbar, '重置', () => { app.eca = newEcaState(app.eca.rule, app.eca.seedMode); renderAll(); }, 'subtle');
+  }
+
+  function renderQuizToolbar(toolbar) {
+    addButton(toolbar, '重置', () => {
+      app.quiz = { answers: {}, submitted: false };
+      renderAll();
+    }, 'subtle');
+  }
+
+  function addButton(parent, text, onClick, tone = '') {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = text;
+    if (tone) btn.className = tone;
+    btn.addEventListener('click', onClick);
+    parent.appendChild(btn);
+    return btn;
+  }
+
+  function renderMetrics() {
+    const metrics = $('#metrics');
+    metrics.innerHTML = '';
+    if (app.active === 'intro') {
+      addMetric(metrics, '当前步骤', `${app.intro.step + 1}/5`);
+      addMetric(metrics, '核心部件', '网格 / 状态 / 邻域 / 规则 / 迭代');
+      addMetric(metrics, '本课路线', 'Life -> Ant -> Rule');
+      addMetric(metrics, '目标', '解释涌现');
+    }
+    if (app.active === 'life') {
+      const live = CA.countLive(app.life.grid);
+      addMetric(metrics, '代数', app.life.generation);
+      addMetric(metrics, '活格数', live);
+      addMetric(metrics, '活格密度', percent(live / app.life.grid.length));
+      addMetric(metrics, '周期迹象', app.life.period ? `${app.life.period} 代` : '未发现');
+      addMetric(metrics, '当前图案', app.life.lastPattern);
+    }
+    if (app.active === 'ant') {
+      const black = CA.countLive(app.ant.engine.grid);
+      addMetric(metrics, '步数', app.ant.engine.steps);
+      addMetric(metrics, '黑格数', black);
+      addMetric(metrics, '蚂蚁位置', `(${app.ant.engine.ant.r}, ${app.ant.engine.ant.c})`);
+      addMetric(metrics, '方向', ['上', '右', '下', '左'][app.ant.engine.ant.dir]);
+      addMetric(metrics, '阶段', antPhase(app.ant.engine.steps));
+    }
+    if (app.active === 'eca') {
+      const latest = app.eca.history[app.eca.history.length - 1];
+      const live = CA.countLive(latest);
+      addMetric(metrics, '规则', `Rule ${app.eca.rule}`);
+      addMetric(metrics, '行数', app.eca.history.length);
+      addMetric(metrics, '最新行活格', live);
+      addMetric(metrics, '最新行密度', percent(live / latest.length));
+      addMetric(metrics, '初态', app.eca.seedMode === 'single' ? '单点' : '随机');
+    }
+    if (app.active === 'quiz') {
+      addMetric(metrics, '已作答', `${Object.keys(app.quiz.answers).length}/${QUIZ.length}`);
+      addMetric(metrics, '得分', app.quiz.submitted ? `${quizScore()}/${QUIZ.length}` : '提交后显示');
+      addMetric(metrics, '状态', app.quiz.submitted ? '已验证' : '待验证');
+    }
+  }
+
+  function addMetric(parent, key, value) {
+    const row = document.createElement('div');
+    row.className = 'metric';
+    row.innerHTML = `<span>${key}</span><strong>${value}</strong>`;
+    parent.appendChild(row);
+  }
+
+  function renderRuleCard() {
+    const card = $('#ruleCard');
+    if (app.active === 'intro') {
+      card.innerHTML = '<strong>玩法公式</strong><br>选择一个初态，重复同一条局部规则，观察全局结构是否稳定、振荡、移动、分形或混沌。';
+    } else if (app.active === 'life') {
+      card.innerHTML = '<strong>B3/S23</strong><br>出生：死格恰好 3 个活邻居。存活：活格有 2 或 3 个活邻居。其余格子下一代为空。';
+    } else if (app.active === 'ant') {
+      card.innerHTML = '<strong>白右黑左</strong><br>白格右转，黑格左转；翻转脚下格，再向当前方向前进一步。';
+    } else if (app.active === 'eca') {
+      const bits = CA.ruleBits(app.eca.rule);
+      const labels = ['111', '110', '101', '100', '011', '010', '001', '000'];
+      card.innerHTML = `<strong>Rule ${app.eca.rule} = ${app.eca.rule.toString(2).padStart(8, '0')}</strong>
+        <div class="rule-bits">${bits.map((bit, i) => `<div class="bit-cell"><span>${labels[i]}</span><strong>${bit}</strong></div>`).join('')}</div>`;
+    } else {
+      card.innerHTML = '<strong>共同骨架</strong><br>网格、状态、邻域、规则、迭代。不同实验只是这五个部件的不同组合。';
+    }
+  }
+
+  function renderConclusion() {
+    const body = $('#conclusionBody');
+    $('#revealToggle').textContent = app.reveal ? '隐藏结论' : '显示结论';
+    body.textContent = app.reveal ? moduleConfig().conclusion : '先操作、观察和验证。准备好后再显示结论。';
+  }
+
+  function renderPrompt() {
+    for (const btn of $('#phaseTabs').querySelectorAll('button')) {
+      btn.classList.toggle('active', btn.dataset.phase === app.phase);
+    }
+    $('#promptText').textContent = moduleConfig().prompts[app.phase];
+  }
+
+  function renderStageMode() {
+    const isHtml = app.active === 'quiz' || app.active === 'intro';
+    canvas.classList.toggle('hidden', isHtml);
+    htmlStage.classList.toggle('hidden', !isHtml);
+    if (app.active === 'intro') renderIntro();
+    if (app.active === 'quiz') renderQuiz();
+  }
+
+  function renderIntro() {
+    const steps = [
+      { title: '格子有状态', text: '每个小格只有有限状态，例如 0/1、白/黑、活/死。', active: [12] },
+      { title: '只看邻域', text: '一个格子不需要知道全世界，只读取附近邻居。', active: [6, 7, 8, 11, 12, 13, 16, 17, 18] },
+      { title: '套用规则', text: '所有位置使用同一条规则，像“恰好 3 个邻居就出生”。', active: [7, 11, 12, 13, 17] },
+      { title: '反复迭代', text: '一步规则重复很多代，小变化会被放大成图案。', active: [2, 6, 7, 8, 12, 13, 14, 18, 22] },
+      { title: '涌现结构', text: '稳定、振荡、移动、分形、混沌，都可能从简单规则里长出来。', active: [1, 2, 3, 7, 8, 12, 13, 14, 17, 18, 19, 23] },
+    ];
+    const current = steps[app.intro.step];
+    htmlStage.innerHTML = `
+      <div class="intro-layout">
+        <section class="intro-main">
+          <div class="intro-demo" aria-label="元胞自动机五步微演示">
+            ${Array.from({ length: 25 }, (_, i) => `<span class="${current.active.includes(i) ? 'on' : ''}"></span>`).join('')}
+          </div>
+          <div class="intro-step">
+            <p class="eyebrow">微演示 ${app.intro.step + 1}/5</p>
+            <h3>${current.title}</h3>
+            <p>${current.text}</p>
+          </div>
+        </section>
+        <section class="intro-cards">
+          <article><strong>五要素</strong><span>网格、状态、邻域、规则、迭代。</span></article>
+          <article><strong>为什么重要</strong><span>用极少规则解释复杂现象，是数学建模和计算思维的入口。</span></article>
+          <article><strong>怎么玩</strong><span>先预测，再单步验证，最后揭晓结构背后的规则。</span></article>
+          <article><strong>三条路线</strong><span>生命游戏看图案，Langton 蚂蚁看秩序突现，初等 CA 看分形与混沌。</span></article>
+        </section>
+      </div>
+    `;
+  }
+
+  function renderQuiz() {
+    htmlStage.innerHTML = '';
+    const grid = document.createElement('div');
+    grid.className = 'quiz-grid';
+    for (const q of QUIZ) {
+      const card = document.createElement('div');
+      card.className = 'quiz-card';
+      const answer = app.quiz.answers[q.id];
+      const submitted = app.quiz.submitted;
+      card.innerHTML = `<h3>${q.text}</h3>`;
+      const opts = document.createElement('div');
+      opts.className = 'quiz-options';
+      for (const option of [{ value: true, text: '对' }, { value: false, text: '错' }]) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'quiz-option';
+        if (answer === option.value) btn.classList.add('selected');
+        if (submitted && q.answer === option.value) btn.classList.add('correct');
+        if (submitted && answer === option.value && answer !== q.answer) btn.classList.add('wrong');
+        btn.textContent = option.text;
+        btn.addEventListener('click', () => {
+          app.quiz.answers[q.id] = option.value;
+          app.quiz.submitted = false;
+          renderAll();
+        });
+        opts.appendChild(btn);
+      }
+      card.appendChild(opts);
+      if (submitted) {
+        const p = document.createElement('p');
+        p.className = 'quiz-feedback';
+        p.textContent = q.explain;
+        card.appendChild(p);
+      }
+      grid.appendChild(card);
+    }
+    htmlStage.appendChild(grid);
+    const submit = document.createElement('button');
+    submit.type = 'button';
+    submit.className = 'btn primary';
+    submit.textContent = '提交验证';
+    submit.disabled = Object.keys(app.quiz.answers).length < QUIZ.length;
+    submit.addEventListener('click', () => {
+      app.quiz.submitted = true;
+      renderAll();
+    });
+    htmlStage.appendChild(document.createElement('br'));
+    htmlStage.appendChild(submit);
+  }
+
+  function stepLifeOnce() {
+    app.life.grid = CA.stepLife(app.life.grid, app.life.rows, app.life.cols, false);
+    app.life.generation += 1;
+    const signature = CA.gridSignature(app.life.grid);
+    if (app.life.signatures.has(signature)) {
+      const period = app.life.generation - app.life.signatures.get(signature);
+      if (period > 0 && period <= 12) {
+        app.life.period = period;
+        if (period >= 2) app.discoveries.lifePeriod = true;
+      }
+    } else {
+      app.life.signatures.set(signature, app.life.generation);
+    }
+  }
+
+  function resetLifeSignatures() {
+    app.life.generation = 0;
+    app.life.period = null;
+    app.life.signatures = new Map([[CA.gridSignature(app.life.grid), 0]]);
+  }
+
+  function loadLifePattern(id) {
+    const def = CA.LIFE_PATTERNS[id];
+    if (!def) return;
+    const r = Math.max(1, Math.floor((app.life.rows - patternHeight(def.cells)) / 2));
+    const c = Math.max(1, Math.floor((app.life.cols - patternWidth(def.cells)) / 2));
+    app.life.grid = CA.createGrid(app.life.rows, app.life.cols, 0);
+    CA.placePattern(app.life.grid, app.life.rows, app.life.cols, def.cells, r, c);
+    app.life.lastPattern = def.name;
+    resetLifeSignatures();
+    if (id === 'glider') app.discoveries.loadedGlider = true;
+    if (def.kind === 'oscillator') app.discoveries.lifePeriod = true;
+  }
+
+  function patternHeight(cells) {
+    return Math.max(...cells.map(p => p[0])) + 1;
+  }
+
+  function patternWidth(cells) {
+    return Math.max(...cells.map(p => p[1])) + 1;
+  }
+
+  function stepAnt(n) {
+    for (let i = 0; i < n; i++) CA.stepLangtonInPlace(app.ant.engine, true);
+    if (n > 0) app.discoveries.antStepped = true;
+  }
+
+  function stepEca(n) {
+    for (let i = 0; i < n; i++) {
+      const latest = app.eca.history[app.eca.history.length - 1];
+      app.eca.history.push(CA.elementaryNextRow(latest, app.eca.rule, false));
+      if (app.eca.history.length > 180) app.eca.history.shift();
+    }
+    app.discoveries.usedRules.add(app.eca.rule);
+  }
+
+  function fitCanvas() {
+    if (app.active === 'quiz' || app.active === 'intro') return;
+    dpr = Math.max(1, window.devicePixelRatio || 1);
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(320, Math.round(rect.width * dpr));
+    const height = Math.max(320, Math.round(rect.height * dpr));
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
+  }
+
+  function draw() {
+    if (app.active === 'quiz' || app.active === 'intro') return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (app.active === 'life') drawLife();
+    if (app.active === 'ant') drawAnt();
+    if (app.active === 'eca') drawEca();
+  }
+
+  function drawLife() {
+    drawGrid(app.life.grid, app.life.rows, app.life.cols, {
+      alive: '#2563eb',
+      grid: '#d7e1e3',
+      bg: '#ffffff',
+      mode: 'life',
+    });
+  }
+
+  function drawAnt() {
+    drawGrid(app.ant.engine.grid, app.ant.engine.rows, app.ant.engine.cols, {
+      alive: '#1f2937',
+      grid: '#e2e8f0',
+      bg: '#ffffff',
+      mode: 'ant',
+    });
+    if (!drawInfo) return;
+    const { x, y, cell } = drawInfo;
+    const ant = app.ant.engine.ant;
+    const cx = x + ant.c * cell + cell / 2;
+    const cy = y + ant.r * cell + cell / 2;
+    const size = Math.max(cell * 0.48, 5 * dpr);
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate((Math.PI / 2) * ant.dir);
+    ctx.fillStyle = '#dc2626';
+    ctx.beginPath();
+    ctx.moveTo(0, -size);
+    ctx.lineTo(size * 0.75, size * 0.75);
+    ctx.lineTo(0, size * 0.35);
+    ctx.lineTo(-size * 0.75, size * 0.75);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawGrid(grid, rows, cols, opts) {
+    const pad = 18 * dpr;
+    const usableW = canvas.width - pad * 2;
+    const usableH = canvas.height - pad * 2;
+    const cell = Math.max(2, Math.floor(Math.min(usableW / cols, usableH / rows)));
+    const w = cell * cols;
+    const h = cell * rows;
+    const x = Math.floor((canvas.width - w) / 2);
+    const y = Math.floor((canvas.height - h) / 2);
+    drawInfo = { x, y, cell, rows, cols, mode: opts.mode };
+
+    ctx.fillStyle = opts.bg;
+    ctx.fillRect(x, y, w, h);
+
+    ctx.fillStyle = opts.alive;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (!grid[CA.idx(cols, r, c)]) continue;
+        ctx.fillRect(x + c * cell, y + r * cell, Math.max(1, cell - 1), Math.max(1, cell - 1));
+      }
+    }
+
+    if (cell >= 8) {
+      ctx.strokeStyle = opts.grid;
+      ctx.lineWidth = 1 * dpr;
+      ctx.beginPath();
+      for (let c = 0; c <= cols; c++) {
+        const xx = x + c * cell;
+        ctx.moveTo(xx, y);
+        ctx.lineTo(xx, y + h);
+      }
+      for (let r = 0; r <= rows; r++) {
+        const yy = y + r * cell;
+        ctx.moveTo(x, yy);
+        ctx.lineTo(x + w, yy);
+      }
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2 * dpr;
+    ctx.strokeRect(x, y, w, h);
+  }
+
+  function drawEca() {
+    const history = app.eca.history;
+    const width = app.eca.width;
+    const rows = Math.max(1, history.length);
+    const pad = 16 * dpr;
+    const cellW = Math.max(2, Math.floor((canvas.width - pad * 2) / width));
+    const cellH = Math.max(2, Math.floor((canvas.height - pad * 2) / Math.max(rows, 90)));
+    const w = cellW * width;
+    const h = cellH * Math.max(rows, 90);
+    const x = Math.floor((canvas.width - w) / 2);
+    const y = Math.floor((canvas.height - h) / 2);
+    drawInfo = { x, y, cell: cellW, rows: 1, cols: width, mode: 'eca' };
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x, y, w, h);
+    const color = app.eca.rule === 30 ? '#1f2937' : app.eca.rule === 90 ? '#2563eb' : '#0f766e';
+    ctx.fillStyle = color;
+    for (let r = 0; r < history.length; r++) {
+      const row = history[r];
+      for (let c = 0; c < width; c++) {
+        if (row[c]) ctx.fillRect(x + c * cellW, y + r * cellH, cellW, cellH);
+      }
+    }
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2 * dpr;
+    ctx.strokeRect(x, y, w, h);
+  }
+
+  function canvasToCell(ev) {
+    if (!drawInfo) return null;
+    const rect = canvas.getBoundingClientRect();
+    const px = (ev.clientX - rect.left) * dpr;
+    const py = (ev.clientY - rect.top) * dpr;
+    const c = Math.floor((px - drawInfo.x) / drawInfo.cell);
+    const r = Math.floor((py - drawInfo.y) / drawInfo.cell);
+    if (c < 0 || c >= drawInfo.cols || r < 0 || r >= drawInfo.rows) return null;
+    return { r, c };
+  }
+
+  function handleCanvasDown(ev) {
+    if (!drawInfo) return;
+    const cell = canvasToCell(ev);
+    if (!cell) return;
+    if (app.active === 'life') {
+      app.life.painting = true;
+      const i = CA.idx(app.life.cols, cell.r, cell.c);
+      app.life.paintValue = app.life.grid[i] ? 0 : 1;
+      CA.setCell(app.life.grid, app.life.rows, app.life.cols, cell.r, cell.c, app.life.paintValue, false);
+      app.discoveries.lifeEdited = true;
+      app.life.lastPattern = '手绘初态';
+      resetLifeSignatures();
+      renderAll();
+    } else if (app.active === 'ant') {
+      app.ant.engine.ant.r = cell.r;
+      app.ant.engine.ant.c = cell.c;
+      app.ant.engine.ant.dir = 0;
+      renderAll();
+    } else if (app.active === 'eca') {
+      app.eca.seed[cell.c] = app.eca.seed[cell.c] ? 0 : 1;
+      app.eca.history = [new Uint8Array(app.eca.seed)];
+      renderAll();
+    }
+  }
+
+  function handleCanvasMove(ev) {
+    if (!app.life.painting || app.active !== 'life') return;
+    const cell = canvasToCell(ev);
+    if (!cell) return;
+    CA.setCell(app.life.grid, app.life.rows, app.life.cols, cell.r, cell.c, app.life.paintValue, false);
+    app.discoveries.lifeEdited = true;
+    resetLifeSignatures();
+    draw();
+  }
+
+  function handleCanvasUp() {
+    if (app.life.painting) {
+      app.life.painting = false;
+      renderAll();
+    }
+  }
+
+  function animationLoop(now) {
+    if (app.running && now - lastTick > tickInterval()) {
+      if (app.active === 'life') stepLifeOnce();
+      if (app.active === 'ant') stepAnt(app.ant.batch);
+      if (app.active === 'eca') stepEca(1);
+      lastTick = now;
+      renderMetrics();
+      renderRuleCard();
+      draw();
+      checkAchievements();
+    }
+    raf = requestAnimationFrame(animationLoop);
+  }
+
+  function tickInterval() {
+    if (app.active === 'ant') return 18;
+    if (app.active === 'eca') return 65;
+    return 120;
+  }
+
+  function quizScore() {
+    let score = 0;
+    for (const q of QUIZ) if (app.quiz.answers[q.id] === q.answer) score += 1;
+    return score;
+  }
+
+  function antPhase(steps) {
+    if (steps < 500) return '简单结构';
+    if (steps < 10000) return '混乱扩散';
+    return '高速公路';
+  }
+
+  function percent(value) {
+    return `${(value * 100).toFixed(1)}%`;
+  }
+
+  function loadUnlocked() {
+    try {
+      const raw = localStorage.getItem('cellular-automata-lab-ach-v1');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch (e) {
+      return new Set();
+    }
+  }
+
+  function saveUnlocked() {
+    try {
+      localStorage.setItem('cellular-automata-lab-ach-v1', JSON.stringify([...userState.unlocked]));
+    } catch (e) {}
+  }
+
+  function checkAchievements() {
+    const unlockedNow = [];
+    for (const def of ACHIEVEMENTS) {
+      if (!userState.unlocked.has(def.id) && def.check(app)) {
+        userState.unlocked.add(def.id);
+        unlockedNow.push(def);
+      }
+    }
+    if (unlockedNow.length) {
+      saveUnlocked();
+      unlockedNow.forEach(showToast);
+      renderAchievementsCount();
+    }
+  }
+
+  function unlockedWithoutMaster() {
+    return ACHIEVEMENTS.filter(a => a.id !== 'master' && userState.unlocked.has(a.id));
+  }
+
+  function renderAchievementsCount() {
+    $('#trophyCount').textContent = userState.unlocked.size;
+    $('#trophyTotal').textContent = ACHIEVEMENTS.length;
+  }
+
+  function showToast(def) {
+    const stack = $('#toastStack');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `<div class="t-title">解锁成就</div><div class="t-name">${def.icon} ${def.name}</div><div class="t-desc">${def.desc}</div>`;
+    stack.appendChild(toast);
+    setTimeout(() => toast.remove(), 4300);
+  }
+
+  function openAchievements() {
+    const list = $('#achievementList');
+    list.innerHTML = '';
+    for (const a of ACHIEVEMENTS) {
+      const unlocked = userState.unlocked.has(a.id);
+      const row = document.createElement('div');
+      row.className = 'ach-row' + (unlocked ? ' unlocked' : '');
+      row.innerHTML = `<div class="ach-icon">${a.icon}</div>
+        <div><div class="ach-name">${a.name}</div><div class="ach-desc">${a.desc}</div></div>
+        <div class="ach-status">${unlocked ? '已解锁' : '未解锁'}</div>`;
+      list.appendChild(row);
+    }
+    $('#achievementProgress').style.width = `${(userState.unlocked.size / ACHIEVEMENTS.length) * 100}%`;
+    $('#achievementModal').classList.add('open');
+  }
+
+  function closeAchievements() {
+    $('#achievementModal').classList.remove('open');
+  }
+
+  $('#revealToggle').addEventListener('click', () => {
+    app.reveal = !app.reveal;
+    renderConclusion();
+  });
+
+  $('#phaseTabs').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-phase]');
+    if (!btn) return;
+    app.phase = btn.dataset.phase;
+    renderPrompt();
+  });
+
+  $('#openAchievements').addEventListener('click', openAchievements);
+  $('#closeAchievements').addEventListener('click', closeAchievements);
+  $('#achievementModal').addEventListener('click', (ev) => {
+    if (ev.target.id === 'achievementModal') closeAchievements();
+  });
+  $('#resetAchievements').addEventListener('click', () => {
+    userState.unlocked.clear();
+    saveUnlocked();
+    openAchievements();
+    renderAchievementsCount();
+  });
+
+  canvas.addEventListener('pointerdown', handleCanvasDown);
+  canvas.addEventListener('pointermove', handleCanvasMove);
+  window.addEventListener('pointerup', handleCanvasUp);
+  window.addEventListener('resize', () => {
+    fitCanvas();
+    draw();
+  });
+
+  renderAll();
+  raf = requestAnimationFrame(animationLoop);
+})();
+
+</script>
+</body>
+</html>
+

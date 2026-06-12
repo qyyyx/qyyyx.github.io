@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>水中浸物实验室</title>
+<style>
+/* ============ 主题（ui-standard 浅色数学实验室） ============ */
+:root{
+  --bg:#f4f7f8; --surface:#ffffff; --surface-strong:#eef4f5; --line:#d7e1e3;
+  --text:#152529; --muted:#66777d; --accent:#3b82f6; --accent-dark:#2563eb;
+  --accent-soft:#dbeafe; --warning:#c47a1c; --proof:#f3c44e;
+  --water:rgba(59,130,246,.38); --water-deep:rgba(37,99,235,.62);
+  --solid:#b08960; --solid-dark:#8a6a47; --wet:#7dd3fc;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);
+  font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.55}
+button{font:inherit;cursor:pointer}
+.num,.metric-val,td.num{font-variant-numeric:tabular-nums;font-family:"SF Mono",Consolas,Menlo,monospace}
+
+/* ============ 顶栏 ============ */
+.topbar{display:flex;align-items:center;gap:14px;padding:10px 18px;background:var(--surface);
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
+.topbar h1{font-size:17px;font-weight:700}
+.topbar .sub{color:var(--muted);font-size:12.5px}
+.topbar .spacer{flex:1}
+.ach-entry{display:flex;align-items:center;gap:8px;background:var(--surface-strong);
+  border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-height:40px}
+.ach-entry .bar{width:90px;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.ach-entry .bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:4px;transition:width .4s}
+
+/* ============ 三栏布局 ============ */
+.layout{display:grid;grid-template-columns:228px minmax(0,1fr) 300px;gap:14px;
+  padding:14px 18px;max-width:1500px;margin:0 auto;align-items:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+
+/* 左导航 */
+.nav .panel-label{font-size:12px;color:var(--muted);letter-spacing:.08em;margin-bottom:8px}
+.nav-item{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:none;
+  border:1px solid transparent;border-radius:10px;padding:9px 10px;min-height:40px;color:var(--text)}
+.nav-item:hover{background:var(--surface-strong)}
+.nav-item.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-dark);font-weight:600}
+.nav-item .idx{flex:none;width:26px;height:26px;border-radius:8px;background:var(--surface-strong);
+  display:grid;place-items:center;font-size:12.5px;font-weight:700;color:var(--muted)}
+.nav-item.active .idx{background:var(--accent);color:#fff}
+.nav-item.done .idx{background:#16a34a;color:#fff}
+
+/* 中部模块视图 */
+.mod-view{display:none}
+.mod-view.active{display:block}
+.mod-head{margin-bottom:10px}
+.mod-head .kicker{font-size:12px;color:var(--accent-dark);font-weight:700;letter-spacing:.08em}
+.mod-head h2{font-size:19px;margin:2px 0 4px}
+.mod-head p{color:var(--muted);font-size:13.5px}
+.stage-wrap{background:var(--surface-strong);border:1px solid var(--line);border-radius:12px;
+  padding:8px;margin-bottom:12px}
+canvas.stage{display:block;width:100%;height:auto;border-radius:8px;background:#fff;touch-action:none}
+
+/* 控件区 */
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.btn{min-height:40px;padding:8px 16px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--text);font-weight:600}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-dark)}
+.btn.is-locked{border-style:dashed;opacity:.62;position:relative}
+.btn.ghost{background:none;border-color:transparent;color:var(--muted)}
+.lock-tip{font-size:12px;color:var(--warning);font-weight:600}
+.slider-row{display:flex;align-items:center;gap:10px;min-height:40px;flex:1 1 260px}
+.slider-row label{font-size:13px;color:var(--muted);white-space:nowrap}
+.slider-row input[type=range]{flex:1;accent-color:var(--accent);min-height:40px}
+.slider-row .val{font-size:13px;min-width:72px;text-align:right}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{min-height:40px;padding:8px 14px;background:var(--surface);border:none;color:var(--muted);font-weight:600}
+.seg button.on{background:var(--accent);color:#fff}
+.switch-row{display:flex;align-items:center;gap:8px;min-height:40px;font-size:13.5px}
+
+/* 预测区 */
+.predict{border:1px dashed var(--accent);border-radius:12px;padding:12px;margin-bottom:12px;background:#f8fbff}
+.predict .eyebrow{font-size:12px;font-weight:700;color:var(--accent-dark);letter-spacing:.08em}
+.predict p{margin:4px 0 8px;font-size:14px}
+.option-list{display:flex;flex-wrap:wrap;gap:8px}
+.option-list button{min-height:40px;padding:8px 14px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);text-align:left}
+.option-list button.sel{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+.option-list button.right{border-color:#16a34a;background:#dcfce7}
+.option-list button.wrong{border-color:#dc2626;background:#fee2e2}
+.predict .feedback{margin-top:8px;font-size:13.5px;color:var(--muted)}
+.predict.flash{animation:flash 1s ease 2}
+@keyframes flash{0%,100%{background:#f8fbff}50%{background:#dbeafe}}
+
+/* 结论区 */
+.reveal-box{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface)}
+.reveal-box .placeholder{color:var(--muted);font-size:13.5px}
+.reveal-box .content{display:none;font-size:14px}
+.reveal-box.open .content{display:block}
+.reveal-box.open .placeholder{display:none}
+.reveal-box .formula{background:var(--surface-strong);border-radius:8px;padding:8px 12px;margin:8px 0;
+  font-family:"SF Mono",Consolas,monospace;font-size:13.5px}
+
+/* 右栏数据面板 */
+.data-panel .panel-label{font-size:12px;color:var(--muted);letter-spacing:.08em;margin-bottom:8px}
+#metrics{display:grid;gap:8px}
+#metrics .m-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  background:var(--surface-strong);border-radius:10px;padding:8px 12px}
+#metrics .m-row dt{font-size:12.5px;color:var(--muted)}
+#metrics .m-row dd{font-size:15px;font-weight:700}
+#metricNote{margin-top:10px;font-size:12.5px;color:var(--muted)}
+.state-chip{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12.5px;font-weight:700}
+.state-dry{background:var(--surface-strong);color:var(--muted)}
+.state-partial{background:#fef3c7;color:#92400e}
+.state-full{background:var(--accent-soft);color:var(--accent-dark)}
+.state-overflow{background:#fee2e2;color:#b91c1c}
+
+/* 底部提示条 */
+.prompt-bar{grid-column:1/-1;display:flex;gap:12px;align-items:flex-start}
+.prompt-bar .stage-tabs{display:flex;gap:6px;flex:none}
+.prompt-bar .stage-tabs button{min-height:40px;padding:8px 14px;border-radius:10px;
+  border:1px solid var(--line);background:var(--surface);font-weight:600;color:var(--muted)}
+.prompt-bar .stage-tabs button.on{background:var(--proof);border-color:var(--proof);color:#4a3a06}
+.prompt-bar .stage-tabs button.on.obs{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-dark)}
+.prompt-bar .stage-tabs button.on.ver{background:#dcfce7;border-color:#16a34a;color:#14532d}
+#promptText{flex:1;font-size:14px;padding:9px 4px;color:var(--text)}
+
+/* 概念卡/小测（M6） */
+.cards-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-bottom:14px}
+.concept-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface)}
+.concept-card h4{font-size:14.5px;margin-bottom:6px}
+.concept-card .tag{display:inline-block;font-size:11.5px;background:var(--accent-soft);
+  color:var(--accent-dark);border-radius:6px;padding:2px 8px;margin-bottom:6px}
+.concept-card p{font-size:13px;color:var(--muted)}
+.quiz-item{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:var(--surface)}
+.quiz-item h4{font-size:14px;margin-bottom:8px}
+.quiz-item .why{display:none;margin-top:8px;font-size:13px;color:var(--muted)}
+.quiz-item.answered .why{display:block}
+.rank-box{border:2px solid var(--accent);border-radius:12px;padding:14px;text-align:center;display:none}
+.rank-box.show{display:block}
+.rank-box .rank{font-size:22px;font-weight:800;color:var(--accent-dark)}
+
+/* 成就 toast / 弹窗 */
+.ach-toast-stack{position:fixed;right:16px;top:64px;z-index:99;display:flex;flex-direction:column;gap:8px}
+.ach-toast{background:#1f2937;color:#fff;border-radius:12px;padding:10px 14px;width:260px;
+  box-shadow:0 8px 24px rgba(0,0,0,.18);animation:slidein .3s ease}
+@keyframes slidein{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+.ach-toast-title{font-size:11.5px;letter-spacing:.1em;color:#fbbf24;display:flex;gap:6px;align-items:center}
+.ach-toast-name{font-weight:700;margin:2px 0}
+.ach-toast-desc{font-size:12.5px;color:#d1d5db}
+.ach-modal{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:98;display:none;place-items:center;padding:16px}
+.ach-modal.open{display:grid}
+.ach-modal .inner{background:var(--surface);border-radius:16px;padding:18px;width:min(480px,100%);
+  max-height:80vh;overflow:auto}
+.ach-row{display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px}
+.ach-row.is-unlocked{background:var(--surface-strong)}
+.ach-row .ach-icon{flex:none;width:34px;height:34px;border-radius:10px;background:var(--accent-soft);
+  display:grid;place-items:center;font-size:17px}
+.ach-row .ach-name{font-weight:600;font-size:14px}
+.ach-row .ach-desc{font-size:12.5px;color:var(--muted)}
+
+/* ============ 响应式 ============ */
+@media (max-width:1099px){
+  .layout{grid-template-columns:minmax(0,1fr) 280px}
+  .nav{grid-column:1/-1}
+  .nav .nav-list{display:flex;overflow-x:auto;gap:6px}
+  .nav-item{flex:none;width:auto}
+}
+@media (max-width:699px){
+  .layout{grid-template-columns:minmax(0,1fr);padding:10px}
+  .data-panel{order:3}
+  .prompt-bar{flex-direction:column}
+  .topbar h1{font-size:15px}
+  .topbar .sub{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>💧 水中浸物实验室</h1>
+  <span class="sub">排水法与水面高度 · 探究式课件</span>
+  <span class="spacer"></span>
+  <button class="ach-entry" id="achOpen" title="查看成就">
+    <span>🏆 <b class="num" data-ach-count>0</b>/<span class="num" data-ach-total>0</span></span>
+    <span class="bar"><i data-ach-progress></i></span>
+  </button>
+</header>
+
+<div class="layout">
+
+  <!-- ============ 左：模块导航 ============ -->
+  <nav class="card nav">
+    <p class="panel-label">学习路径</p>
+    <div class="nav-list" id="navList"></div>
+  </nav>
+
+  <!-- ============ 中：模块视图 ============ -->
+  <main style="min-width:0">
+
+    <!-- M0 入门地图 -->
+    <section class="card mod-view" id="view-m0">
+      <div class="mod-head">
+        <p class="kicker">M0 · 入门地图</p>
+        <h2>水中放东西，水面怎么动？</h2>
+        <p>5 步微演示，认识这间实验室要研究什么。</p>
+      </div>
+      <div class="stage-wrap"><canvas class="stage" id="cv-m0"></canvas></div>
+      <div class="controls">
+        <button class="btn" id="m0Prev">上一步</button>
+        <button class="btn primary" id="m0Next">下一步</button>
+        <span id="m0StepLabel" class="num" style="color:var(--muted);font-size:13px"></span>
+      </div>
+      <div class="reveal-box" id="m0Intro">
+        <div class="content" style="display:block;font-size:13.5px;color:var(--muted)">
+          把一块石头放进装水的杯子，水面会升起来——升多少？什么时候会溢出来？
+          这背后只有一条规则：<b style="color:var(--text)">物体浸入水中的体积 = 它排开水的体积</b>。
+          接下来 6 个实验，每一个都让你先猜、再动手、最后自己说出结论。
+        </div>
+      </div>
+    </section>
+
+    <!-- M1 水去哪了 -->
+    <section class="card mod-view" id="view-m1">
+      <div class="mod-head">
+        <p class="kicker">M1 · 守恒起点</p>
+        <h2>水去哪了？</h2>
+        <p>把物体按入水中，打开「水量 X 光」，看看升起来的水到底是哪一块。</p>
+      </div>
+      <div class="predict" id="m1Predict">
+        <span class="eyebrow">先预测</span>
+        <p>把物体慢慢按入水中，水面升高的高度应该等于——</p>
+        <div class="option-list" id="m1Options"></div>
+        <div class="feedback" id="m1Feedback">选择你的猜想后，再去拖动下放滑杆验证。</div>
+      </div>
+      <div class="stage-wrap"><canvas class="stage" id="cv-m1"></canvas></div>
+      <div class="controls">
+        <div class="slider-row">
+          <label>下放物体</label>
+          <input type="range" id="m1Depth" min="0" max="100" value="0" step="1">
+          <span class="val num" id="m1DepthVal"></span>
+        </div>
+        <label class="switch-row"><input type="checkbox" id="m1Xray" style="width:20px;height:20px;accent-color:var(--accent)"> 水量 X 光</label>
+        <button class="btn ghost" id="m1Reset">重置</button>
+      </div>
+      <div class="reveal-box" data-module="m1">
+        <button class="btn" data-reveal-toggle>显示结论</button>
+        <p class="placeholder" style="margin-top:8px">先在 ≥3 个不同深度打开 X 光对比两个体积，再来揭晓。</p>
+        <div class="content">
+          <p><b>体积守恒</b>：水既没增加也没减少，被物体「挤开」的水必须去别处——只能整体抬高水面。</p>
+          <p class="formula">容器底面积 × 水面升高 Δh = 物体浸入水中的体积 V浸</p>
+          <p style="color:var(--muted);font-size:13px">所以无论物体是什么形状，只要知道浸入体积和容器底面积，就能算出水面升多少。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- M2 三态对比实验台 -->
+    <section class="card mod-view" id="view-m2">
+      <div class="mod-head">
+        <p class="kicker">M2 · 核心实验 ★</p>
+        <h2>三态对比实验台</h2>
+        <p>把物体从空中一路放到容器底，水面高度会经历几个不同阶段？右图同步画出你的实验曲线。</p>
+      </div>
+      <div class="predict" id="m2Predict">
+        <span class="eyebrow">先预测（讲义判断法）</span>
+        <p>物体一路下放，水面升高<b>最快</b>的是哪个阶段？</p>
+        <div class="option-list" id="m2Options"></div>
+        <div class="feedback" id="m2Feedback">选择后拖动滑杆，对照右侧曲线的陡峭程度。</div>
+      </div>
+      <div class="stage-wrap"><canvas class="stage" id="cv-m2"></canvas></div>
+      <div class="controls">
+        <div class="slider-row">
+          <label>下放行程</label>
+          <input type="range" id="m2Travel" min="0" max="1000" value="0" step="1">
+          <span class="val num" id="m2TravelVal"></span>
+        </div>
+        <div class="seg" id="m2WaterSeg">
+          <button data-mode="normal" class="on">正常水量</button>
+          <button data-mode="full">加水近满</button>
+        </div>
+        <button class="btn ghost" id="m2Reset">重置</button>
+      </div>
+      <div class="reveal-box" data-module="m2">
+        <button class="btn" data-reveal-toggle>显示结论</button>
+        <p class="placeholder" style="margin-top:8px">先让物体走完全程、找到两个「临界点」，再来揭晓。</p>
+        <div class="content">
+          <p><b>三种状态，三段曲线：</b></p>
+          <p>① <b>部分没过</b>：水面被「回字形底面」托着，每放下一点都升得最快——h = V水 ÷ (S容 − S物)；</p>
+          <p>② <b>完全浸没</b>：物体没顶后，再往下放浸入体积不变，水面也就<b>不再变化</b>——Δh = V物 ÷ S容；</p>
+          <p>③ <b>溢出</b>：水面到达容器口后被「锁死」，多排开的体积全部变成溢出的水。</p>
+          <p class="formula">讲义判断法：先假设「部分没过」算水面 → 算出的水面高过物体顶？不实际，改按「完全浸没」重算 → 再检查是否高过容器口。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- M3 公式自己推 -->
+    <section class="card mod-view" id="view-m3">
+      <div class="mod-head">
+        <p class="kicker">M3 · 公式自己推</p>
+        <h2>回字形底面：水被挤到哪里站着？</h2>
+        <p>物体直立水中没露头时，水其实站在一圈「回字形」底面上。把水摊平看看。</p>
+      </div>
+      <div class="predict" id="m3Predict">
+        <span class="eyebrow">先预测</span>
+        <p>水量不变，把直立的物体换成<b>更粗</b>的一根（底面积更大），水面会——</p>
+        <div class="option-list" id="m3Options"></div>
+        <div class="feedback" id="m3Feedback">选择后拖动「物体粗细」滑杆验证。</div>
+      </div>
+      <div class="stage-wrap"><canvas class="stage" id="cv-m3"></canvas></div>
+      <div class="controls">
+        <div class="slider-row">
+          <label>物体粗细 S物</label>
+          <input type="range" id="m3Area" min="10" max="80" value="30" step="1">
+          <span class="val num" id="m3AreaVal"></span>
+        </div>
+        <button class="btn primary" id="m3Flatten">把水摊平 →</button>
+        <button class="btn ghost" id="m3Reset">重置</button>
+      </div>
+      <div class="reveal-box" data-module="m3">
+        <button class="btn" data-reveal-toggle>显示结论</button>
+        <p class="placeholder" style="margin-top:8px">先做一次「摊平」动画，看看右边等效容器的宽度是多少，再揭晓公式。</p>
+        <div class="content">
+          <p>水站立的底面 = 容器底面挖掉物体底面，面积 <b>S容 − S物</b>（讲义叫「回字形底面积」）。</p>
+          <p class="formula">水面高度 h = V水 ÷ (S容 − S物)</p>
+          <p style="color:var(--muted);font-size:13px">物体越粗，回字形越窄，同样的水站得越高——当 S物 接近 S容 时，水面会急剧蹿升。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- M4 取放实验台 -->
+    <section class="card mod-view" id="view-m4">
+      <div class="mod-head">
+        <p class="kicker">M4 · 取放与移动</p>
+        <h2>取放实验台</h2>
+        <p>放入、取出、提起——水面只认一件事：当前有多少体积浸在水里。</p>
+      </div>
+      <div class="predict" id="m4Predict">
+        <span class="eyebrow">先预测</span>
+        <p>把部分浸没的物块向上提起 2 cm，它身上「露出水面的湿痕」会有多长？</p>
+        <div class="option-list" id="m4Options"></div>
+        <div class="feedback" id="m4Feedback">选择后，用下面的「提起」滑杆做实验。</div>
+      </div>
+      <div class="stage-wrap"><canvas class="stage" id="cv-m4"></canvas></div>
+      <div class="controls">
+        <button class="btn" id="m4TogA">放入 A（方块）</button>
+        <button class="btn" id="m4TogB">放入 B（扁块）</button>
+        <button class="btn" id="m4TogC">放入 C（高条）</button>
+        <div class="slider-row">
+          <label>提起 C</label>
+          <input type="range" id="m4Lift" min="0" max="40" value="0" step="1" disabled>
+          <span class="val num" id="m4LiftVal"></span>
+        </div>
+        <button class="btn ghost" id="m4Reset">重置</button>
+      </div>
+      <div class="reveal-box" data-module="m4">
+        <button class="btn" data-reveal-toggle>显示结论</button>
+        <p class="placeholder" style="margin-top:8px">先试试：A、B 单独放入水面一样高吗？换着顺序放呢？提起 C 湿痕多长？</p>
+        <div class="content">
+          <p>① 水面高度只由<b>当前浸入的总体积</b>决定——与放入顺序无关、与形状无关（A、B 体积相同）。</p>
+          <p>② 取出物体，水面下降量 = 放入时的上升量（对称）。</p>
+          <p class="formula">提起物块时：露出的浸湿长度 = 物块上升高度 + 水面下降高度</p>
+          <p style="color:var(--muted);font-size:13px">物块往上走、水面往下走，两段加在一起才是湿痕——这就是讲义「移动中的水中浸物」的关键。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- M5 注水图像侦探 -->
+    <section class="card mod-view" id="view-m5">
+      <div class="mod-head">
+        <p class="kicker">M5 · 图像侦探</p>
+        <h2>注水曲线里藏着什么？</h2>
+        <p>匀速注水，槽里藏着一只烧杯。先看注水画出怎样的折线，再反过来「看折线猜结构」。</p>
+      </div>
+      <div class="stage-wrap"><canvas class="stage" id="cv-m5"></canvas></div>
+      <div class="controls">
+        <div class="seg" id="m5ModeSeg">
+          <button data-mode="beaker" class="on">注入烧杯</button>
+          <button data-mode="tank">注入槽里</button>
+        </div>
+        <button class="btn primary" id="m5Play">开始注水</button>
+        <button class="btn ghost" id="m5Reset">重置</button>
+      </div>
+      <div class="predict" id="m5Puzzle">
+        <span class="eyebrow">侦探挑战（3 题）</span>
+        <p id="m5PuzzleQ"></p>
+        <div class="option-list" id="m5PuzzleOptions"></div>
+        <div class="feedback" id="m5PuzzleFeedback"></div>
+      </div>
+      <div class="reveal-box" data-module="m5">
+        <button class="btn" data-reveal-toggle>显示结论</button>
+        <p class="placeholder" style="margin-top:8px">先把两种注法各跑一遍、再破完 3 个侦探谜题来揭晓。</p>
+        <div class="content">
+          <p>折线的每一段斜率 = 注水速度 ÷ <b>当时的有效底面积</b>；每个拐点 = 一次「结构事件」（烧杯注满、水面齐杯口…）。</p>
+          <p class="formula">平台在开头 → 水先进了别的地方；平台在中间 → 水面被某个口「拦」了一下；斜率变缓 → 有效底面积变大</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- M6 总结闯关 -->
+    <section class="card mod-view" id="view-m6">
+      <div class="mod-head">
+        <p class="kicker">M6 · 总结闯关</p>
+        <h2>知识地图 · 闯关自检 · 浮冰彩蛋</h2>
+        <p>把 6 个实验连成一张地图，再用 6 道题检验自己，最后挑战课后阅读的浮冰之谜。</p>
+      </div>
+      <div class="cards-wall" id="m6Cards"></div>
+      <div id="m6Quiz"></div>
+      <div class="rank-box" id="m6Rank"><div>你的段位</div><div class="rank" id="m6RankName"></div><div id="m6RankDesc" style="color:var(--muted);font-size:13px"></div></div>
+      <div class="reveal-box" data-module="m6" style="margin-top:14px">
+        <button class="btn" data-reveal-toggle>❄️ 浮冰彩蛋（课后阅读）</button>
+        <p class="placeholder" style="margin-top:8px">讲义课后阅读：漂浮的冰融化后，水面到底变不变？做完小测再来挑战。</p>
+        <div class="content" id="m6Ice"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ 右：数据面板 ============ -->
+  <aside class="card data-panel">
+    <p class="panel-label">实时数据</p>
+    <dl id="metrics"></dl>
+    <p id="metricNote"></p>
+  </aside>
+
+  <!-- ============ 底部：探究提示 ============ -->
+  <div class="card prompt-bar">
+    <div class="stage-tabs" id="stageTabs">
+      <button data-stage="0" class="on obs">观察</button>
+      <button data-stage="1">验证</button>
+      <button data-stage="2">证明</button>
+    </div>
+    <p id="promptText"></p>
+  </div>
+
+</div>
+
+<!-- 成就弹窗 -->
+<div class="ach-modal" id="achModal">
+  <div class="inner">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <h3 style="flex:1">🏆 成就一览</h3>
+      <button class="btn ghost" id="achReset">重置进度</button>
+      <button class="btn" id="achClose">关闭</button>
+    </div>
+    <div id="achList"></div>
+  </div>
+</div>
+
+<!-- ============ 成就系统底座（achievements.js 精简内联） ============ -->
+<script>
+function createAchievements(options){
+  options=options||{}; var defs=options.defs||[], storageKey=options.storageKey||'ach-v1';
+  var toastDuration=options.toastDuration||4200, onUnlock=typeof options.onUnlock==='function'?options.onUnlock:null;
+  var unlocked=new Set();
+  function findDef(id){for(var i=0;i<defs.length;i++){if(defs[i].id===id)return defs[i];}return null;}
+  function load(){try{var raw=localStorage.getItem(storageKey);if(raw)JSON.parse(raw).forEach(function(id){unlocked.add(id);});}catch(e){}}
+  function save(){try{localStorage.setItem(storageKey,JSON.stringify(Array.from(unlocked)));}catch(e){}}
+  function toastStack(){var el=document.getElementById('achToastStack');if(!el){el=document.createElement('div');el.id='achToastStack';el.className='ach-toast-stack';document.body.appendChild(el);}return el;}
+  function showToast(def){var el=document.createElement('div');el.className='ach-toast';
+    el.innerHTML='<div class="ach-toast-title"><span>🏆</span>解锁成就</div><div class="ach-toast-name">'+(def.icon||'')+' '+def.name+'</div><div class="ach-toast-desc">'+(def.desc||'')+'</div>';
+    toastStack().appendChild(el);setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},toastDuration);}
+  function updateProgress(){var got=count(),tot=Math.max(1,total());var bar=document.querySelector('[data-ach-progress]');if(bar)bar.style.width=Math.round(got/tot*100)+'%';
+    var c=document.querySelector('[data-ach-count]');if(c)c.textContent=count();var t=document.querySelector('[data-ach-total]');if(t)t.textContent=total();}
+  function fire(def){save();showToast(def);updateProgress();renderList(document.getElementById('achList'));if(onUnlock)onUnlock(def);}
+  function unlock(id){if(unlocked.has(id))return false;var def=findDef(id);if(!def)return false;unlocked.add(id);fire(def);return true;}
+  function check(state){var fresh=[];for(var i=0;i<defs.length;i++){var def=defs[i];if(def.check&&!unlocked.has(def.id)&&def.check(state)){unlocked.add(def.id);fresh.push(def);}}if(fresh.length)fresh.forEach(fire);return fresh;}
+  function has(id){return unlocked.has(id);}
+  function count(){return defs.filter(function(d){return unlocked.has(d.id);}).length;}
+  function total(){return defs.length;}
+  function reset(){unlocked.clear();save();updateProgress();renderList(document.getElementById('achList'));}
+  function renderList(container){if(!container)return;container.innerHTML='';defs.forEach(function(def){var got=unlocked.has(def.id);var row=document.createElement('div');
+    row.className='ach-row'+(got?' is-unlocked':'');
+    row.innerHTML='<div class="ach-icon">'+(got?(def.icon||'🏆'):'🔒')+'</div><div><div class="ach-name">'+def.name+'</div><div class="ach-desc">'+(got?def.desc:'未解锁')+'</div></div>';
+    container.appendChild(row);});updateProgress();}
+  load();updateProgress();
+  return {check:check,unlock:unlock,has:has,count:count,total:total,reset:reset,renderList:renderList};
+}
+</script>
+
+<!-- ============ water-engine（src/water-engine.js 内联，单测见 tests/） ============ -->
+<script>
+(function (root, factory) {
+  if (typeof module === 'object' && typeof module.exports === 'object') { module.exports = factory(); }
+  else { root.WaterEngine = factory(); }
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+  var EPS = 1e-9;
+  function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+  function waterLevel(container, Vw, solids) {
+    solids = solids || [];
+    var Sc = container.S, Hc = container.H;
+    if (!(Sc > 0) || !(Hc > 0) || Vw < 0) throw new Error('bad container/Vw');
+    var pts = [0];
+    for (var i = 0; i < solids.length; i++) {
+      var s = solids[i];
+      if (!(s.S > 0) || !(s.H > 0) || s.z < 0) throw new Error('bad solid');
+      pts.push(s.z); pts.push(s.z + s.H);
+    }
+    pts.sort(function (a, b) { return a - b; });
+    function overlapAt(h) {
+      var v = 0;
+      for (var i = 0; i < solids.length; i++) { var s = solids[i]; v += s.S * clamp(h - s.z, 0, s.H); }
+      return v;
+    }
+    var h = null;
+    for (var k = 0; k < pts.length; k++) {
+      var lo = pts[k];
+      var hi = (k + 1 < pts.length) ? pts[k + 1] : Infinity;
+      if (hi - lo < EPS) continue;
+      var mid = isFinite(hi) ? (lo + hi) / 2 : lo + 1;
+      var A = Sc;
+      for (var i2 = 0; i2 < solids.length; i2++) {
+        var s2 = solids[i2];
+        if (mid > s2.z && mid < s2.z + s2.H) A -= s2.S;
+      }
+      if (A <= EPS) throw new Error('solids fill the cross-section');
+      var fLo = Sc * lo - overlapAt(lo);
+      var cand = lo + (Vw - fLo) / A;
+      if (cand >= lo - EPS && (cand <= hi + EPS)) { h = Math.max(0, cand); break; }
+    }
+    if (h === null) h = Vw / Sc;
+    var Voverflow = 0, overflowed = false;
+    if (h > Hc + EPS) {
+      overflowed = true;
+      Voverflow = Vw - (Sc * Hc - overlapAt(Hc));
+      h = Hc;
+    }
+    var perSolid = solids.map(function (s) {
+      var sub = clamp(h - s.z, 0, s.H);
+      var st;
+      if (sub <= EPS) st = 'dry';
+      else if (sub < s.H - EPS) st = 'partial';
+      else st = 'full';
+      return { Vsub: s.S * sub, submergedHeight: sub, state: st };
+    });
+    var Vsub = perSolid.reduce(function (a, p) { return a + p.Vsub; }, 0);
+    var state = 'dry';
+    if (overflowed) state = 'overflow';
+    else if (perSolid.length) state = perSolid[0].state;
+    return { h: h, state: state, Vsub: Vsub, Voverflow: Voverflow, perSolid: perSolid };
+  }
+  function criticalPoints(container, Vw, solid) {
+    var Sc = container.S, Hc = container.H, Ss = solid.S, Hs = solid.H;
+    var h0 = Vw / Sc;
+    var zTouch = h0;
+    var zTop = (Vw + Ss * Hs) / Sc - Hs;
+    if (zTop < 0) zTop = null;
+    var zBrim = null;
+    var hFull = (Vw + Ss * Hs) / Sc;
+    if (hFull > Hc + EPS) {
+      zBrim = (Vw - (Sc - Ss) * Hc) / Ss;
+      if (zBrim < 0) zBrim = 0;
+    }
+    return { zTouch: zTouch, zTop: zTop, zBrim: zBrim, hFull: Math.min(hFull, Hc) };
+  }
+  function liftInfo(container, Vw, solid, z1, z2) {
+    var before = waterLevel(container, Vw, [{ S: solid.S, H: solid.H, z: z1 }]);
+    var after = waterLevel(container, Vw, [{ S: solid.S, H: solid.H, z: z2 }]);
+    var rise = z2 - z1;
+    var drop = before.h - after.h;
+    var wetTopBefore = Math.min(before.h, z1 + solid.H);
+    var wetExposed = Math.max(0, (wetTopBefore + rise) - after.h);
+    return { hBefore: before.h, hAfter: after.h, rise: rise, drop: drop, wetExposed: wetExposed };
+  }
+  function fillCurve(container, beaker, q, mode) {
+    var Sc = container.S, Hc = container.H, Sb = beaker.S, Hb = beaker.H;
+    if (!(Sb < Sc) || !(Hb < Hc)) throw new Error('beaker must fit inside');
+    var pts = [{ t: 0, h: 0 }];
+    var t = 0;
+    if (mode === 'beaker') {
+      t += (Sb * Hb) / q; pts.push({ t: t, h: 0 });
+      t += ((Sc - Sb) * Hb) / q; pts.push({ t: t, h: Hb });
+      t += (Sc * (Hc - Hb)) / q; pts.push({ t: t, h: Hc });
+    } else {
+      t += ((Sc - Sb) * Hb) / q; pts.push({ t: t, h: Hb });
+      t += (Sb * Hb) / q; pts.push({ t: t, h: Hb });
+      t += (Sc * (Hc - Hb)) / q; pts.push({ t: t, h: Hc });
+    }
+    return pts;
+  }
+  return { waterLevel: waterLevel, criticalPoints: criticalPoints, liftInfo: liftInfo, fillCurve: fillCurve };
+});
+</script>
+
+<!-- ============ 课件主逻辑 ============ -->
+<script>
+(function(){
+'use strict';
+var E = window.WaterEngine;
+var $ = function(s,r){ return (r||document).querySelector(s); };
+var $$ = function(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+function fmt(x,d){ if(!isFinite(x)) return '—'; return Number(x).toFixed(d==null?1:d).replace(/\.0+$/,''); }
+function clamp(x,a,b){ return Math.max(a,Math.min(b,x)); }
+
+/* ---------- 全局发现状态（成就 check 与置真字段严格同名） ---------- */
+var state = {
+  unlockedCount:0,
+  firstDip:false, conserveSeen:false,
+  steepestRight:false, criticalHit:false, overflowMgr:false,
+  formulaDone:false,
+  orderFree:false, shapeFree:false, wetDetect:false,
+  graphAll:false, iceAll:false, quizPass:false
+};
+var booting = true; // 初始化阶段不记录成就（SIR 坑位）
+
+var ach = createAchievements({ storageKey:'water-immersion-ach-v1',
+  defs:[
+    {id:'first_dip', icon:'👆', name:'初次入水',   desc:'第一次让物体浸入水中',                         check:function(s){return s.firstDip;}},
+    {id:'conserve',  icon:'🔬', name:'守恒之眼',   desc:'用 X 光在 3 个不同深度看到「上升水层 = 浸入体积」', check:function(s){return s.conserveSeen;}},
+    {id:'steepest',  icon:'📈', name:'最陡之段',   desc:'预测出水面升得最快的阶段并验证',                 check:function(s){return s.steepestRight;}},
+    {id:'critical1', icon:'🎯', name:'临界猎人',   desc:'停在「水面恰好齐物体顶」的临界点',               check:function(s){return s.criticalHit;}},
+    {id:'overflow',  icon:'🌊', name:'溢出管理员', desc:'制造一次溢出，并看到溢出量读数',                 check:function(s){return s.overflowMgr;}},
+    {id:'formula',   icon:'🧮', name:'公式自推',   desc:'用「摊平水」推出回字形底面公式',                 check:function(s){return s.formulaDone;}},
+    {id:'order_free',icon:'🔁', name:'顺序无关',   desc:'用两种不同顺序放入物体，水面一样高',             check:function(s){return s.orderFree;}},
+    {id:'shape_free',icon:'🧊', name:'形状无关',   desc:'发现等体积的不同形状物体，水面升得一样高',        check:function(s){return s.shapeFree;}},
+    {id:'wet_detect',icon:'💧', name:'浸湿侦探',   desc:'发现浸湿长度 = 物块上升 + 水面下降',             check:function(s){return s.wetDetect;}},
+    {id:'graph_sleuth',icon:'🕵️',name:'图像神探', desc:'三个注水折线谜题全部破解',                       check:function(s){return s.graphAll;}},
+    {id:'ice_oracle',icon:'❄️', name:'冰融预言家', desc:'浮冰之谜四问全部答对',                          check:function(s){return s.iceAll;}},
+    {id:'grad',      icon:'🎓', name:'学成出师',   desc:'闯关小测答对至少 5 题',                         check:function(s){return s.quizPass;}},
+    {id:'master',    icon:'👑', name:'排水大师',   desc:'解锁其余任意 10 项成就',                        check:function(s){return s.unlockedCount>=10;}}
+  ],
+  onUnlock:function(){ state.unlockedCount = ach.count(); ach.check(state); refreshNav(); }
+});
+function record(field){ if(booting) return; if(state[field]) return; state[field]=true; ach.check(state); refreshNav(); }
+ach.renderList($('#achList'));
+$('#achOpen').addEventListener('click', function(){ $('#achModal').classList.add('open'); });
+$('#achClose').addEventListener('click', function(){ $('#achModal').classList.remove('open'); });
+$('#achModal').addEventListener('click', function(e){ if(e.target===this) this.classList.remove('open'); });
+$('#achReset').addEventListener('click', function(){ if(confirm('确定重置全部成就进度？')) ach.reset(); });
+
+/* ---------- 画布工具 ---------- */
+function makeStage(canvas, aspect){
+  var ctx = canvas.getContext('2d');
+  var st = { canvas:canvas, ctx:ctx, w:0, h:0,
+    fit:function(){
+      var r = canvas.getBoundingClientRect();
+      if(r.width < 10) return false;
+      var dpr = Math.min(2, window.devicePixelRatio||1);
+      var hCss = Math.round(r.width * aspect);
+      st.w = r.width; st.h = hCss;
+      canvas.width = Math.round(r.width*dpr); canvas.height = Math.round(hCss*dpr);
+      canvas.style.height = hCss+'px';
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      return true;
+    } };
+  return st;
+}
+/* 把"容器(宽 Wcm × 高 Hcm)"映射到画布区域 [x,y,w,h]（px）。返回坐标换算器（cm→px，y 向上） */
+function tankGeometry(region, Wcm, Hcm){
+  var k = Math.min(region.w / Wcm, region.h / Hcm);
+  var x0 = region.x + (region.w - Wcm*k)/2;
+  var yB = region.y + region.h - (region.h - Hcm*k)/2;
+  return { k:k, x0:x0, yB:yB,
+    X:function(cm){ return x0 + cm*k; },
+    Y:function(cm){ return yB - cm*k; } };
+}
+/* 通用容器+水+物体渲染。widthOf(S)=截面积换算成显示宽度 cm（统一假设纵深 10cm） */
+function widthOf(S){ return S/10; }
+function drawVessel(ctx, g, Wcm, Hcm){
+  ctx.strokeStyle = '#475569'; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(g.X(0), g.Y(Hcm)); ctx.lineTo(g.X(0), g.Y(0));
+  ctx.lineTo(g.X(Wcm), g.Y(0)); ctx.lineTo(g.X(Wcm), g.Y(Hcm));
+  ctx.stroke();
+}
+function drawWater(ctx, g, Wcm, h, solids, style){
+  if(h<=0) return;
+  ctx.save();
+  ctx.fillStyle = style || 'rgba(59,130,246,.38)';
+  ctx.beginPath();
+  ctx.rect(g.X(0), g.Y(h), Wcm*g.k, h*g.k);
+  ctx.fill();
+  // 物体占据处"挖白"由物体绘制覆盖实现（物体不透明）
+  ctx.restore();
+  // 水面线
+  ctx.strokeStyle = 'rgba(37,99,235,.9)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(g.X(0), g.Y(h)); ctx.lineTo(g.X(Wcm), g.Y(h)); ctx.stroke();
+}
+function drawSolid(ctx, g, xCm, S, H, z, color){
+  var w = widthOf(S);
+  ctx.fillStyle = color || '#b08960';
+  ctx.strokeStyle = '#8a6a47'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.rect(g.X(xCm), g.Y(z+H), w*g.k, H*g.k); ctx.fill(); ctx.stroke();
+}
+function label(ctx, txt, x, y, opts){
+  opts = opts||{};
+  ctx.fillStyle = opts.color || '#66777d';
+  ctx.font = (opts.bold?'700 ':'') + (opts.size||12) + 'px system-ui, sans-serif';
+  ctx.textAlign = opts.align || 'left';
+  ctx.fillText(txt, x, y);
+  ctx.textAlign = 'left';
+}
+
+/* ---------- 预测门禁（is-locked，不用裸 disabled） ---------- */
+function makePredict(cfg){
+  var chosen = -1, revealed = false;
+  var box = cfg.box, listEl = cfg.listEl, fbEl = cfg.fbEl;
+  cfg.options.forEach(function(opt, i){
+    var b = document.createElement('button');
+    b.textContent = opt.label;
+    b.addEventListener('click', function(){
+      if(revealed) return;
+      chosen = i;
+      $$('button', listEl).forEach(function(x){ x.classList.remove('sel'); });
+      b.classList.add('sel');
+      if(fbEl) fbEl.textContent = cfg.afterChoose || '已记下你的猜想，去操作验证吧！';
+      if(cfg.onChoose) cfg.onChoose(i);
+    });
+    listEl.appendChild(b);
+  });
+  function guard(){
+    if(chosen >= 0) return true;
+    box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash');
+    box.scrollIntoView({behavior:'smooth', block:'center'});
+    if(fbEl) fbEl.textContent = '🔒 先选一个猜想，再动手实验。';
+    return false;
+  }
+  function reveal(){
+    if(revealed) return; revealed = true;
+    $$('button', listEl).forEach(function(x, i){
+      if(cfg.options[i].correct) x.classList.add('right');
+      else if(i===chosen) x.classList.add('wrong');
+    });
+    var right = cfg.options[chosen] && cfg.options[chosen].correct;
+    if(fbEl) fbEl.innerHTML = (right ? '✅ 猜对了！' : '🤔 和实验结果对比一下——') + (cfg.explain||'');
+    if(cfg.onReveal) cfg.onReveal(right);
+  }
+  return { guard:guard, reveal:reveal,
+    get chosen(){ return chosen; }, get revealed(){ return revealed; } };
+}
+
+/* ---------- 隐藏结论开关 ---------- */
+$$('[data-reveal-toggle]').forEach(function(btn){
+  var box = btn.closest('.reveal-box');
+  btn.addEventListener('click', function(){
+    var open = box.classList.toggle('open');
+    if(btn.textContent.indexOf('浮冰')<0)
+      btn.textContent = open ? '隐藏结论' : '显示结论';
+    if(open && box.dataset.module==='m3' && modules.m3 && modules.m3.flattenDone) record('formulaDone');
+    if(open && box.dataset.module==='m6') { if(modules.m6) modules.m6.renderIce(); }
+  });
+});
+
+/* ---------- 右栏数据面板 ---------- */
+var metricsEl = $('#metrics'), metricNote = $('#metricNote');
+var metricMap = {};
+function buildMetrics(schema, note){
+  metricsEl.innerHTML = ''; metricMap = {};
+  schema.forEach(function(m){
+    var row = document.createElement('div'); row.className = 'm-row';
+    row.innerHTML = '<dt>'+m.label+'</dt><dd class="metric-val" id="met-'+m.key+'">—</dd>';
+    metricsEl.appendChild(row);
+    metricMap[m.key] = $('#met-'+m.key, row);
+  });
+  metricNote.textContent = note || '';
+}
+function setMetric(key, val, isHtml){
+  var el = metricMap[key]; if(!el) return;
+  if(isHtml) el.innerHTML = val; else el.textContent = val;
+}
+function stateChip(st){
+  var names = {dry:'未触水', partial:'部分没过', full:'完全浸没', overflow:'溢出'};
+  return '<span class="state-chip state-'+st+'">'+names[st]+'</span>';
+}
+
+/* ---------- 底部提示 ---------- */
+var PROMPTS = {
+  m0:['看一看：容器、水、物体，三个角色各是什么？','点「下一步」走完 5 步，说说这门课要研究的核心问题。','用一句话告诉同桌：物体入水，水面为什么会动？'],
+  m1:['拖动滑杆，观察水面什么时候开始动、什么时候不再动。','打开「水量 X 光」，比较两块高亮区域的读数。','为什么上升水层的体积总等于浸入体积？水多了吗？'],
+  m2:['慢慢下放，数一数曲线一共出现几种"走法"。','找到两个临界点：水面恰齐物顶、恰齐容器口。','用 S容、S物 解释：为什么部分没过那段升得最快？'],
+  m3:['调粗细，观察右侧"摊平"容器宽度怎么变。','点「把水摊平」，验证两边水面一样高。','把 h = V水 ÷ (S容−S物) 讲给同桌听：减号从哪来？'],
+  m4:['把 A、B、C 放进取出，观察水面只跟什么有关。','换两种顺序放入，验证水面高度是否相同；提起 C 看湿痕。','为什么湿痕 = 上升 + 下降？画个示意图解释。'],
+  m5:['点「开始注水」，看折线在哪里拐弯。','切换注水位置再跑一次，比较两条折线的平台位置。','破解 3 个谜题：每段斜率对应哪个有效底面积？'],
+  m6:['浏览概念卡，回忆每张卡来自哪个实验。','完成 6 道小测，检验自己的判断流程。','挑战浮冰彩蛋：冰融化，水面到底变不变？']
+};
+var stageIdx = 0, currentId = 'm0';
+function setPrompt(){
+  var arr = PROMPTS[currentId] || ['','',''];
+  $('#promptText').textContent = arr[stageIdx] || '';
+  $$('#stageTabs button').forEach(function(b,i){
+    b.className = (i===stageIdx) ? ('on ' + (i===0?'obs':i===1?'ver':'')) : '';
+  });
+}
+$$('#stageTabs button').forEach(function(b,i){
+  b.addEventListener('click', function(){ stageIdx = i; setPrompt(); });
+});
+
+/* ---------- 模块路由 ---------- */
+var MODS = [
+  {id:'m0', short:'0', name:'入门地图', doneIf:function(){ return modules.m0 && modules.m0.finished; }},
+  {id:'m1', short:'1', name:'水去哪了', doneIf:function(){ return ach.has('conserve'); }},
+  {id:'m2', short:'2', name:'三态对比 ★', doneIf:function(){ return ach.has('critical1'); }},
+  {id:'m3', short:'3', name:'公式自己推', doneIf:function(){ return ach.has('formula'); }},
+  {id:'m4', short:'4', name:'取放与移动', doneIf:function(){ return ach.has('wet_detect'); }},
+  {id:'m5', short:'5', name:'图像侦探', doneIf:function(){ return ach.has('graph_sleuth'); }},
+  {id:'m6', short:'6', name:'总结闯关', doneIf:function(){ return ach.has('grad'); }}
+];
+var modules = {};
+var navList = $('#navList');
+MODS.forEach(function(m){
+  var b = document.createElement('button');
+  b.className = 'nav-item'; b.id = 'nav-'+m.id;
+  b.innerHTML = '<span class="idx">'+m.short+'</span><span>'+m.name+'</span>';
+  b.addEventListener('click', function(){ activate(m.id); });
+  navList.appendChild(b);
+});
+function refreshNav(){
+  MODS.forEach(function(m){
+    var b = $('#nav-'+m.id);
+    b.classList.toggle('active', m.id===currentId);
+    b.classList.toggle('done', !!m.doneIf());
+  });
+}
+function activate(id){
+  currentId = id;
+  $$('.mod-view').forEach(function(v){ v.classList.remove('active'); });
+  $('#view-'+id).classList.add('active');
+  stageIdx = 0; setPrompt(); refreshNav();
+  var mod = modules[id];
+  if(mod){
+    if(mod.metrics) buildMetrics(mod.metrics, mod.metricNote);
+    if(mod.enter) mod.enter();
+    if(mod.resize) { mod.resize(); requestAnimationFrame(function(){ mod.resize(); }); } // 同步 fit + 补帧
+  } else {
+    buildMetrics([],'');
+  }
+}
+window.addEventListener('resize', function(){
+  var mod = modules[currentId];
+  if(mod && mod.resize) mod.resize();
+});
+
+/* ================= M0 入门地图 ================= */
+modules.m0 = (function(){
+  var st = makeStage($('#cv-m0'), .5);
+  var step = 0, N = 5, finished = false;
+  var CAPTIONS = [
+    '① 实验三角色：容器（装水）、水（体积不变的主角）、物体（入侵者）',
+    '② 物体入水：它占了水的地方，水必须让开',
+    '③ 让开的水无处可去，只能整体抬高水面',
+    '④ 预告三种结局：部分没过 / 完全浸没 / 溢出',
+    '⑤ 学习路线：守恒 → 三态 → 公式 → 取放 → 图像 → 闯关'
+  ];
+  var C = {S:100, H:16}, Vw = 800;
+  function draw(){
+    if(!st.w) return;
+    var ctx = st.ctx;
+    ctx.clearRect(0,0,st.w,st.h);
+    var region = {x:20, y:14, w:st.w-40, h:st.h-52};
+    if(step===4){ drawRoute(ctx, region); }
+    else {
+      var g = tankGeometry(region, widthOf(C.S), C.H);
+      var solids = [];
+      var hl = null;
+      if(step===0){ solids = [{S:30,H:6,z:C.H+2}]; }
+      if(step>=1){ solids = [{S:30,H:6,z: step===1 ? 9 : 5}]; }
+      var res = E.waterLevel(C, Vw, step>=1 ? solids.map(function(s){return {S:s.S,H:s.H,z:Math.min(s.z, 9)};}) : []);
+      var h = step===0 ? Vw/C.S : res.h;
+      drawVessel(ctx, g, widthOf(C.S), C.H);
+      // 水
+      ctx.fillStyle = 'rgba(59,130,246,.38)';
+      ctx.fillRect(g.X(0), g.Y(h), widthOf(C.S)*g.k, h*g.k);
+      ctx.strokeStyle = 'rgba(37,99,235,.9)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(g.X(0),g.Y(h)); ctx.lineTo(g.X(widthOf(C.S)),g.Y(h)); ctx.stroke();
+      if(step===2){ // 高亮上升层
+        var h0 = Vw/C.S;
+        ctx.fillStyle = 'rgba(37,99,235,.55)';
+        ctx.fillRect(g.X(0), g.Y(h), widthOf(C.S)*g.k, (h-h0)*g.k);
+        label(ctx,'上升的水层', g.X(widthOf(C.S))+8, g.Y((h+h0)/2), {color:'#2563eb', bold:true});
+      }
+      // 物体
+      if(step===0) drawSolid(ctx, g, (widthOf(C.S)-widthOf(30))/2, 30, 6, C.H+1.5, '#b08960');
+      if(step>=1 && step<4) drawSolid(ctx, g, (widthOf(C.S)-widthOf(30))/2, 30, 6, step===1?9:5, '#b08960');
+      if(step===3){
+        label(ctx,'部分没过？ 完全浸没？ 还是…溢出？', g.X(0), g.Y(C.H)-10, {color:'#c47a1c', bold:true, size:14});
+      }
+      if(step===0){
+        label(ctx,'容器', g.X(0)-4, g.Y(C.H/2), {align:'right'});
+        label(ctx,'水', g.X(widthOf(C.S)/2), g.Y(h/2), {color:'#2563eb', bold:true});
+        label(ctx,'物体', g.X(widthOf(C.S)/2), g.Y(C.H+4)-6, {color:'#8a6a47', bold:true});
+      }
+    }
+    label(ctx, CAPTIONS[step], st.w/2, st.h-12, {align:'center', size:13.5, bold:true, color:'#152529'});
+    $('#m0StepLabel').textContent = '第 '+(step+1)+' / '+N+' 步';
+  }
+  function drawRoute(ctx, region){
+    var names = ['M1 守恒','M2 三态★','M3 公式','M4 取放','M5 图像','M6 闯关'];
+    var n = names.length;
+    var gap = region.w/n;
+    var y = region.y + region.h/2;
+    names.forEach(function(nm,i){
+      var cx = region.x + gap*i + gap/2;
+      ctx.fillStyle = i===1 ? '#3b82f6' : '#dbeafe';
+      ctx.beginPath(); ctx.arc(cx, y, Math.min(26, gap*.3), 0, Math.PI*2); ctx.fill();
+      label(ctx, nm, cx, y+44, {align:'center', size:12, bold:true, color:'#152529'});
+      if(i<n-1){
+        ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(cx+28, y); ctx.lineTo(cx+gap-28, y); ctx.stroke();
+      }
+    });
+  }
+  $('#m0Prev').addEventListener('click', function(){ step = Math.max(0, step-1); draw(); });
+  $('#m0Next').addEventListener('click', function(){
+    step = Math.min(N-1, step+1);
+    if(step===N-1){ mod.finished = true; refreshNav(); }
+    draw();
+  });
+  var mod = {
+    finished:false,
+    metrics:[], metricNote:'走完 5 步微演示，然后从 M1 开始动手。',
+    enter:function(){}, resize:function(){ if(st.fit()) draw(); }
+  };
+  return mod;
+})();
+
+/* ================= M1 水去哪了 ================= */
+modules.m1 = (function(){
+  var st = makeStage($('#cv-m1'), .52);
+  var C = {S:100, H:20}, Vw = 1000, SOLID = {S:40, H:8};
+  var Z_START = 14;               // 物体底初始高度（水面 h0=10 之上）
+  var travel = 0;                 // 0..Z_START
+  var conserveDepths = new Set();
+  var predict = makePredict({
+    box: $('#m1Predict'), listEl: $('#m1Options'), fbEl: $('#m1Feedback'),
+    options:[
+      {label:'A. 浸入水中的体积 ÷ 容器底面积', correct:true},
+      {label:'B. 物体整个的体积 ÷ 容器底面积', correct:false},
+      {label:'C. 物体下放了多深，水面就升多高', correct:false}
+    ],
+    explain:'水面升高 Δh 满足 S容 × Δh = V浸：只有<b>真正泡进水里</b>的那部分体积才算数。'
+  });
+  function z(){ return Z_START - travel; }
+  function calc(){ return E.waterLevel(C, Vw, [{S:SOLID.S, H:SOLID.H, z:z()}]); }
+  function draw(){
+    if(!st.w) return;
+    var ctx = st.ctx;
+    ctx.clearRect(0,0,st.w,st.h);
+    var region = {x:24, y:10, w:st.w-48, h:st.h-26};
+    var Wcm = widthOf(C.S);
+    var g = tankGeometry(region, Wcm, C.H + SOLID.H + 2); // 留出物体悬空高度
+    var res = calc();
+    var h0 = Vw/C.S;
+    // 水
+    ctx.fillStyle = 'rgba(59,130,246,.38)';
+    ctx.fillRect(g.X(0), g.Y(res.h), Wcm*g.k, res.h*g.k);
+    // X 光：上升水层 & 浸入部分 同色
+    var xray = $('#m1Xray').checked;
+    if(xray && res.h > h0 + 1e-9){
+      ctx.fillStyle = 'rgba(37,99,235,.55)';
+      ctx.fillRect(g.X(0), g.Y(res.h), Wcm*g.k, (res.h-h0)*g.k);
+      label(ctx, '上升水层 '+fmt(C.S*(res.h-h0))+' cm³', g.X(Wcm)+6, g.Y((res.h+h0)/2)+4, {color:'#2563eb', bold:true, size:12});
+    }
+    // 旧水位虚线
+    ctx.setLineDash([5,4]); ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(g.X(0), g.Y(h0)); ctx.lineTo(g.X(Wcm), g.Y(h0)); ctx.stroke();
+    ctx.setLineDash([]);
+    label(ctx, '原水面', g.X(0)-6, g.Y(h0)+4, {align:'right', size:11});
+    // 容器
+    drawVessel(ctx, g, Wcm, C.H);
+    // 水面线
+    ctx.strokeStyle = 'rgba(37,99,235,.95)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(g.X(0), g.Y(res.h)); ctx.lineTo(g.X(Wcm), g.Y(res.h)); ctx.stroke();
+    // 物体（悬吊杆）
+    var xCm = (Wcm - widthOf(SOLID.S))/2;
+    ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(g.X(xCm+widthOf(SOLID.S)/2), g.Y(C.H+SOLID.H+2)); ctx.lineTo(g.X(xCm+widthOf(SOLID.S)/2), g.Y(z()+SOLID.H)); ctx.stroke();
+    drawSolid(ctx, g, xCm, SOLID.S, SOLID.H, z(), '#b08960');
+    if(xray && res.perSolid[0].submergedHeight > 0){
+      ctx.fillStyle = 'rgba(37,99,235,.55)';
+      ctx.fillRect(g.X(xCm), g.Y(z()+res.perSolid[0].submergedHeight), widthOf(SOLID.S)*g.k, res.perSolid[0].submergedHeight*g.k);
+      label(ctx, '浸入部分 '+fmt(res.Vsub)+' cm³', g.X(xCm+widthOf(SOLID.S))+6, g.Y(z()+res.perSolid[0].submergedHeight/2)+4, {color:'#1d4ed8', bold:true, size:12});
+    }
+    label(ctx, 'S容=100cm² · 物体 40cm²×8cm', st.w/2, st.h-6, {align:'center', size:11.5});
+    // 读数
+    setMetric('h', fmt(res.h)+' cm');
+    setMetric('dh', fmt(res.h-h0)+' cm');
+    setMetric('vsub', fmt(res.Vsub)+' cm³');
+    setMetric('vrise', fmt(C.S*(res.h-h0))+' cm³');
+    setMetric('st', stateChip(res.perSolid[0].state), true);
+    // 发现记录
+    if(res.Vsub > 1e-9){
+      record('firstDip');
+      if(xray){
+        conserveDepths.add(Math.round(travel*2)/2);
+        if(conserveDepths.size>=3){ record('conserveSeen'); predict.reveal(); }
+      }
+    }
+  }
+  var slider = $('#m1Depth');
+  slider.addEventListener('input', function(){
+    if(!predict.guard()){ slider.value = String(Math.round(travel/Z_START*100)); return; }
+    travel = (+slider.value)/100 * Z_START;
+    $('#m1DepthVal').textContent = fmt(travel)+' cm';
+    draw();
+  });
+  $('#m1Xray').addEventListener('change', draw);
+  $('#m1Reset').addEventListener('click', function(){
+    travel = 0; slider.value = '0'; $('#m1Xray').checked = false;
+    conserveDepths.clear();
+    $('#m1DepthVal').textContent = '0 cm';
+    draw();
+  });
+  $('#m1DepthVal').textContent = '0 cm';
+  return {
+    metrics:[
+      {key:'h', label:'水面高度 h'},
+      {key:'dh', label:'水面升高 Δh'},
+      {key:'vsub', label:'浸入体积 V浸'},
+      {key:'vrise', label:'上升水层体积 S容×Δh'},
+      {key:'st', label:'当前状态'}
+    ],
+    metricNote:'盯住下面两个体积读数——它们什么时候相等？',
+    enter:function(){}, resize:function(){ if(st.fit()) draw(); }
+  };
+})();
+
+/* ================= M2 三态对比实验台 ================= */
+modules.m2 = (function(){
+  var st = makeStage($('#cv-m2'), .52);
+  var C = {S:100, H:12}, SOLID = {S:40, H:6};
+  var Z_START = 13;
+  var MODES = { normal:{Vw:800, label:'正常水量'}, full:{Vw:1150, label:'加水近满'} };
+  var mode = 'normal';
+  var travel = 0, maxTravel = 0;
+  var predict = makePredict({
+    box: $('#m2Predict'), listEl: $('#m2Options'), fbEl: $('#m2Feedback'),
+    options:[
+      {label:'A. 刚接触水面、即将入水时', correct:false},
+      {label:'B. 部分没过、正在下沉时', correct:true},
+      {label:'C. 完全没顶之后继续下放时', correct:false}
+    ],
+    explain:'部分没过时水站在「回字形底面」S容−S物 上，底面最小、升得最快；没顶后浸入体积不再增加，水面不再动。',
+    onReveal:function(right){ if(right) record('steepestRight'); }
+  });
+  function Vw(){ return MODES[mode].Vw; }
+  function zOf(t){ return Z_START - t; }
+  function hAt(t){ return E.waterLevel(C, Vw(), [{S:SOLID.S,H:SOLID.H,z:zOf(t)}]); }
+  /* 临界断点（travel 坐标） */
+  function breaks(){
+    var cp = E.criticalPoints(C, Vw(), SOLID);
+    var list = [];
+    function push(z, type, name){
+      if(z===null || z===undefined) return;
+      if(z < 0 || z > Z_START) return;
+      list.push({travel: Z_START - z, z:z, type:type, name:name});
+    }
+    push(cp.zTouch, 'touch', '恰触水面');
+    if(cp.zBrim !== null){
+      push(cp.zBrim, 'brim', '恰齐容器口');
+      var zStar = C.H - SOLID.H;            // 溢出状态下的没顶位置
+      if(zStar >= 0 && zStar < cp.zBrim) push(zStar, 'top', '恰好没顶');
+    } else {
+      push(cp.zTop, 'top', '恰好没顶');
+    }
+    list.sort(function(a,b){ return a.travel-b.travel; });
+    return list;
+  }
+  function segColor(state){
+    return state==='partial' ? '#d97706' : state==='full' ? '#2563eb' : state==='overflow' ? '#dc2626' : '#94a3b8';
+  }
+  function draw(){
+    if(!st.w) return;
+    var ctx = st.ctx;
+    ctx.clearRect(0,0,st.w,st.h);
+    var leftW = st.w*0.52, pad = 14;
+    var res = hAt(travel);
+    var bks = breaks();
+    /* ---- 左：容器 + 溢出杯 ---- */
+    var region = {x:pad, y:8, w:leftW-2*pad-46, h:st.h-30};
+    var Wcm = widthOf(C.S);
+    var topCm = Z_START + SOLID.H;
+    var g = tankGeometry(region, Wcm, topCm);
+    // 水
+    ctx.fillStyle = 'rgba(59,130,246,.38)';
+    ctx.fillRect(g.X(0), g.Y(res.h), Wcm*g.k, res.h*g.k);
+    ctx.strokeStyle = 'rgba(37,99,235,.95)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(g.X(0), g.Y(res.h)); ctx.lineTo(g.X(Wcm), g.Y(res.h)); ctx.stroke();
+    drawVessel(ctx, g, Wcm, C.H);
+    // 容器口提示线
+    ctx.setLineDash([4,4]); ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(g.X(0), g.Y(C.H)); ctx.lineTo(g.X(Wcm), g.Y(C.H)); ctx.stroke();
+    ctx.setLineDash([]);
+    label(ctx, '容器口', g.X(0)-6, g.Y(C.H)+4, {align:'right', size:11, color:'#dc2626'});
+    // 物体
+    var xCm = (Wcm - widthOf(SOLID.S))/2;
+    var zz = zOf(travel);
+    ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(g.X(xCm+widthOf(SOLID.S)/2), g.Y(topCm)); ctx.lineTo(g.X(xCm+widthOf(SOLID.S)/2), g.Y(zz+SOLID.H)); ctx.stroke();
+    drawSolid(ctx, g, xCm, SOLID.S, SOLID.H, zz, '#b08960');
+    // 溢出收集杯
+    var cupX = region.x + region.w + 8, cupW = 34, cupH = 52, cupY = g.Y(0) - cupH;
+    ctx.strokeStyle = '#475569'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cupX, cupY); ctx.lineTo(cupX, cupY+cupH); ctx.lineTo(cupX+cupW, cupY+cupH); ctx.lineTo(cupX+cupW, cupY);
+    ctx.stroke();
+    var maxOv = Math.max(1, hAt(Z_START).Voverflow);
+    var fillH = clamp(res.Voverflow/maxOv,0,1) * (cupH-6);
+    if(res.Voverflow > 1e-9){
+      ctx.fillStyle = 'rgba(220,38,38,.35)';
+      ctx.fillRect(cupX+2, cupY+cupH-2-fillH, cupW-4, fillH);
+    }
+    label(ctx, '溢出', cupX+cupW/2, cupY+cupH+14, {align:'center', size:11});
+    /* ---- 右：h–行程 折线 ---- */
+    var cx0 = leftW+8, cw = st.w-cx0-pad, cy0 = 14, ch = st.h-46;
+    var X = function(t){ return cx0 + t/Z_START*cw; };
+    var Y = function(h){ return cy0 + ch - h/(C.H+1.5)*ch; };
+    // 轴
+    ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.lineTo(cx0, cy0+ch); ctx.lineTo(cx0+cw, cy0+ch); ctx.stroke();
+    label(ctx, '下放行程 →', cx0+cw, cy0+ch+16, {align:'right', size:11});
+    label(ctx, '水面 h', cx0+2, cy0-2, {size:11});
+    // 容器口横线
+    ctx.setLineDash([4,4]); ctx.strokeStyle = '#fca5a5';
+    ctx.beginPath(); ctx.moveTo(cx0, Y(C.H)); ctx.lineTo(cx0+cw, Y(C.H)); ctx.stroke();
+    ctx.setLineDash([]);
+    // 已走过的理论折线（按状态分色）
+    var knots = [0].concat(bks.map(function(b){return b.travel;})).concat([Z_START]);
+    var upto = Math.min(maxTravel, Z_START);
+    ctx.lineWidth = 2.5;
+    for(var i=0;i<knots.length-1;i++){
+      var a = knots[i], b = knots[i+1];
+      if(a >= upto) break;
+      var bb = Math.min(b, upto);
+      var midRes = hAt((a+bb)/2);
+      ctx.strokeStyle = segColor(midRes.state);
+      ctx.beginPath();
+      ctx.moveTo(X(a), Y(hAt(a).h));
+      ctx.lineTo(X(bb), Y(hAt(bb).h));
+      ctx.stroke();
+    }
+    // 临界点标记（已到达的）
+    bks.forEach(function(b){
+      if(b.travel <= maxTravel + 1e-9){
+        var hy = hAt(b.travel).h;
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath(); ctx.arc(X(b.travel), Y(hy), 4, 0, Math.PI*2); ctx.fill();
+        label(ctx, b.name, X(b.travel)+6, Y(hy)-6, {size:10.5, color:'#0f172a', bold:true});
+      }
+    });
+    // 当前点
+    ctx.fillStyle = '#3b82f6';
+    ctx.beginPath(); ctx.arc(X(travel), Y(res.h), 5.5, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+    /* ---- 读数 ---- */
+    setMetric('h', fmt(res.h)+' cm');
+    setMetric('st', stateChip(res.state), true);
+    setMetric('vsub', fmt(res.Vsub)+' cm³');
+    setMetric('vover', fmt(res.Voverflow)+' cm³');
+    if(res.state==='overflow' && res.Voverflow > 5) record('overflowMgr');
+    if(maxTravel >= Z_START - 1e-6) predict.reveal();
+  }
+  var slider = $('#m2Travel');
+  slider.addEventListener('input', function(){
+    if(!predict.guard()){ slider.value = String(Math.round(travel/Z_START*1000)); return; }
+    var t = (+slider.value)/1000 * Z_START;
+    // 临界吸附
+    var snapped = null;
+    breaks().forEach(function(b){
+      if(Math.abs(t - b.travel) < 0.18){ t = b.travel; snapped = b; }
+    });
+    travel = t; maxTravel = Math.max(maxTravel, travel);
+    slider.value = String(Math.round(travel/Z_START*1000));
+    $('#m2TravelVal').textContent = fmt(travel)+' cm' + (snapped ? ' · '+snapped.name : '');
+    if(snapped && snapped.type==='top') record('criticalHit');
+    draw();
+  });
+  $$('#m2WaterSeg button').forEach(function(b){
+    b.addEventListener('click', function(){
+      if(mode === b.dataset.mode) return;
+      mode = b.dataset.mode;
+      $$('#m2WaterSeg button').forEach(function(x){ x.classList.toggle('on', x===b); });
+      travel = 0; maxTravel = 0; slider.value = '0';      // 参数变更重置累计
+      $('#m2TravelVal').textContent = '0 cm';
+      draw();
+    });
+  });
+  $('#m2Reset').addEventListener('click', function(){
+    travel = 0; maxTravel = 0; slider.value = '0';
+    $('#m2TravelVal').textContent = '0 cm';
+    draw();
+  });
+  $('#m2TravelVal').textContent = '0 cm';
+  return {
+    metrics:[
+      {key:'h', label:'水面高度 h'},
+      {key:'st', label:'当前状态'},
+      {key:'vsub', label:'浸入体积 V浸'},
+      {key:'vover', label:'溢出量 V溢'}
+    ],
+    metricNote:'曲线颜色：灰=未触水 · 橙=部分没过 · 蓝=完全浸没 · 红=溢出',
+    enter:function(){}, resize:function(){ if(st.fit()) draw(); }
+  };
+})();
+
+/* ================= M3 公式自己推 ================= */
+modules.m3 = (function(){
+  var st = makeStage($('#cv-m3'), .5);
+  var C = {S:100, H:24}, Vw = 400, Hs = 22;
+  var Ss = 30;
+  var minSeen = Ss, maxSeen = Ss;
+  var animF = 1;            // 摊平动画进度（cosmetic；状态恒为最终值）
+  var animating = false;
+  var mod;
+  var predict = makePredict({
+    box: $('#m3Predict'), listEl: $('#m3Options'), fbEl: $('#m3Feedback'),
+    options:[
+      {label:'A. 升高', correct:true},
+      {label:'B. 降低', correct:false},
+      {label:'C. 不变（水又没变多）', correct:false}
+    ],
+    explain:'水量虽然不变，但回字形底面 S容−S物 变小了——同样的水站在更小的地面上，只能站得更高。'
+  });
+  function hNow(){ return Vw/(C.S - Ss); }
+  function draw(){
+    if(!st.w) return;
+    var ctx = st.ctx;
+    ctx.clearRect(0,0,st.w,st.h);
+    var h = hNow();
+    var pad = 16, half = st.w/2;
+    /* 左：真实容器（物体立中间） */
+    var regL = {x:pad, y:10, w:half-2*pad, h:st.h-34};
+    var Wcm = widthOf(C.S);
+    var gL = tankGeometry(regL, Wcm, C.H);
+    ctx.fillStyle = 'rgba(59,130,246,.38)';
+    ctx.fillRect(gL.X(0), gL.Y(h), Wcm*gL.k, h*gL.k);
+    var xCm = (Wcm - widthOf(Ss))/2;
+    drawSolid(ctx, gL, xCm, Ss, Hs, 0, '#b08960');
+    ctx.strokeStyle = 'rgba(37,99,235,.95)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(gL.X(0), gL.Y(h)); ctx.lineTo(gL.X(xCm), gL.Y(h));
+    ctx.moveTo(gL.X(xCm+widthOf(Ss)), gL.Y(h)); ctx.lineTo(gL.X(Wcm), gL.Y(h)); ctx.stroke();
+    drawVessel(ctx, gL, Wcm, C.H);
+    label(ctx, '真实容器：水站在回字形底面上', regL.x+regL.w/2, st.h-8, {align:'center', size:11.5});
+    /* 右：等效摊平容器（宽 = S容−S物） */
+    var regR = {x:half+pad, y:10, w:half-2*pad, h:st.h-34};
+    var Wcm2 = widthOf(C.S - Ss);
+    var gR = tankGeometry({x:regR.x, y:regR.y, w:regR.w, h:regR.h}, Wcm, C.H); // 同比例尺：用同样的 Wcm 域
+    var x2 = (Wcm - Wcm2)/2;
+    var hShow = h * animF;
+    ctx.fillStyle = 'rgba(59,130,246,.38)';
+    ctx.fillRect(gR.X(x2), gR.Y(hShow), Wcm2*gR.k, hShow*gR.k);
+    ctx.strokeStyle = '#475569'; ctx.lineWidth = 3; ctx.lineJoin='round';
+    ctx.beginPath();
+    ctx.moveTo(gR.X(x2), gR.Y(C.H)); ctx.lineTo(gR.X(x2), gR.Y(0));
+    ctx.lineTo(gR.X(x2+Wcm2), gR.Y(0)); ctx.lineTo(gR.X(x2+Wcm2), gR.Y(C.H));
+    ctx.stroke();
+    if(hShow>0){
+      ctx.strokeStyle = 'rgba(37,99,235,.95)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(gR.X(x2), gR.Y(hShow)); ctx.lineTo(gR.X(x2+Wcm2), gR.Y(hShow)); ctx.stroke();
+    }
+    // 等高参考虚线
+    if(animF >= 1){
+      ctx.setLineDash([5,4]); ctx.strokeStyle = '#16a34a'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(gL.X(0), gL.Y(h)); ctx.lineTo(gR.X(x2+Wcm2), gR.Y(h)); ctx.stroke();
+      ctx.setLineDash([]);
+      label(ctx, '一样高！', (gL.X(Wcm)+gR.X(x2))/2, gL.Y(h)-6, {align:'center', size:12, bold:true, color:'#16a34a'});
+    }
+    label(ctx, '等效容器：底面积 = S容 − S物', regR.x+regR.w/2, st.h-8, {align:'center', size:11.5});
+    /* 读数 */
+    setMetric('ring', fmt(C.S-Ss,0)+' cm²');
+    setMetric('h', fmt(h,2)+' cm');
+    setMetric('check', fmt((C.S-Ss)*h,0)+' cm³ = V水 ✓');
+  }
+  function flatten(){
+    if(!predict.guard()) return;
+    mod.flattenDone = true;
+    if(animating) return;
+    animating = true; animF = 0;
+    (function tick(){
+      animF = Math.min(1, animF + 0.05);
+      draw();
+      if(animF < 1) requestAnimationFrame(tick);
+      else animating = false;
+    })();
+  }
+  var slider = $('#m3Area');
+  slider.addEventListener('input', function(){
+    if(!predict.guard()){ slider.value = String(Ss); return; }
+    Ss = +slider.value;
+    minSeen = Math.min(minSeen, Ss); maxSeen = Math.max(maxSeen, Ss);
+    $('#m3AreaVal').textContent = Ss+' cm²';
+    if(maxSeen - minSeen >= 25) predict.reveal();
+    draw();
+  });
+  $('#m3Flatten').addEventListener('click', flatten);
+  $('#m3Reset').addEventListener('click', function(){
+    Ss = 30; slider.value = '30'; $('#m3AreaVal').textContent = '30 cm²';
+    animF = 1; draw();
+  });
+  $('#m3AreaVal').textContent = '30 cm²';
+  mod = {
+    flattenDone:false,
+    metrics:[
+      {key:'ring', label:'回字形底面 S容−S物'},
+      {key:'h', label:'水面高度 h'},
+      {key:'check', label:'检验 (S容−S物)×h'}
+    ],
+    metricNote:'V水 固定为 400 cm³，S容 = 100 cm²。',
+    enter:function(){}, resize:function(){ if(st.fit()) draw(); }
+  };
+  return mod;
+})();
+
+/* ================= M4 取放实验台 ================= */
+modules.m4 = (function(){
+  var st = makeStage($('#cv-m4'), .52);
+  var C = {S:100, H:24}, Vw = 1000;
+  var OBJ = {
+    A:{S:20, H:6,  x:0.6, color:'#b08960', name:'A'},
+    B:{S:30, H:4,  x:3.4, color:'#a78bfa', name:'B'},
+    C:{S:15, H:18, x:7.9, color:'#fb923c', name:'C'}
+  };
+  var inWater = {A:false, B:false, C:false};
+  var lift = 0;                       // C 的提起高度
+  var placedOrder = [];               // 顺序无关 检测
+  var pairOrders = new Set();
+  var singleH = {};                   // 形状无关 检测（A、B 单独在水时的 h）
+  var cWetLocal = 0;                  // C 身上的最高湿痕（物体局部坐标）
+  var predict = makePredict({
+    box: $('#m4Predict'), listEl: $('#m4Options'), fbEl: $('#m4Feedback'),
+    options:[
+      {label:'A. 比 2 cm 更长', correct:true},
+      {label:'B. 恰好 2 cm', correct:false},
+      {label:'C. 比 2 cm 短', correct:false}
+    ],
+    explain:'物块向上走的同时，水面还在向下退——湿痕 = 物块上升 + 水面下降，所以一定比上升的距离更长。'
+  });
+  function solids(){
+    var arr = [];
+    if(inWater.A) arr.push({S:OBJ.A.S, H:OBJ.A.H, z:0, key:'A'});
+    if(inWater.B) arr.push({S:OBJ.B.S, H:OBJ.B.H, z:0, key:'B'});
+    if(inWater.C) arr.push({S:OBJ.C.S, H:OBJ.C.H, z:lift, key:'C'});
+    return arr;
+  }
+  function calc(){ return E.waterLevel(C, Vw, solids()); }
+  function calcCBase(){ // C 在 z=0 时的水面（湿痕基准）
+    var arr = solids().map(function(s){ return s.key==='C' ? {S:s.S,H:s.H,z:0} : s; });
+    return E.waterLevel(C, Vw, arr);
+  }
+  function draw(){
+    if(!st.w) return;
+    var ctx = st.ctx;
+    ctx.clearRect(0,0,st.w,st.h);
+    var region = {x:24, y:10, w:st.w-48, h:st.h-30};
+    var Wcm = widthOf(C.S);
+    var g = tankGeometry(region, Wcm, C.H);
+    var res = calc();
+    // 水
+    ctx.fillStyle = 'rgba(59,130,246,.38)';
+    ctx.fillRect(g.X(0), g.Y(res.h), Wcm*g.k, res.h*g.k);
+    ctx.strokeStyle = 'rgba(37,99,235,.95)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(g.X(0), g.Y(res.h)); ctx.lineTo(g.X(Wcm), g.Y(res.h)); ctx.stroke();
+    drawVessel(ctx, g, Wcm, C.H);
+    // 物体
+    ['A','B','C'].forEach(function(k){
+      if(!inWater[k]) return;
+      var o = OBJ[k];
+      var z = (k==='C') ? lift : 0;
+      drawSolid(ctx, g, o.x, o.S, o.H, z, o.color);
+      label(ctx, k, g.X(o.x+widthOf(o.S)/2), g.Y(z+o.H)-4, {align:'center', bold:true, color:'#475569', size:12});
+      // C 的湿痕带
+      if(k==='C'){
+        var waterLocal = clamp(res.h - z, 0, o.H);       // 当前水线（局部）
+        if(cWetLocal > waterLocal + 1e-9){
+          ctx.fillStyle = 'rgba(125,211,252,.75)';
+          ctx.fillRect(g.X(o.x), g.Y(z+cWetLocal), widthOf(o.S)*g.k, (cWetLocal-waterLocal)*g.k);
+          label(ctx, '湿痕', g.X(o.x+widthOf(o.S))+5, g.Y(z+(cWetLocal+waterLocal)/2)+4, {color:'#0284c7', bold:true, size:11.5});
+        }
+      }
+    });
+    label(ctx, 'A、B 体积相同（120cm³）· C 细高（15cm²×18cm）', st.w/2, st.h-6, {align:'center', size:11.5});
+    // 湿痕跟踪（仅 C 在水中时更新）
+    if(inWater.C){
+      var wl = clamp(res.h - lift, 0, OBJ.C.H);
+      cWetLocal = Math.max(cWetLocal, wl);
+    }
+    // 读数
+    var base = inWater.C ? calcCBase() : null;
+    var drop = base ? (base.h - res.h) : 0;
+    setMetric('h', fmt(res.h)+' cm');
+    setMetric('vsub', fmt(res.Vsub)+' cm³');
+    setMetric('rise', inWater.C ? fmt(lift)+' cm' : '—');
+    setMetric('drop', inWater.C ? fmt(drop)+' cm' : '—');
+    setMetric('wet', (inWater.C && lift>0) ? fmt(lift+drop)+' cm' : '—');
+    // 发现：形状无关
+    if(inWater.A && !inWater.B && !inWater.C) singleH.A = res.h;
+    if(inWater.B && !inWater.A && !inWater.C) singleH.B = res.h;
+    if(singleH.A !== undefined && singleH.B !== undefined && Math.abs(singleH.A-singleH.B) < 1e-9) record('shapeFree');
+    // 发现：浸湿侦探
+    if(inWater.C && lift >= 2 - 1e-9){
+      predict.reveal();
+      record('wetDetect');
+    }
+  }
+  function syncButtons(){
+    $('#m4TogA').textContent = (inWater.A?'取出':'放入')+' A（方块）';
+    $('#m4TogB').textContent = (inWater.B?'取出':'放入')+' B（扁块）';
+    $('#m4TogC').textContent = (inWater.C?'取出':'放入')+' C（高条）';
+    var liftEl = $('#m4Lift');
+    liftEl.disabled = !inWater.C;
+    if(!inWater.C){ lift = 0; liftEl.value = '0'; $('#m4LiftVal').textContent = '0 cm'; }
+  }
+  function toggle(key){
+    inWater[key] = !inWater[key];
+    if(inWater[key]) placedOrder.push(key);
+    else placedOrder = placedOrder.filter(function(k){ return k!==key; });
+    if(key==='C' && !inWater.C) cWetLocal = 0;
+    // 顺序无关：A、B 同时在水中时记录到达顺序
+    if(inWater.A && inWater.B){
+      var orderKey = placedOrder.filter(function(k){ return k==='A'||k==='B'; }).join('');
+      pairOrders.add(orderKey);
+      if(pairOrders.has('AB') && pairOrders.has('BA')) record('orderFree');
+    }
+    if(inWater[key]) record('firstDip');
+    syncButtons(); draw();
+  }
+  $('#m4TogA').addEventListener('click', function(){ toggle('A'); });
+  $('#m4TogB').addEventListener('click', function(){ toggle('B'); });
+  $('#m4TogC').addEventListener('click', function(){ toggle('C'); });
+  var liftEl = $('#m4Lift');
+  liftEl.addEventListener('input', function(){
+    if(!inWater.C) return;
+    if(!predict.guard()){ liftEl.value = String(Math.round(lift*10)); return; }
+    lift = (+liftEl.value)/10;
+    $('#m4LiftVal').textContent = fmt(lift)+' cm';
+    draw();
+  });
+  $('#m4Reset').addEventListener('click', function(){
+    inWater = {A:false,B:false,C:false}; lift = 0; placedOrder = [];
+    cWetLocal = 0; singleH = {};
+    syncButtons(); draw();
+  });
+  syncButtons();
+  return {
+    metrics:[
+      {key:'h', label:'水面高度 h'},
+      {key:'vsub', label:'浸入总体积'},
+      {key:'rise', label:'C 上升高度'},
+      {key:'drop', label:'水面下降'},
+      {key:'wet', label:'露出湿痕 = 上升+下降'}
+    ],
+    metricNote:'试试：A、B 单独放入水面一样高吗？两种顺序放 A、B 呢？',
+    enter:function(){}, resize:function(){ if(st.fit()) draw(); }
+  };
+})();
+
+/* ================= M5 注水图像侦探 ================= */
+modules.m5 = (function(){
+  var st = makeStage($('#cv-m5'), .52);
+  var C = {S:100, H:20}, BK = {S:20, H:8}, Q = 40;
+  var mode = 'beaker';
+  var t = 0, playing = false, ranBoth = {beaker:false, tank:false};
+  var T_END = 50;
+  /* 时刻 t 的槽外水面与烧杯内水面（与 engine.fillCurve 同一物理，供绘制） */
+  function levels(tt){
+    var Sc=C.S, Hc=C.H, Sb=BK.S, Hb=BK.H;
+    var v = Q*tt;
+    if(mode==='beaker'){
+      var vb = Sb*Hb;
+      if(v <= vb) return {out:0, inn:v/Sb};
+      var v2 = v - vb;
+      if(v2 <= (Sc-Sb)*Hb) return {out:v2/(Sc-Sb), inn:Hb};
+      return {out:Hb + (v2-(Sc-Sb)*Hb)/Sc, inn:Hb + (v2-(Sc-Sb)*Hb)/Sc};
+    } else {
+      var v1 = (Sc-Sb)*Hb;
+      if(v <= v1) return {out:v/(Sc-Sb), inn:0};
+      var v2b = v - v1;
+      if(v2b <= Sb*Hb) return {out:Hb, inn:v2b/Sb};
+      return {out:Hb + (v2b-Sb*Hb)/Sc, inn:Hb + (v2b-Sb*Hb)/Sc};
+    }
+  }
+  /* 三个谜题：目标曲线（断点列）+ 正确选项 */
+  var SCENES = {
+    beaker: function(){ return E.fillCurve(C, BK, Q, 'beaker'); },
+    tank:   function(){ return E.fillCurve(C, BK, Q, 'tank'); },
+    none:   function(){ return [{t:0,h:0},{t:C.S*C.H/Q, h:C.H}]; }
+  };
+  var PUZZLES = [
+    {scene:'beaker', q:'谜题 1/3：这条灰色折线是哪种注法画出来的？'},
+    {scene:'none',   q:'谜题 2/3：这条呢？（注意：一条直线到顶）'},
+    {scene:'tank',   q:'谜题 3/3：最后一条——平台出现在中间！'}
+  ];
+  var OPTS = [
+    {key:'beaker', label:'水注入烧杯里'},
+    {key:'tank',   label:'水注入槽里（烧杯外）'},
+    {key:'none',   label:'槽里根本没有烧杯'}
+  ];
+  var puzzleIdx = 0, puzzleCorrect = 0, puzzleDone = false, answered = false;
+  function drawChart(ctx, x0, y0, w, h, curve, color, upTo, dash){
+    var tMax = T_END, hMax = C.H + 1.5;
+    var X = function(tt){ return x0 + tt/tMax*w; };
+    var Y = function(hh){ return y0 + h - hh/hMax*h; };
+    ctx.save();
+    if(dash) ctx.setLineDash([5,4]);
+    ctx.strokeStyle = color; ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    var started = false;
+    for(var i=0;i<curve.length;i++){
+      var p = curve[i];
+      var tt = Math.min(p.t, upTo===undefined?Infinity:upTo);
+      if(p.t > upTo && i>0){
+        // 截断到 upTo（在折线段上插值）
+        var prev = curve[i-1];
+        var f = (upTo - prev.t)/(p.t - prev.t);
+        var hh = prev.h + (p.h - prev.h)*clamp(f,0,1);
+        ctx.lineTo(X(upTo), Y(hh));
+        break;
+      }
+      if(!started){ ctx.moveTo(X(p.t), Y(p.h)); started = true; }
+      else ctx.lineTo(X(p.t), Y(p.h));
+    }
+    ctx.stroke();
+    ctx.restore();
+    return {X:X, Y:Y};
+  }
+  function draw(){
+    if(!st.w) return;
+    var ctx = st.ctx;
+    ctx.clearRect(0,0,st.w,st.h);
+    var lv = levels(t);
+    var leftW = st.w*0.48, pad = 14;
+    /* 左：水槽 + 烧杯 */
+    var region = {x:pad, y:10, w:leftW-2*pad, h:st.h-32};
+    var Wcm = widthOf(C.S);
+    var g = tankGeometry(region, Wcm, C.H);
+    // 槽外水（环绕烧杯，画整层再补烧杯）
+    ctx.fillStyle = 'rgba(59,130,246,.38)';
+    if(lv.out>0) ctx.fillRect(g.X(0), g.Y(lv.out), Wcm*g.k, lv.out*g.k);
+    // 烧杯（壁厚忽略，画在中部偏左）
+    var bx = 2.2, bw = widthOf(BK.S);
+    // 烧杯内部"挖空"槽水
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(g.X(bx), g.Y(BK.H), bw*g.k, BK.H*g.k);
+    // 烧杯内水
+    if(lv.inn>0){
+      ctx.fillStyle = 'rgba(59,130,246,.38)';
+      ctx.fillRect(g.X(bx), g.Y(Math.min(lv.inn,BK.H)), bw*g.k, Math.min(lv.inn,BK.H)*g.k);
+      if(lv.inn>BK.H){ ctx.fillRect(g.X(bx), g.Y(lv.inn), bw*g.k, (lv.inn-BK.H)*g.k); }
+    }
+    // 烧杯壁
+    ctx.strokeStyle = '#0e7490'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(g.X(bx), g.Y(BK.H)); ctx.lineTo(g.X(bx), g.Y(0));
+    ctx.lineTo(g.X(bx+bw), g.Y(0)); ctx.lineTo(g.X(bx+bw), g.Y(BK.H));
+    ctx.stroke();
+    drawVessel(ctx, g, Wcm, C.H);
+    // 注水口
+    var pourX = mode==='beaker' ? bx+bw/2 : (bx+bw+Wcm)/2;
+    ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(g.X(pourX), g.Y(C.H)-18); ctx.lineTo(g.X(pourX), g.Y(Math.max(lv.out, mode==='beaker'?lv.inn:lv.out))-2); ctx.stroke();
+    label(ctx, '↓ 注水', g.X(pourX)+5, g.Y(C.H)-8, {color:'#2563eb', size:11, bold:true});
+    label(ctx, '烧杯', g.X(bx+bw/2), g.Y(0)+14, {align:'center', size:11, color:'#0e7490'});
+    /* 右：h–t 图 */
+    var cx0 = leftW+10, cw = st.w-cx0-pad, cy0 = 14, ch = st.h-48;
+    ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.lineTo(cx0, cy0+ch); ctx.lineTo(cx0+cw, cy0+ch); ctx.stroke();
+    label(ctx, '时间 t →', cx0+cw, cy0+ch+16, {align:'right', size:11});
+    label(ctx, '槽内水面 h', cx0+2, cy0-2, {size:11});
+    // 谜题目标曲线（灰）
+    if(!puzzleDone && puzzleIdx < PUZZLES.length){
+      drawChart(ctx, cx0, cy0, cw, ch, SCENES[PUZZLES[puzzleIdx].scene](), '#94a3b8', undefined, true);
+    }
+    // 当前注水实况曲线
+    var axes = drawChart(ctx, cx0, cy0, cw, ch, SCENES[mode==='beaker'?'beaker':'tank'](), '#3b82f6', t, false);
+    if(t>0){
+      ctx.fillStyle = '#3b82f6';
+      ctx.beginPath(); ctx.arc(axes.X(t), axes.Y(lv.out), 5, 0, Math.PI*2); ctx.fill();
+    }
+    /* 读数 */
+    var effS = (lv.out < BK.H - 1e-9) ? (mode==='beaker' && lv.inn < BK.H ? '—（水还在烧杯里）' : fmt(C.S-BK.S,0)+' cm²') : fmt(C.S,0)+' cm²';
+    if(mode==='tank' && lv.out >= BK.H - 1e-9 && lv.inn < BK.H - 1e-9) effS = '—（正在倒灌烧杯）';
+    setMetric('t', fmt(t)+' s');
+    setMetric('h', fmt(lv.out)+' cm');
+    setMetric('eff', effS);
+    setMetric('bk', lv.inn >= BK.H - 1e-9 ? '已满' : (lv.inn>0 ? fmt(lv.inn)+' cm' : '空'));
+  }
+  function step(){
+    if(!playing) return;
+    t = Math.min(T_END, t + 0.35);
+    draw();
+    if(t >= T_END){
+      playing = false; $('#m5Play').textContent = '开始注水';
+      ranBoth[mode] = true;
+    }
+    else requestAnimationFrame(step);
+  }
+  $('#m5Play').addEventListener('click', function(){
+    if(playing){ playing = false; this.textContent = '继续注水'; return; }
+    if(t >= T_END){ t = 0; }
+    playing = true; this.textContent = '暂停';
+    requestAnimationFrame(step);
+  });
+  $('#m5Reset').addEventListener('click', function(){
+    playing = false; t = 0; $('#m5Play').textContent = '开始注水'; draw();
+  });
+  $$('#m5ModeSeg button').forEach(function(b){
+    b.addEventListener('click', function(){
+      if(mode === b.dataset.mode) return;
+      mode = b.dataset.mode;
+      $$('#m5ModeSeg button').forEach(function(x){ x.classList.toggle('on', x===b); });
+      playing = false; t = 0; $('#m5Play').textContent = '开始注水';
+      draw();
+    });
+  });
+  /* 谜题 */
+  function renderPuzzle(){
+    var qEl = $('#m5PuzzleQ'), listEl = $('#m5PuzzleOptions'), fbEl = $('#m5PuzzleFeedback');
+    listEl.innerHTML = '';
+    if(puzzleIdx >= PUZZLES.length){
+      puzzleDone = true;
+      qEl.textContent = '侦探挑战完成：答对 '+puzzleCorrect+' / 3。';
+      if(puzzleCorrect === 3){ state.graphAll || (fbEl.textContent = '🎉 三条折线全部破解！'); record('graphAll'); }
+      else {
+        var retry = document.createElement('button');
+        retry.textContent = '🔄 重新挑战';
+        retry.addEventListener('click', function(){
+          puzzleIdx = 0; puzzleCorrect = 0; puzzleDone = false; answered = false;
+          renderPuzzle(); draw();
+        });
+        listEl.appendChild(retry);
+        fbEl.textContent = '想拿「图像神探」成就需要 3 题全对——再试一次！';
+      }
+      draw();
+      return;
+    }
+    var pz = PUZZLES[puzzleIdx];
+    qEl.textContent = pz.q + '（灰色虚线就是目标折线）';
+    fbEl.textContent = '提示：平台在哪？斜率什么时候变缓？';
+    answered = false;
+    OPTS.forEach(function(o){
+      var b = document.createElement('button');
+      b.textContent = o.label;
+      b.addEventListener('click', function(){
+        if(answered) return;
+        answered = true;
+        var right = o.key === pz.scene;
+        b.classList.add(right ? 'right' : 'wrong');
+        if(right) puzzleCorrect++;
+        else {
+          $$('button', listEl).forEach(function(x,i){ if(OPTS[i] && OPTS[i].key===pz.scene) x.classList.add('right'); });
+        }
+        fbEl.textContent = right ? '✅ 正确！' : '❌ 对照右图想想：哪段平台出卖了它？';
+        setTimeout(function(){ puzzleIdx++; renderPuzzle(); }, 1400);
+      });
+      listEl.appendChild(b);
+    });
+    draw();
+  }
+  return {
+    metrics:[
+      {key:'t', label:'注水时间 t'},
+      {key:'h', label:'槽内水面 h'},
+      {key:'eff', label:'当前有效底面积'},
+      {key:'bk', label:'烧杯水位'}
+    ],
+    metricNote:'注水速度恒定 40 cm³/s。折线斜率 = 速度 ÷ 有效底面积。',
+    enter:function(){ renderPuzzle(); }, resize:function(){ if(st.fit()) draw(); }
+  };
+})();
+
+/* ================= M6 总结闯关 + 浮冰彩蛋 ================= */
+modules.m6 = (function(){
+  var CARDS = [
+    {tag:'实验 M1', title:'体积守恒', body:'水不增不减。被挤开的体积只能整体抬高水面：S容×Δh = V浸。'},
+    {tag:'实验 M2', title:'三态判断流程', body:'先假设「部分没过」→ 算出的水面高过物体顶？改按「完全浸没」→ 再高过容器口？那就是溢出。'},
+    {tag:'实验 M2/M3', title:'三个公式', body:'半没：h=V水÷(S容−S物)；全没：Δh=V物÷S容；溢出：V溢=排开体积−剩余空间。'},
+    {tag:'实验 M3', title:'回字形底面', body:'物体立在水中没露头时，水真正站立的底面是 S容−S物，物体越粗水面越高。'},
+    {tag:'实验 M4', title:'移动浸物', body:'提起物块：露出湿痕 = 物块上升 + 水面下降。两段都要算！'},
+    {tag:'实验 M5', title:'图像拐点', body:'注水折线每个拐点 = 一次结构事件；每段斜率 = 注水速度 ÷ 当时的有效底面积。'}
+  ];
+  var QUIZ = [
+    {q:'1. 铁块完全浸没在水里，水面升高量等于——', opts:['铁块体积 ÷ 容器底面积','铁块重量 ÷ 容器底面积','铁块的高度'], ans:0,
+     why:'完全浸没时排开的体积就是整个铁块的体积，摊在容器底面上：Δh = V物 ÷ S容。'},
+    {q:'2. 物体直立水中、头露在外面，水面高度 = 水的体积 ÷ ——', opts:['容器底面积','容器底面积 − 物体底面积','物体底面积'], ans:1,
+     why:'水站在「回字形底面」上（M3 摊平实验）。'},
+    {q:'3. 讲义判断法的第一步是先假设——', opts:['完全浸没','部分没过','直接假设溢出'], ans:1,
+     why:'先假设部分没过最容易检验：算出的水面一对照物体顶，真相立刻揭晓。'},
+    {q:'4. 假设部分没过，算出的水面比物体顶还高，说明——', opts:['算错了，重新算一遍','实际是完全浸没，要改用全没公式','一定发生了溢出'], ans:1,
+     why:'水面高过物体顶=「部分没过」不成立，物体其实已被淹没；是否溢出还要再和容器口比。'},
+    {q:'5. 水溢出后，溢出的体积等于——', opts:['物体浸入体积 − 容器里原本剩余的空间','物体的整个体积','容器的体积'], ans:0,
+     why:'容器装不下的那部分才会跑出来（M2 的溢出收集杯）。'},
+    {q:'6. 把部分浸没的物块提起 3 cm，露出的湿痕——', opts:['恰好 3 cm','比 3 cm 长','比 3 cm 短'], ans:1,
+     why:'物块上升的同时水面在下降，湿痕 = 上升 + 下降 > 3 cm（M4）。'}
+  ];
+  var ICE = [
+    {q:'❄️ 之谜 1：一杯水上漂着冰块，冰完全融化后，水面——', ans:2,
+     why:'漂浮时排开水的体积 × 水的密度 = 冰的重量 = 融化后水的重量 → 融水恰好填满原来排开的坑，水面不变。'},
+    {q:'❄️ 之谜 2：冰里冻着一枚铁钉，融化后水面——', ans:1,
+     why:'铁钉随冰漂浮时按「重量」排水（排得多），融化后沉底只按「体积」排水（排得少），水面下降。'},
+    {q:'❄️ 之谜 3：冰里冻着一小块木头呢？', ans:2,
+     why:'木块融化后仍然漂浮，依旧按重量排水，排开量没变，水面不变。'},
+    {q:'❄️ 之谜 4：海上的冰川融化，海平面——', ans:0,
+     why:'海水比淡水密度大：冰川按「海水的重量」排水，融成的淡水体积比排开的海水大一点，海平面上升。'}
+  ];
+  var ICE_OPTS = ['上升','下降','不变'];
+  var quizScore = 0, quizAnswered = 0;
+  var iceCorrect = 0, iceAnswered = 0, iceBuilt = false;
+  function build(){
+    var wall = $('#m6Cards');
+    CARDS.forEach(function(c){
+      var d = document.createElement('div'); d.className = 'concept-card';
+      d.innerHTML = '<span class="tag">'+c.tag+'</span><h4>'+c.title+'</h4><p>'+c.body+'</p>';
+      wall.appendChild(d);
+    });
+    var qWrap = $('#m6Quiz');
+    QUIZ.forEach(function(item, qi){
+      var d = document.createElement('div'); d.className = 'quiz-item';
+      d.innerHTML = '<h4>'+item.q+'</h4>';
+      var list = document.createElement('div'); list.className = 'option-list';
+      item.opts.forEach(function(o, oi){
+        var b = document.createElement('button'); b.textContent = String.fromCharCode(65+oi)+'. '+o;
+        b.addEventListener('click', function(){
+          if(d.classList.contains('answered')) return;
+          d.classList.add('answered');
+          quizAnswered++;
+          var right = oi === item.ans;
+          if(right) quizScore++;
+          b.classList.add(right?'right':'wrong');
+          $$('button', list).forEach(function(x,xi){ if(xi===item.ans) x.classList.add('right'); });
+          why.textContent = (right?'✅ ':'💡 ') + item.why;
+          if(quizAnswered === QUIZ.length) showRank();
+        });
+        list.appendChild(b);
+      });
+      var why = document.createElement('p'); why.className = 'why';
+      d.appendChild(list); d.appendChild(why);
+      qWrap.appendChild(d);
+    });
+  }
+  function showRank(){
+    var box = $('#m6Rank');
+    var name, desc;
+    if(quizScore === 6){ name = '👑 排水大师'; desc = '六题全对！三态、公式、图像全部打通。'; }
+    else if(quizScore >= 5){ name = '🎓 排水工程师'; desc = '答对 '+quizScore+' 题，出师达标！'; }
+    else if(quizScore >= 3){ name = '🔧 排水学徒'; desc = '答对 '+quizScore+' 题。回到对应实验再玩一遍，手感就来了。'; }
+    else { name = '💪 再练练'; desc = '答对 '+quizScore+' 题。从 M1 的 X 光重新看一遍"水去哪了"。'; }
+    $('#m6RankName').textContent = name;
+    $('#m6RankDesc').textContent = desc;
+    box.classList.add('show');
+    if(quizScore >= 5) record('quizPass');
+  }
+  function renderIce(){
+    if(iceBuilt) return; iceBuilt = true;
+    var wrap = $('#m6Ice');
+    var intro = document.createElement('p');
+    intro.innerHTML = '主线实验里的物体都「沉底」，这里的冰却<b>漂着</b>——漂浮物按<b>重量</b>排水（讲义课后阅读）。凭直觉先猜，再看解释：';
+    intro.style.marginBottom = '8px';
+    wrap.appendChild(intro);
+    ICE.forEach(function(item){
+      var d = document.createElement('div'); d.className = 'quiz-item';
+      d.innerHTML = '<h4>'+item.q+'</h4>';
+      var list = document.createElement('div'); list.className = 'option-list';
+      ICE_OPTS.forEach(function(o, oi){
+        var b = document.createElement('button'); b.textContent = o;
+        b.addEventListener('click', function(){
+          if(d.classList.contains('answered')) return;
+          d.classList.add('answered');
+          iceAnswered++;
+          var right = oi === item.ans;
+          if(right) iceCorrect++;
+          b.classList.add(right?'right':'wrong');
+          $$('button', list).forEach(function(x,xi){ if(xi===item.ans) x.classList.add('right'); });
+          why.textContent = (right?'✅ ':'💡 ') + item.why;
+          if(iceAnswered === ICE.length && iceCorrect === ICE.length) record('iceAll');
+        });
+        list.appendChild(b);
+      });
+      var why = document.createElement('p'); why.className = 'why';
+      d.appendChild(list); d.appendChild(why);
+      wrap.appendChild(d);
+    });
+  }
+  build();
+  return {
+    renderIce: renderIce,
+    metrics:[{key:'score', label:'小测得分'}],
+    metricNote:'答完 6 题自动评定段位；浮冰彩蛋藏在最下方。',
+    enter:function(){ setMetric('score', quizAnswered ? (quizScore+' / '+QUIZ.length) : '未开始'); },
+    resize:function(){}
+  };
+})();
+
+/* ---------- 启动 ---------- */
+state.unlockedCount = ach.count();
+booting = false;
+activate('m0');
+})();
+</script>
+
+
+
+
+
+</body>
+</html>

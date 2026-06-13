@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>水中浸物实验室</title>
+<title>水中浸物实验室 · 第十四讲</title>
 <style>
 /* ============ 主题（ui-standard 浅色数学实验室） ============ */
 :root{
@@ -99,6 +99,17 @@ canvas.stage{display:block;width:100%;height:auto;border-radius:8px;background:#
 .reveal-box .formula{background:var(--surface-strong);border-radius:8px;padding:8px 12px;margin:8px 0;
   font-family:"SF Mono",Consolas,monospace;font-size:13.5px}
 
+/* M2 实时公式卡 */
+.formula-live{border:1px solid var(--accent);border-radius:12px;padding:11px 14px;margin-bottom:12px;
+  background:linear-gradient(180deg,#f8fbff,#eef4f5)}
+.formula-live .fl-head{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.formula-live .fl-state{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:2px 10px;border-radius:99px}
+.formula-live .fl-tag{font-size:11px;color:var(--muted)}
+.formula-live .fl-eq{font-family:"SF Mono",Consolas,monospace;font-size:14px;line-height:1.95;color:var(--text)}
+.formula-live .fl-eq b{color:var(--accent-dark)}
+.formula-live .fl-eq .hi{background:#fff7ed;border-radius:4px;padding:1px 5px;color:#b45309;font-weight:700}
+.formula-live .fl-derive{font-size:12.5px;color:var(--muted);margin-top:7px;line-height:1.5}
+
 /* 右栏数据面板 */
 .data-panel .panel-label{font-size:12px;color:var(--muted);letter-spacing:.08em;margin-bottom:8px}
 #metrics{display:grid;gap:8px}
@@ -177,7 +188,7 @@ canvas.stage{display:block;width:100%;height:auto;border-radius:8px;background:#
 
 <header class="topbar">
   <h1>💧 水中浸物实验室</h1>
-  <span class="sub">排水法与水面高度 · 探究式课件</span>
+  <span class="sub">第十四讲 · 排水法与水面高度 · 探究式课件</span>
   <span class="spacer"></span>
   <button class="ach-entry" id="achOpen" title="查看成就">
     <span>🏆 <b class="num" data-ach-count>0</b>/<span class="num" data-ach-total>0</span></span>
@@ -277,6 +288,14 @@ canvas.stage{display:block;width:100%;height:auto;border-radius:8px;background:#
           <button data-mode="full">加水近满</button>
         </div>
         <button class="btn ghost" id="m2Reset">重置</button>
+      </div>
+      <div class="formula-live" id="m2FormulaCard">
+        <div class="fl-head">
+          <span class="fl-state state-chip state-dry" id="m2FlState">未触水</span>
+          <span class="fl-tag">守恒：表观体积 = 水 + 浸入物体 → S容·h = V水 + V浸</span>
+        </div>
+        <div class="fl-eq" id="m2FlEq"></div>
+        <div class="fl-derive" id="m2FlDerive"></div>
       </div>
       <div class="reveal-box" data-module="m2">
         <button class="btn" data-reveal-toggle>显示结论</button>
@@ -661,19 +680,6 @@ function drawVessel(ctx, g, Wcm, Hcm){
   ctx.lineTo(g.X(Wcm), g.Y(0)); ctx.lineTo(g.X(Wcm), g.Y(Hcm));
   ctx.stroke();
 }
-function drawWater(ctx, g, Wcm, h, solids, style){
-  if(h<=0) return;
-  ctx.save();
-  ctx.fillStyle = style || 'rgba(59,130,246,.38)';
-  ctx.beginPath();
-  ctx.rect(g.X(0), g.Y(h), Wcm*g.k, h*g.k);
-  ctx.fill();
-  // 物体占据处"挖白"由物体绘制覆盖实现（物体不透明）
-  ctx.restore();
-  // 水面线
-  ctx.strokeStyle = 'rgba(37,99,235,.9)'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(g.X(0), g.Y(h)); ctx.lineTo(g.X(Wcm), g.Y(h)); ctx.stroke();
-}
 function drawSolid(ctx, g, xCm, S, H, z, color){
   var w = widthOf(S);
   ctx.fillStyle = color || '#b08960';
@@ -848,11 +854,9 @@ modules.m0 = (function(){
     if(step===4){ drawRoute(ctx, region); }
     else {
       var g = tankGeometry(region, widthOf(C.S), C.H);
-      var solids = [];
-      var hl = null;
-      if(step===0){ solids = [{S:30,H:6,z:C.H+2}]; }
-      if(step>=1){ solids = [{S:30,H:6,z: step===1 ? 9 : 5}]; }
-      var res = E.waterLevel(C, Vw, step>=1 ? solids.map(function(s){return {S:s.S,H:s.H,z:Math.min(s.z, 9)};}) : []);
+      var zNow = step===1 ? 6.5 : 3;          // ②部分入水 ③④更深
+      var solids = step>=1 ? [{S:30,H:6,z:zNow}] : [];
+      var res = E.waterLevel(C, Vw, solids);
       var h = step===0 ? Vw/C.S : res.h;
       drawVessel(ctx, g, widthOf(C.S), C.H);
       // 水
@@ -868,7 +872,7 @@ modules.m0 = (function(){
       }
       // 物体
       if(step===0) drawSolid(ctx, g, (widthOf(C.S)-widthOf(30))/2, 30, 6, C.H+1.5, '#b08960');
-      if(step>=1 && step<4) drawSolid(ctx, g, (widthOf(C.S)-widthOf(30))/2, 30, 6, step===1?9:5, '#b08960');
+      if(step>=1 && step<4) drawSolid(ctx, g, (widthOf(C.S)-widthOf(30))/2, 30, 6, zNow, '#b08960');
       if(step===3){
         label(ctx,'部分没过？ 完全浸没？ 还是…溢出？', g.X(0), g.Y(C.H)-10, {color:'#c47a1c', bold:true, size:14});
       }
@@ -1115,6 +1119,7 @@ modules.m2 = (function(){
     var knots = [0].concat(bks.map(function(b){return b.travel;})).concat([Z_START]);
     var upto = Math.min(maxTravel, Z_START);
     ctx.lineWidth = 2.5;
+    var kPartial = SOLID.S/(C.S-SOLID.S);   // 部分没过段斜率 dh/d下放 = S物/(S容−S物)
     for(var i=0;i<knots.length-1;i++){
       var a = knots[i], b = knots[i+1];
       if(a >= upto) break;
@@ -1125,6 +1130,14 @@ modules.m2 = (function(){
       ctx.moveTo(X(a), Y(hAt(a).h));
       ctx.lineTo(X(bb), Y(hAt(bb).h));
       ctx.stroke();
+      // 段斜率/状态标注（只标已走完的段，避免与当前点重叠）
+      if(bb - a > 0.6 && bb < upto - 0.2){
+        var mx = X((a+bb)/2), my = Y(hAt((a+bb)/2).h);
+        var tag = midRes.state==='partial' ? ('斜率 '+fmt(kPartial,2))
+                : midRes.state==='full' ? '斜率 0 · 不变'
+                : midRes.state==='overflow' ? 'h 锁定 · 溢出↑' : '';
+        if(tag) label(ctx, tag, mx, my-7, {align:'center', size:9.5, bold:true, color:segColor(midRes.state)});
+      }
     }
     // 临界点标记（已到达的）
     bks.forEach(function(b){
@@ -1144,8 +1157,38 @@ modules.m2 = (function(){
     setMetric('st', stateChip(res.state), true);
     setMetric('vsub', fmt(res.Vsub)+' cm³');
     setMetric('vover', fmt(res.Voverflow)+' cm³');
+    updateFormulaCard(res);
     if(res.state==='overflow' && res.Voverflow > 5) record('overflowMgr');
     if(maxTravel >= Z_START - 1e-6) predict.reveal();
+  }
+  /* 实时公式卡：守恒统一式 S容·h = V水 + V浸 + 三态专属公式 + 数值代入 */
+  function updateFormulaCard(res){
+    var Sc = C.S, h = res.h, vsub = res.Vsub, vw = Vw(), Vobj = SOLID.S*SOLID.H;
+    var stEl = $('#m2FlState'), eqEl = $('#m2FlEq'), dvEl = $('#m2FlDerive');
+    var names = {dry:'① 未触水', partial:'② 部分没过', full:'③ 完全浸没', overflow:'④ 溢出'};
+    stEl.textContent = names[res.state];
+    stEl.className = 'fl-state state-chip state-'+res.state;
+    var eq = '', dv = '';
+    if(res.state==='dry'){
+      eq = '水面 h = V水 ÷ S容 = <b>'+fmt(vw,0)+'</b> ÷ <b>'+Sc+'</b> = <span class="hi">'+fmt(h,2)+' cm</span>';
+      dv = '物体还没碰到水，水面不动。';
+    } else if(res.state==='partial'){
+      eq = '<b>'+Sc+'</b>×h = V水 + V浸 = <b>'+fmt(vw,0)+'</b> + <b>'+fmt(vsub,0)+'</b><br>'
+         + '→ h = (V水 + V浸) ÷ S容 = <span class="hi">'+fmt(h,2)+' cm</span>';
+      dv = '物体只浸了一部分，浸入体积 V浸 随下放变大，水面跟着升。'
+         + '若物体沉底且仍露头：h = V水 ÷ (S容−S物) = '+fmt(vw,0)+' ÷ '+(Sc-SOLID.S)+' = '+fmt(vw/(Sc-SOLID.S),2)+' cm。';
+    } else if(res.state==='full'){
+      eq = 'h = (V水 + V物) ÷ S容 = (<b>'+fmt(vw,0)+'</b> + <b>'+Vobj+'</b>) ÷ <b>'+Sc+'</b> = <span class="hi">'+fmt(h,2)+' cm</span>';
+      dv = '物体整个泡进水里，V浸 = V物 = '+Vobj+' cm³ 不再变 → 再往下放，水面也<b>不动了</b>。'
+         + '比原来升高 Δh = V物 ÷ S容 = '+fmt(Vobj/Sc)+' cm。';
+    } else {
+      var room = Sc*C.H - vw;     // 水满前容器还能装的水
+      eq = '水面锁定 h = H容 = <span class="hi">'+C.H+' cm</span><br>'
+         + 'V溢 = V浸 − 容器余量 = <b>'+fmt(vsub,0)+'</b> − <b>'+fmt(room,0)+'</b> = <span class="hi">'+fmt(res.Voverflow,0)+' cm³</span>';
+      dv = '水已满到容器口，物体再挤进来的水只能漫出去（流进右边的收集杯）。';
+    }
+    eqEl.innerHTML = eq;
+    dvEl.innerHTML = dv;
   }
   var slider = $('#m2Travel');
   slider.addEventListener('input', function(){
@@ -1313,6 +1356,7 @@ modules.m4 = (function(){
   var pairOrders = new Set();
   var singleH = {};                   // 形状无关 检测（A、B 单独在水时的 h）
   var cWetLocal = 0;                  // C 身上的最高湿痕（物体局部坐标）
+  var refH = null, refLabel = '';     // 上一次操作前的水面（虚线参考 + 色差带）
   var predict = makePredict({
     box: $('#m4Predict'), listEl: $('#m4Options'), fbEl: $('#m4Feedback'),
     options:[
@@ -1345,6 +1389,18 @@ modules.m4 = (function(){
     // 水
     ctx.fillStyle = 'rgba(59,130,246,.38)';
     ctx.fillRect(g.X(0), g.Y(res.h), Wcm*g.k, res.h*g.k);
+    // 上一次操作前的水面：虚线 + 色差带（上升=深蓝 / 下降=浅红）
+    if(refH !== null && Math.abs(refH - res.h) > 0.02){
+      var rose = res.h > refH;
+      ctx.fillStyle = rose ? 'rgba(37,99,235,.45)' : 'rgba(248,113,113,.4)';
+      ctx.fillRect(g.X(0), g.Y(Math.max(refH,res.h)), Wcm*g.k, Math.abs(refH-res.h)*g.k);
+      ctx.setLineDash([5,4]); ctx.strokeStyle = rose ? '#1d4ed8' : '#dc2626'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(g.X(0), g.Y(refH)); ctx.lineTo(g.X(Wcm), g.Y(refH)); ctx.stroke();
+      ctx.setLineDash([]);
+      label(ctx, refLabel, g.X(0)-6, g.Y(refH)+4, {align:'right', size:11, color: rose?'#1d4ed8':'#dc2626'});
+      label(ctx, '水面'+(rose?'上升':'下降')+' '+fmt(Math.abs(refH-res.h),2)+' cm',
+            g.X(Wcm)+6, g.Y((refH+res.h)/2)+4, {color: rose?'#1d4ed8':'#dc2626', bold:true, size:12});
+    }
     ctx.strokeStyle = 'rgba(37,99,235,.95)'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(g.X(0), g.Y(res.h)); ctx.lineTo(g.X(Wcm), g.Y(res.h)); ctx.stroke();
     drawVessel(ctx, g, Wcm, C.H);
@@ -1398,6 +1454,8 @@ modules.m4 = (function(){
     if(!inWater.C){ lift = 0; liftEl.value = '0'; $('#m4LiftVal').textContent = '0 cm'; }
   }
   function toggle(key){
+    refH = calc().h;                              // 记录操作前水面
+    refLabel = (inWater[key]?'取出':'放入')+' '+key+' 前';
     inWater[key] = !inWater[key];
     if(inWater[key]) placedOrder.push(key);
     else placedOrder = placedOrder.filter(function(k){ return k!==key; });
@@ -1418,13 +1476,14 @@ modules.m4 = (function(){
   liftEl.addEventListener('input', function(){
     if(!inWater.C) return;
     if(!predict.guard()){ liftEl.value = String(Math.round(lift*10)); return; }
+    refH = calcCBase().h; refLabel = '提起前水面';
     lift = (+liftEl.value)/10;
     $('#m4LiftVal').textContent = fmt(lift)+' cm';
     draw();
   });
   $('#m4Reset').addEventListener('click', function(){
     inWater = {A:false,B:false,C:false}; lift = 0; placedOrder = [];
-    cWetLocal = 0; singleH = {};
+    cWetLocal = 0; singleH = {}; refH = null; refLabel = '';
     syncButtons(); draw();
   });
   syncButtons();
@@ -1446,7 +1505,7 @@ modules.m5 = (function(){
   var st = makeStage($('#cv-m5'), .52);
   var C = {S:100, H:20}, BK = {S:20, H:8}, Q = 40;
   var mode = 'beaker';
-  var t = 0, playing = false, ranBoth = {beaker:false, tank:false};
+  var t = 0, playing = false;
   var T_END = 50;
   /* 时刻 t 的槽外水面与烧杯内水面（与 engine.fillCurve 同一物理，供绘制） */
   function levels(tt){
@@ -1553,9 +1612,10 @@ modules.m5 = (function(){
     ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.lineTo(cx0, cy0+ch); ctx.lineTo(cx0+cw, cy0+ch); ctx.stroke();
     label(ctx, '时间 t →', cx0+cw, cy0+ch+16, {align:'right', size:11});
     label(ctx, '槽内水面 h', cx0+2, cy0-2, {size:11});
-    // 谜题目标曲线（灰）
-    if(!puzzleDone && puzzleIdx < PUZZLES.length){
+    // 谜题目标曲线（灰）：注水过程中不显示，保证图上只有一条线
+    if(!puzzleDone && puzzleIdx < PUZZLES.length && t === 0 && !playing){
       drawChart(ctx, cx0, cy0, cw, ch, SCENES[PUZZLES[puzzleIdx].scene](), '#94a3b8', undefined, true);
+      label(ctx, '灰色虚线 = 谜题目标', cx0+cw, cy0+10, {align:'right', size:10.5});
     }
     // 当前注水实况曲线
     var axes = drawChart(ctx, cx0, cy0, cw, ch, SCENES[mode==='beaker'?'beaker':'tank'](), '#3b82f6', t, false);
@@ -1577,7 +1637,6 @@ modules.m5 = (function(){
     draw();
     if(t >= T_END){
       playing = false; $('#m5Play').textContent = '开始注水';
-      ranBoth[mode] = true;
     }
     else requestAnimationFrame(step);
   }
@@ -1606,7 +1665,7 @@ modules.m5 = (function(){
     if(puzzleIdx >= PUZZLES.length){
       puzzleDone = true;
       qEl.textContent = '侦探挑战完成：答对 '+puzzleCorrect+' / 3。';
-      if(puzzleCorrect === 3){ state.graphAll || (fbEl.textContent = '🎉 三条折线全部破解！'); record('graphAll'); }
+      if(puzzleCorrect === 3){ fbEl.textContent = '🎉 三条折线全部破解！'; record('graphAll'); }
       else {
         var retry = document.createElement('button');
         retry.textContent = '🔄 重新挑战';
@@ -1758,7 +1817,21 @@ modules.m6 = (function(){
           b.classList.add(right?'right':'wrong');
           $$('button', list).forEach(function(x,xi){ if(xi===item.ans) x.classList.add('right'); });
           why.textContent = (right?'✅ ':'💡 ') + item.why;
-          if(iceAnswered === ICE.length && iceCorrect === ICE.length) record('iceAll');
+          if(iceAnswered === ICE.length){
+            if(iceCorrect === ICE.length) record('iceAll');
+            else {
+              var retry = document.createElement('button');
+              retry.className = 'btn';
+              retry.style.marginTop = '8px';
+              retry.textContent = '🔄 重新挑战浮冰之谜（答对 '+iceCorrect+'/4）';
+              retry.addEventListener('click', function(){
+                wrap.innerHTML = ''; iceBuilt = false;
+                iceCorrect = 0; iceAnswered = 0;
+                renderIce();
+              });
+              wrap.appendChild(retry);
+            }
+          }
         });
         list.appendChild(b);
       });

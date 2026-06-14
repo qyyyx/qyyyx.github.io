@@ -1,0 +1,1909 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>幻影堵车：没有事故为什么也会堵</title>
+  <style>
+/*
+ * achievements.css —— 成就系统底座配套样式
+ * 配合 achievements.js 使用；可整段内联进单 HTML。
+ * 颜色沿用数学实验室型变量（品牌蓝 #3b82f6 / 浅色卡片），无变量时有兜底值。
+ */
+
+/* ---- toast 解锁提示（右下角堆叠） ---- */
+.ach-toast-stack {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.ach-toast {
+  min-width: 220px;
+  max-width: 300px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #d7e1e3);
+  border-left: 4px solid var(--accent, #3b82f6);
+  box-shadow: 0 6px 20px rgba(15, 30, 40, 0.12);
+  animation: ach-toast-in 0.25s ease-out;
+}
+.ach-toast-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--accent-dark, #2563eb);
+  font-weight: 600;
+}
+.ach-toast-name {
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #152529);
+}
+.ach-toast-desc {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted, #66777d);
+}
+@keyframes ach-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- 奖杯进度条（在任意位置放 [data-ach-progress] 的轨道即可） ---- */
+.ach-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-strong, #eef4f5);
+  overflow: hidden;
+}
+.ach-progress-track > [data-ach-progress] {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: var(--accent, #3b82f6);
+  transition: width 0.3s ease;
+}
+
+/* ---- 成就清单行（奖杯弹窗内） ---- */
+.ach-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #d7e1e3);
+  background: var(--surface, #ffffff);
+  opacity: 0.55;
+}
+.ach-row.is-unlocked { opacity: 1; border-color: var(--accent-soft, #dbeafe); }
+.ach-row .ach-icon { font-size: 22px; text-align: center; }
+.ach-row .ach-name { font-weight: 600; color: var(--text, #152529); }
+.ach-row .ach-desc { font-size: 12px; color: var(--muted, #66777d); }
+.ach-row .ach-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted, #66777d);
+  white-space: nowrap;
+}
+.ach-row.is-unlocked .ach-status { color: var(--accent-dark, #2563eb); }
+
+/* 触控目标：奖杯入口按钮不小于 40px */
+.ach-trophy-btn {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line, #d7e1e3);
+  background: var(--surface, #ffffff);
+  color: var(--text, #152529);
+  cursor: pointer;
+}
+
+</style>
+  <style>
+:root {
+  --bg: #f4f7f8;
+  --surface: #ffffff;
+  --surface-strong: #eef4f5;
+  --line: #d7e1e3;
+  --text: #152529;
+  --muted: #66777d;
+  --accent: #3b82f6;
+  --accent-dark: #2563eb;
+  --accent-soft: #dbeafe;
+  --good: #15803d;
+  --bad: #b91c1c;
+  --task: #b45309;
+  --task-soft: #fef3c7;
+  --task-line: #f6d879;
+  /* 车速色阶：停=红 → 慢=橙 → 快=绿 */
+  --v-stop: #dc2626;
+  --v-mid: #f59e0b;
+  --v-fast: #16a34a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+button, select, input { font: inherit; }
+
+.topbar {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.topbar h1 { margin: 2px 0; font-size: 22px; line-height: 1.2; }
+.subtitle, .eyebrow { margin: 0; color: var(--muted); font-size: 13px; }
+.eyebrow { color: var(--accent-dark); font-weight: 700; }
+
+.layout {
+  display: grid;
+  gap: 16px;
+  padding: 16px 24px;
+  min-height: calc(100vh - 64px);
+  grid-template-columns: 188px minmax(440px, 1fr) 300px;
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    "nav stage data"
+    "prompt prompt prompt";
+}
+
+.panel-shell {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 6px 22px rgba(20, 45, 55, 0.06);
+}
+
+.nav { grid-area: nav; padding: 14px; }
+.stage { grid-area: stage; padding: 14px; min-width: 0; display: flex; flex-direction: column; }
+.data { grid-area: data; padding: 14px; }
+.prompt { grid-area: prompt; padding: 12px 16px; }
+
+.nav h2, .data h2 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.module-list { display: grid; gap: 8px; }
+
+.module-card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 9px 11px;
+  cursor: pointer;
+}
+.module-card strong { display: block; font-size: 14px; margin-bottom: 2px; }
+.module-card span { display: block; font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+.module-card.active { border-color: var(--accent); background: var(--accent-soft); }
+.module-card.done strong::after { content: " ✓"; color: var(--good); }
+
+/* ===== 优化①：任务条置顶（参与感来自达标） ===== */
+.objective-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--task-soft);
+  border: 1px solid var(--task-line);
+  border-radius: 9px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  min-height: 44px;
+}
+.objective-bar .obj-icon { font-size: 18px; }
+.objective-bar .obj-text { font-size: 13px; color: #6b4a12; line-height: 1.4; flex: 1; }
+.objective-bar .obj-text b { color: var(--task); }
+.objective-bar .obj-progress {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--task);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.objective-bar.met { background: #ecfdf5; border-color: #bbf7d0; }
+.objective-bar.met .obj-text { color: #14532d; }
+.objective-bar.met .obj-text b, .objective-bar.met .obj-progress { color: var(--good); }
+.objective-bar.hidden { display: none; }
+
+.stage-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+.stage-head h2 { color: var(--text); font-size: 18px; margin: 0; }
+.stage-head p { margin: 4px 0 0; color: var(--muted); line-height: 1.4; font-size: 13px; }
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn, .toolbar button, .toolbar select, .phase-tabs button, .icon-btn {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.toolbar label {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.toolbar label .val { font-weight: 700; color: var(--accent-dark); min-width: 26px; text-align: right; font-variant-numeric: tabular-nums; }
+.toolbar input[type="range"] { width: 84px; accent-color: var(--accent); }
+
+.btn.primary, .toolbar button.primary, .phase-tabs button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn.subtle, .toolbar button.subtle { background: var(--surface-strong); }
+.toolbar button:disabled, .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.stage-body {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 440px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+canvas#mainCanvas { width: 100%; height: 100%; display: block; background: #fbfdfe; touch-action: none; }
+
+.html-stage { width: 100%; height: 100%; overflow: auto; padding: 16px; }
+.hidden { display: none !important; }
+
+.canvas-hint {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  background: rgba(21,37,41,0.78);
+  color: #fff;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  pointer-events: none;
+  max-width: calc(100% - 20px);
+}
+.canvas-hint.hidden { display: none; }
+
+/* ===== 数据面板：实况读数 ===== */
+.metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.metric {
+  background: var(--surface-strong);
+  border-radius: 8px;
+  padding: 7px 9px;
+}
+.metric span { display: block; font-size: 11px; color: var(--muted); }
+.metric strong { display: block; font-size: 18px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+
+.legend { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; margin-bottom: 12px; }
+.legend-item { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
+.swatch { width: 13px; height: 13px; border-radius: 4px; border: 1px solid var(--line); }
+
+/* ===== 优化③：数据面板里的迷你图（实时描点） ===== */
+.mini-chart { margin-bottom: 12px; }
+.mini-chart h3 { margin: 0 0 6px; font-size: 12px; color: var(--muted); font-weight: 700; }
+.mini-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: #fbfdfe;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+canvas#miniCanvas { width: 100%; height: 100%; display: block; }
+
+.rule-card, .muted-box {
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
+  border-radius: 8px;
+  padding: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+  font-size: 13px;
+}
+.rule-card { margin-bottom: 12px; }
+.rule-card strong { color: var(--text); }
+.rule-card.hidden { display: none; }
+
+.conclusion-body { margin-top: 10px; }
+.conclusion-body.hidden { display: none; }
+
+/* ===== 底部探究栏：phase + 优化②猜想瘦身 chip ===== */
+.prompt-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.phase-tabs { display: flex; gap: 8px; }
+.phase-tabs button { padding: 6px 14px; min-height: 36px; }
+.prompt #promptText { margin: 8px 0 0; color: var(--text); line-height: 1.55; font-size: 13.5px; }
+
+.predict-chip {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent-soft);
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 5px 8px 5px 12px;
+  font-size: 12.5px;
+  color: var(--accent-dark);
+}
+.predict-chip.hidden { display: none; }
+.predict-chip .pc-q { font-weight: 600; }
+.predict-chip .pc-opt {
+  min-height: 30px;
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  color: var(--accent-dark);
+  border-radius: 999px;
+  padding: 3px 12px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.predict-chip .pc-opt:hover { background: var(--accent); color: #fff; }
+.predict-chip.answered { background: #ecfdf5; border-color: #bbf7d0; color: var(--good); }
+
+/* ===== M0 / M5 卡片 ===== */
+.intro-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+.intro-card, .quiz-card, .transfer-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 13px;
+}
+.intro-card h3, .quiz-card h3, .transfer-card h3 { margin: 0 0 7px; font-size: 15px; }
+.intro-card p, .quiz-card p, .transfer-card p { margin: 0; color: var(--muted); line-height: 1.5; font-size: 13px; }
+.intro-card .tag, .transfer-card .tag {
+  display: inline-block; margin-top: 8px; font-size: 11px; color: var(--accent-dark);
+  background: var(--accent-soft); border-radius: 6px; padding: 2px 8px;
+}
+.micro-demo { margin-top: 12px; }
+.micro-strip { width: 100%; height: 56px; display: block; background: #fbfdfe; border: 1px solid var(--line); border-radius: 8px; }
+.micro-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+.quiz-opts { display: grid; gap: 7px; margin-top: 9px; }
+.quiz-opt {
+  text-align: left; border: 1px solid var(--line); background: var(--surface);
+  border-radius: 8px; padding: 8px 11px; cursor: pointer; font-size: 13px;
+}
+.quiz-opt:hover { border-color: var(--accent); }
+.quiz-opt.correct { background: #ecfdf5; border-color: #bbf7d0; }
+.quiz-opt.wrong { background: #fef2f2; border-color: #fecaca; }
+.quiz-feedback { margin-top: 8px; font-size: 12.5px; color: var(--muted); min-height: 18px; }
+
+/* ===== 成就弹窗 ===== */
+.modal-bg {
+  position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+  background: rgba(21, 37, 41, 0.38); z-index: 30; padding: 18px;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  width: min(640px, 100%); max-height: min(700px, 92vh); overflow: auto;
+  background: var(--surface); border-radius: 12px; border: 1px solid var(--line); padding: 18px;
+}
+.modal-head { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+.modal-head h2 { margin: 0; }
+.icon-btn { width: 38px; padding: 0; }
+.ach-progress-track { margin: 14px 0; }
+.ach-list { display: grid; gap: 8px; margin-top: 4px; }
+.modal-actions { margin-top: 14px; display: flex; justify-content: flex-end; }
+
+@media (max-width: 1200px) {
+  .layout {
+    grid-template-columns: 176px minmax(0, 1fr);
+    grid-template-areas:
+      "nav stage"
+      "data data"
+      "prompt prompt";
+  }
+  .metrics { grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .mini-wrap { aspect-ratio: 24 / 7; }
+  .legend { grid-template-columns: repeat(4, minmax(0,1fr)); }
+}
+
+@media (max-width: 760px) {
+  .topbar { padding: 12px 14px; }
+  .layout {
+    padding: 12px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "nav" "stage" "data" "prompt";
+  }
+  .module-list { grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); overflow-x: auto; padding-bottom: 4px; }
+  .stage-head { display: block; }
+  .toolbar { justify-content: flex-start; margin-top: 10px; }
+  .toolbar label { width: 100%; justify-content: space-between; }
+  .toolbar input[type="range"] { width: min(180px, 45vw); }
+  .stage-body { min-height: 360px; }
+  .metrics { grid-template-columns: 1fr 1fr; }
+  .mini-wrap { aspect-ratio: 16 / 9; }
+  .legend { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .intro-grid { grid-template-columns: 1fr; }
+  .predict-chip { margin-left: 0; width: 100%; }
+  .phase-tabs { overflow-x: auto; }
+}
+
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">R11 · 现实建模 / 幻影堵车</p>
+      <h1>幻影堵车</h1>
+      <p class="subtitle">没有事故、没有红灯，为什么车流还是会堵？</p>
+    </div>
+    <button class="ach-trophy-btn" id="openAchievements" type="button">
+      <span>🏆 成就</span>
+      <strong><span data-ach-count>0</span>/<span data-ach-total>0</span></strong>
+    </button>
+  </header>
+
+  <main class="layout">
+    <aside class="nav panel-shell">
+      <h2>实验路径</h2>
+      <div class="module-list" id="moduleList"></div>
+    </aside>
+
+    <section class="stage panel-shell">
+      <div class="objective-bar hidden" id="objectiveBar">
+        <span class="obj-icon" id="objIcon">🎯</span>
+        <span class="obj-text" id="objText"></span>
+        <span class="obj-progress" id="objProgress"></span>
+      </div>
+      <div class="stage-head">
+        <div>
+          <h2 id="stageTitle">幻影堵车</h2>
+          <p id="stageSubtitle"></p>
+        </div>
+        <div class="toolbar" id="toolbar"></div>
+      </div>
+      <div class="stage-body" id="stageBody">
+        <canvas id="mainCanvas" aria-label="幻影堵车实验画布"></canvas>
+        <div class="html-stage hidden" id="htmlStage"></div>
+        <div class="canvas-hint hidden" id="canvasHint"></div>
+      </div>
+    </section>
+
+    <aside class="data panel-shell">
+      <h2>实况读数</h2>
+      <div class="metrics" id="metrics"></div>
+      <div class="legend" id="legend"></div>
+      <div class="mini-chart" id="miniChart">
+        <h3 id="miniTitle">迷你图</h3>
+        <div class="mini-wrap"><canvas id="miniCanvas"></canvas></div>
+      </div>
+      <div class="rule-card" id="ruleCard"></div>
+      <div class="conclusion">
+        <button id="revealToggle" class="btn subtle" type="button">显示结论</button>
+        <div class="conclusion-body muted-box hidden" id="conclusionBody"></div>
+      </div>
+    </aside>
+
+    <footer class="prompt panel-shell">
+      <div class="prompt-top">
+        <div class="phase-tabs" id="phaseTabs">
+          <button type="button" data-phase="observe" class="active">观察</button>
+          <button type="button" data-phase="verify">验证</button>
+          <button type="button" data-phase="prove">证明</button>
+        </div>
+        <div class="predict-chip hidden" id="predictChip"></div>
+      </div>
+      <p id="promptText"></p>
+    </footer>
+  </main>
+
+  <div class="modal-bg" id="achievementModal" role="dialog" aria-labelledby="achievementTitle">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="achievementTitle">发现成就</h2>
+        <button class="icon-btn" id="closeAchievements" type="button" aria-label="关闭">✕</button>
+      </div>
+      <div class="ach-progress-track"><span data-ach-progress></span></div>
+      <div class="ach-list" id="achievementList"></div>
+      <div class="modal-actions">
+        <button class="btn subtle" id="resetAchievements" type="button">清空成就</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  root.NaSchEngine = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  // Nagel–Schreckenberg 单车道环形元胞自动机引擎。
+  // 道路用 Int8Array 表示：-1 = 空格，0..vmax = 该格上车辆的当前速度。
+  // 复用「模式 8 网格引擎底座」：纯函数 / 规则层可单测 / 浏览器与 Node 双用。
+
+  const EMPTY = -1;
+
+  function clamp01(value) {
+    if (!Number.isFinite(value)) return 0;
+    return Math.max(0, Math.min(1, value));
+  }
+
+  // mulberry32：与 SIR 引擎同款种子化伪随机数，保证对比 / 基本图可复现。
+  function makeRng(seed) {
+    let x = seed >>> 0;
+    return function rng() {
+      x += 0x6D2B79F5;
+      let t = x;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function createRoad(length) {
+    const road = new Int8Array(Math.max(1, length | 0));
+    road.fill(EMPTY);
+    return road;
+  }
+
+  function cloneRoad(road) {
+    return Int8Array.from(road);
+  }
+
+  function countCars(road) {
+    let n = 0;
+    for (let i = 0; i < road.length; i++) if (road[i] >= 0) n += 1;
+    return n;
+  }
+
+  function density(road) {
+    return road.length ? countCars(road) / road.length : 0;
+  }
+
+  // 升序返回所有车辆所在格子下标。
+  function carPositions(road) {
+    const out = [];
+    for (let i = 0; i < road.length; i++) if (road[i] >= 0) out.push(i);
+    return out;
+  }
+
+  // 第 k 辆车（positions 升序）到前方下一辆车之间的空格数（环形）。
+  // 只有一辆车时返回 L-1（可绕行除自身外的所有格子）。
+  function gapAhead(length, positions, k) {
+    const n = positions.length;
+    if (n === 0) return 0;
+    const here = positions[k];
+    const next = positions[(k + 1) % n];
+    return ((next - here - 1) % length + length) % length;
+  }
+
+  // 按密度随机布车（Fisher–Yates 部分洗牌取互不相同的位置）。返回实际车数。
+  function placeByDensity(road, targetDensity, rng = Math.random, initialV = 0) {
+    const L = road.length;
+    road.fill(EMPTY);
+    const target = Math.round(clamp01(targetDensity) * L);
+    const idx = new Array(L);
+    for (let i = 0; i < L; i++) idx[i] = i;
+    for (let i = 0; i < target; i++) {
+      const j = i + Math.floor(rng() * (L - i));
+      const tmp = idx[i]; idx[i] = idx[j]; idx[j] = tmp;
+    }
+    const v = Math.max(0, initialV | 0);
+    for (let i = 0; i < target; i++) road[idx[i]] = v;
+    return target;
+  }
+
+  // 均匀布车（确定性演示用）。返回实际车数。
+  function placeEvenly(road, count, initialV = 0) {
+    const L = road.length;
+    road.fill(EMPTY);
+    const n = Math.max(0, Math.min(L, count | 0));
+    const v = Math.max(0, initialV | 0);
+    for (let i = 0; i < n; i++) {
+      road[Math.floor((i * L) / n)] = v;
+    }
+    return n;
+  }
+
+  // 一个时间步：对每辆车并行套用 NaSch 四规则。
+  // 1) 加速 v=min(v+1,vmax)  2) 看前方间距减速 v=min(v,gap)
+  // 3) 概率 p 随机点刹 v=max(v-1,0)  4) 前进 x=(x+v) mod L
+  function stepNasch(options) {
+    const {
+      road,
+      vmax,
+      p,
+      rng = Math.random,
+      obstacle = -1,   // 可选：一个临时「障碍 / 抛锚车 / 红灯」格，车不能驶入或越过它（M4 用）
+    } = options;
+    const L = road.length;
+    const vMax = Math.max(0, vmax | 0);
+    const brakeP = clamp01(p);
+    const positions = carPositions(road);
+    const n = positions.length;
+    const next = createRoad(L);
+
+    // 把障碍当作一个「虚拟阻挡物」插进有序阻挡序列，只影响前方间距，不移动、不计入车数。
+    const hasObs = obstacle >= 0 && obstacle < L && road[obstacle] < 0;
+    let blockers = positions;
+    if (hasObs) {
+      blockers = positions.slice();
+      let lo = 0;
+      while (lo < blockers.length && blockers[lo] < obstacle) lo += 1;
+      blockers.splice(lo, 0, -obstacle - 1); // 负数编码障碍：真实位置 = -code-1
+    }
+    const nb = blockers.length;
+
+    let moved = 0;
+    let jamCars = 0;
+    let braked = 0;
+
+    for (let k = 0; k < nb; k++) {
+      const code = blockers[k];
+      if (code < 0) continue; // 障碍本身：不动、不应用规则、不计数
+      const pos = code;
+      let v = road[pos];
+      // 1. 加速
+      if (v < vMax) v += 1;
+      // 2. 看前方间距减速（前方阻挡物可能是车，也可能是障碍）
+      const nextCode = blockers[(k + 1) % nb];
+      const nextPos = nextCode < 0 ? (-nextCode - 1) : nextCode;
+      const g = ((nextPos - pos - 1) % L + L) % L;
+      if (v > g) v = g;
+      // 3. 随机点刹
+      if (v > 0 && rng() < brakeP) {
+        v -= 1;
+        braked += 1;
+      }
+      // 4. 前进
+      const np = (pos + v) % L;
+      next[np] = v;
+      moved += v;
+      if (v === 0) jamCars += 1;
+    }
+
+    return {
+      road: next,
+      moved,
+      flow: L ? moved / L : 0,      // q = (Σv)/L = ρ·v̄，每格每步通过的车量
+      meanV: n ? moved / n : 0,     // 平均车速
+      jamCars,                      // 本步速度为 0 的车数（堵住）
+      braked,                       // 本步触发随机点刹的车数
+      cars: n,
+    };
+  }
+
+  // 把指定车辆速度强制清零，模拟「点一脚刹车」的扰动（M4）。返回是否命中车辆。
+  function brakeCar(road, position) {
+    if (position < 0 || position >= road.length) return false;
+    if (road[position] < 0) return false;
+    road[position] = 0;
+    return true;
+  }
+
+  // 扫不同密度，各自跑到稳态后测平均流量，得到基本图数据点（M3）。
+  function sweepFundamental(options) {
+    const {
+      length,
+      vmax,
+      p,
+      densities,
+      warmup = 200,
+      measure = 200,
+      seed = 12345,
+    } = options;
+    const out = [];
+    for (const d of densities) {
+      const road = createRoad(length);
+      const rng = makeRng(seed + Math.round(d * 100000));
+      placeByDensity(road, d, rng);
+      let cur = road;
+      for (let t = 0; t < warmup; t++) {
+        cur = stepNasch({ road: cur, vmax, p, rng }).road;
+      }
+      let sumFlow = 0;
+      for (let t = 0; t < measure; t++) {
+        const r = stepNasch({ road: cur, vmax, p, rng });
+        sumFlow += r.flow;
+        cur = r.road;
+      }
+      out.push({ density: d, flow: measure ? sumFlow / measure : 0 });
+    }
+    return out;
+  }
+
+  return {
+    EMPTY,
+    makeRng,
+    clamp01,
+    createRoad,
+    cloneRoad,
+    countCars,
+    density,
+    carPositions,
+    gapAhead,
+    placeByDensity,
+    placeEvenly,
+    stepNasch,
+    brakeCar,
+    sweepFundamental,
+  };
+});
+
+</script>
+  <script>
+/*
+ * achievements.js —— 交互课件「成就/激励系统」代码底座
+ * ---------------------------------------------------------------
+ * 来源：从成品 lights-out.html / polyomino-tiling.html 的成就系统提炼。
+ * 特性：零依赖、原生 JS、可直接 file:// 打开、可整段内联进单 HTML。
+ * 用法与设计说明见：references/patterns-library.md →「成就系统底座」。
+ *
+ * 设计要点（务必照做）：
+ *  - 成就奖励「发现 / 掌握」里程碑，不奖励「点击次数」。
+ *  - 声明式成就表 + check(state) 谓词；状态变更后调用 ach.check(state) 即可。
+ *  - localStorage 持久化（带版本号 key），刷新后进度保留。
+ *  - 解锁即 toast；可选奖杯弹窗 + 进度条。
+ * ---------------------------------------------------------------
+ */
+(function (global) {
+  'use strict';
+
+  /**
+   * @param {Object}   options
+   * @param {Array}    options.defs            成就定义：{ id, icon, name, desc, check?(state)=>bool }
+   * @param {string}   options.storageKey      localStorage key，建议带版本号，如 'lights-out-ach-v1'
+   * @param {number}  [options.toastDuration]  toast 停留毫秒，默认 4200
+   * @param {Function}[options.onUnlock]       每解锁一项的回调 (def) => void（可选，用于撒花/音效）
+   */
+  function createAchievements(options) {
+    options = options || {};
+    var defs = options.defs || [];
+    var storageKey = options.storageKey || 'courseware-achievements-v1';
+    var toastDuration = options.toastDuration || 4200;
+    var onUnlock = typeof options.onUnlock === 'function' ? options.onUnlock : null;
+
+    var unlocked = new Set();
+
+    function findDef(id) {
+      for (var i = 0; i < defs.length; i++) { if (defs[i].id === id) return defs[i]; }
+      return null;
+    }
+    function load() {
+      try {
+        var raw = global.localStorage.getItem(storageKey);
+        if (raw) JSON.parse(raw).forEach(function (id) { unlocked.add(id); });
+      } catch (e) { /* 隐私模式 / file:// 受限时静默降级 */ }
+    }
+    function save() {
+      try { global.localStorage.setItem(storageKey, JSON.stringify(Array.from(unlocked))); }
+      catch (e) { /* 静默降级：本次会话仍可用，只是不持久 */ }
+    }
+
+    // ---- toast（懒创建容器，无需在 HTML 里预置） ----
+    function toastStack() {
+      var el = document.getElementById('achToastStack');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'achToastStack';
+        el.className = 'ach-toast-stack';
+        document.body.appendChild(el);
+      }
+      return el;
+    }
+    function showToast(def) {
+      var el = document.createElement('div');
+      el.className = 'ach-toast';
+      el.innerHTML =
+        '<div class="ach-toast-title"><span>🏆</span>解锁成就</div>' +
+        '<div class="ach-toast-name">' + (def.icon || '') + ' ' + def.name + '</div>' +
+        '<div class="ach-toast-desc">' + (def.desc || '') + '</div>';
+      toastStack().appendChild(el);
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, toastDuration);
+    }
+
+    // ---- 进度反馈（按 data 属性自动挂载，无则跳过） ----
+    function updateProgress() {
+      var got = count(), tot = Math.max(1, total());
+      var bar = document.querySelector('[data-ach-progress]');
+      if (bar) bar.style.width = Math.round(got / tot * 100) + '%';
+      var c = document.querySelector('[data-ach-count]'); if (c) c.textContent = count();
+      var t = document.querySelector('[data-ach-total]'); if (t) t.textContent = total();
+    }
+
+    function fire(def) {
+      save();
+      showToast(def);
+      updateProgress();
+      if (onUnlock) onUnlock(def);
+    }
+
+    // 命令式解锁：用于「做了某动作就解锁」的离散事件
+    function unlock(id) {
+      if (unlocked.has(id)) return false;
+      var def = findDef(id);
+      if (!def) return false;
+      unlocked.add(id);
+      fire(def);
+      return true;
+    }
+
+    // 声明式解锁：传入当前 state，自动解锁所有 check(state) 为真者
+    function check(state) {
+      var fresh = [];
+      for (var i = 0; i < defs.length; i++) {
+        var def = defs[i];
+        if (def.check && !unlocked.has(def.id) && def.check(state)) {
+          unlocked.add(def.id);
+          fresh.push(def);
+        }
+      }
+      if (fresh.length) { fresh.forEach(fire); }
+      return fresh;
+    }
+
+    function has(id) { return unlocked.has(id); }
+    function count() { return defs.filter(function (d) { return unlocked.has(d.id); }).length; }
+    function total() { return defs.length; }
+    function reset() { unlocked.clear(); save(); updateProgress(); }
+
+    // 可选：把成就清单渲染进某个容器（用于奖杯弹窗）
+    function renderList(container) {
+      if (!container) return;
+      container.innerHTML = '';
+      defs.forEach(function (def) {
+        var got = unlocked.has(def.id);
+        var row = document.createElement('div');
+        row.className = 'ach-row' + (got ? ' is-unlocked' : '');
+        row.innerHTML =
+          '<div class="ach-icon">' + (got ? (def.icon || '🏆') : '🔒') + '</div>' +
+          '<div class="ach-meta"><div class="ach-name">' + def.name + '</div>' +
+          '<div class="ach-desc">' + (def.desc || '') + '</div></div>' +
+          '<div class="ach-status">' + (got ? '✓ 已解锁' : '未解锁') + '</div>';
+        container.appendChild(row);
+      });
+      updateProgress();
+    }
+
+    load();
+    updateProgress();
+
+    return {
+      check: check,        // 声明式：状态变更后调用 ach.check(state)
+      unlock: unlock,      // 命令式：离散事件触发 ach.unlock(id)
+      has: has,
+      count: count,
+      total: total,
+      reset: reset,
+      renderList: renderList
+    };
+  }
+
+  global.createAchievements = createAchievements;
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { createAchievements: createAchievements }; }
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
+  <script>
+(function () {
+  'use strict';
+
+  const E = window.NaSchEngine;
+  const $ = (sel) => document.querySelector(sel);
+
+  // ---------- 小工具 ----------
+  const fmt1 = (x) => (Math.round(x * 10) / 10).toFixed(1);
+  const fmt2 = (x) => (Math.round(x * 100) / 100).toFixed(2);
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  // 车速色阶：停=红 → 慢=橙 → 快=绿
+  function speedColor(v, vmax) {
+    if (v <= 0) return '#dc2626';
+    const t = vmax > 0 ? Math.min(1, v / vmax) : 1;
+    let r, g, b;
+    if (t < 0.5) {
+      const u = t / 0.5;
+      r = lerp(0xdc, 0xf5, u); g = lerp(0x26, 0x9e, u); b = lerp(0x26, 0x0b, u);
+    } else {
+      const u = (t - 0.5) / 0.5;
+      r = lerp(0xf5, 0x16, u); g = lerp(0x9e, 0xa3, u); b = lerp(0x0b, 0x4a, u);
+    }
+    return `rgb(${r | 0},${g | 0},${b | 0})`;
+  }
+
+  // ---------- 模块元数据 ----------
+  const MODULES = [
+    {
+      id: 'intro', label: 'M0 入门地图', short: '五要素 + 钩子',
+      title: 'M0 入门地图：把堵车翻译成五条规则', usesCanvas: false, usesMini: false,
+      subtitle: '没有事故也会堵——先认识这套「车 + 规则」的世界。',
+      prompts: {
+        observe: '先看下面五张规则卡和那条小路：每辆车每一拍只做四件事——加速、看前方留空减速、偶尔点一脚刹、然后前进。',
+        verify: '点「让它跑」，盯住那条小路：明明没人出事，红色（停住）的小车簇却自己冒了出来，还往后退。',
+        prove: '这就是「涌现」：全局的堵车没有人安排，它只是许多辆车按同一条局部规则反复迭代的结果。',
+      },
+      conclusion: '幻影堵车不是某辆车的错，而是「密度 + 随机扰动」在同一规则下自发产生的相变现象。接下来用四个实验把它量出来。',
+    },
+    {
+      id: 'ring', label: 'M1 环路堵车波', short: '调密度找临界线',
+      title: 'M1 环路堵车波：堵车从哪儿冒出来', usesCanvas: true, usesMini: true,
+      subtitle: '环形公路上放车，调密度、最高速、点刹概率，看红色车簇自发涌现。',
+      prompts: {
+        observe: '先把密度调得很低（如 0.05），点「让它跑」。车基本都是绿色、畅通无阻，没有堵车。',
+        verify: '把密度一点点调大（0.15 → 0.25 → …），再跑。注意红色（停住）的车簇是不是开始自己冒出来——这就是幻影堵车波。',
+        prove: '密度 ρ = 车数 ÷ 车位。存在一条「临界线」：低于它畅通，高于它必然自发堵车。亲手找出你这套参数下的那条线。',
+      },
+      conclusion: '堵车有一个临界密度。低于它，扰动会被吸收；高于它，任何一点随机点刹都会被放大成持续的堵车波。',
+    },
+    {
+      id: 'timespace', label: 'M2 时空图', short: '量波的逆行速度',
+      title: 'M2 时空图：堵车波真的在往后退', usesCanvas: true, usesMini: true,
+      subtitle: '横轴=位置、纵轴=时间向下。跑满一屏，在红色斜带上点两点量斜率。',
+      prompts: {
+        observe: '点「跑出时空图」。每一行是某一时刻的整条路，时间从上往下流。红色斜带就是堵车波留下的轨迹。',
+        verify: '红色斜带是往左下方倾斜的——说明随着时间推移，堵的位置在往后退。在同一条斜带上点两个点，读出它的斜率。',
+        prove: '斜率 = 位置变化 ÷ 时间变化 = 堵车波速度。它是负的（逆行），而且和车流前进方向相反。这正是「波在逆行」的数学证据。',
+      },
+      conclusion: '车在往前开，堵车波却在往后退。用时空图上斜带的斜率（Δ位置 ÷ Δ时间）就能把这个逆行速度量化出来。',
+    },
+    {
+      id: 'fundamental', label: 'M3 基本图', short: '找最大吞吐密度',
+      title: 'M3 基本图：多少车能让路最「能装」', usesCanvas: true, usesMini: true,
+      subtitle: '扫不同密度测车流量，画出流量-密度曲线，找到吞吐量最大的临界密度。',
+      prompts: {
+        observe: '点「扫描基本图」。系统会在每个密度跑到稳定，测出车流量 q，描成一条曲线。',
+        verify: '这条曲线不是一直涨：先升后降。先升是车多了、流量大；到某个密度后再加车反而互相堵，流量掉下来。',
+        prove: '曲线的最高点 = 临界密度 = 路的最大吞吐量。在你认为流量最大的密度处点一下曲线，验证你读图找极大值的本事。',
+      },
+      conclusion: '车流量 q = 密度 ρ × 平均车速 v̄。太空旷（车少）或太拥挤（互相堵）流量都低；中间存在一个临界密度让吞吐量最大。',
+    },
+    {
+      id: 'brake', label: 'M4 点刹连锁', short: '找点刹引爆门槛',
+      title: 'M4 点刹连锁：一脚刹车能掀起多大波', usesCanvas: true, usesMini: true,
+      subtitle: '从平滑自由流开始，在路面上点一下让某处刹一脚，看是被吸收还是引爆堵车波。',
+      prompts: {
+        observe: '先用较低密度「重新布车」，车进入平滑自由流。在上方路面任意位置点一下，模拟那里有车踩了一脚刹车。',
+        verify: '看下方时空图：低密度时这点扰动很快被吸收消散；把密度调高再试，同样一脚刹车会被放大成往后退的堵车波。',
+        prove: '存在一个密度门槛：低于它扰动消散，高于它必然引爆连锁。用「调密度→刹一下→看结果」的方式逼近这个门槛。',
+      },
+      conclusion: '幻影堵车的根源是「高密度 + 一点扰动」。越过点刹门槛后，单独一脚刹车就足以触发自我维持、向后传播的堵车波。',
+    },
+    {
+      id: 'summary', label: 'M5 总结闯关', short: '连回现实 + 小测',
+      title: 'M5 总结闯关：把堵车波带回现实', usesCanvas: false, usesMini: false,
+      subtitle: '把四个实验串成一条线，连到高速、地铁、网络，再用小测检验。',
+      prompts: {
+        observe: '先读概念卡，把 M1-M4 的发现连成一句话：堵车是密度越过临界后的自发相变。',
+        verify: '看现实迁移卡：高速堵车、地铁发车间隔、网络拥塞，背后都是同一套「密度-流量」道理。',
+        prove: '做完下面的小测，看看你能不能用临界密度、基本图、逆行波解释身边的拥堵。',
+      },
+      conclusion: '同一套元胞自动机规则解释了高速幻影堵车、地铁追尾式延误、网络拥塞——涌现的力量在于：局部规则 + 高密度 = 全局堵塞。',
+    },
+  ];
+
+  // ---------- 成就 ----------
+  let ach;
+  const OTHER_IDS = [
+    'first-run', 'phantom-wave', 'free-flow', 'critical-line', 'backward-wave',
+    'read-diagram', 'max-flow', 'brake-chain', 'brake-absorb', 'brake-threshold', 'graduate',
+  ];
+  const ACH_DEFS = [
+    { id: 'first-run', icon: '🚗', name: '初次上路', desc: '让任意一个实验跑起来。', check: s => s.everRan },
+    { id: 'phantom-wave', icon: '🌊', name: '幻影堵车波', desc: '在环路上看到自发涌现的堵车簇。', check: s => s.sawJamWave },
+    { id: 'free-flow', icon: '🟢', name: '畅通无阻', desc: '在有车的情况下维持一段完全不堵的车流。', check: s => s.sawFreeFlow },
+    { id: 'critical-line', icon: '📏', name: '找到临界线', desc: '同时见过畅通与自发堵车，框出临界密度。', check: s => s.bracketedCritical },
+    { id: 'backward-wave', icon: '↩️', name: '波在逆行', desc: '在时空图上量出一个向后（负）的波速。', check: s => s.measuredBackwardWave },
+    { id: 'read-diagram', icon: '📈', name: '画出基本图', desc: '扫出一整条流量-密度曲线。', check: s => s.sweptDiagram },
+    { id: 'max-flow', icon: '🎯', name: '最大吞吐', desc: '在基本图上找到流量最大的临界密度。', check: s => s.foundMaxFlow },
+    { id: 'brake-chain', icon: '💥', name: '一脚刹车引发连锁', desc: '用一次点刹引爆一道堵车波。', check: s => s.brakeTriggered },
+    { id: 'brake-absorb', icon: '😌', name: '刹车被吸收', desc: '在低密度下让一次点刹自行消散。', check: s => s.brakeDissipated },
+    { id: 'brake-threshold', icon: '🚦', name: '点刹门槛', desc: '同时见过消散与引爆，框出点刹门槛。', check: s => s.foundBrakeThreshold },
+    { id: 'graduate', icon: '🎓', name: '学成出师', desc: '完成总结闯关小测。', check: s => s.quizDone },
+    { id: 'master', icon: '🏆', name: '畅通大师', desc: '解锁前面所有发现。', check: () => OTHER_IDS.every(id => ach.has(id)) },
+  ];
+
+  const flags = {
+    everRan: false,
+    sawJamWave: false,
+    sawFreeFlow: false,
+    measuredBackwardWave: false,
+    sweptDiagram: false,
+    foundMaxFlow: false,
+    brakeTriggered: false,
+    brakeDissipated: false,
+    quizDone: false,
+  };
+  function achState() {
+    return {
+      everRan: flags.everRan,
+      sawJamWave: flags.sawJamWave,
+      sawFreeFlow: flags.sawFreeFlow,
+      bracketedCritical: flags.sawJamWave && flags.sawFreeFlow,
+      measuredBackwardWave: flags.measuredBackwardWave,
+      sweptDiagram: flags.sweptDiagram,
+      foundMaxFlow: flags.foundMaxFlow,
+      brakeTriggered: flags.brakeTriggered,
+      brakeDissipated: flags.brakeDissipated,
+      foundBrakeThreshold: flags.brakeTriggered && flags.brakeDissipated,
+      quizDone: flags.quizDone,
+    };
+  }
+  function syncAch() { if (ach) ach.check(achState()); refreshNav(); }
+
+  // ---------- DOM ----------
+  const moduleListEl = $('#moduleList');
+  const stageTitleEl = $('#stageTitle');
+  const stageSubtitleEl = $('#stageSubtitle');
+  const toolbarEl = $('#toolbar');
+  const mainCanvas = $('#mainCanvas');
+  const htmlStage = $('#htmlStage');
+  const canvasHint = $('#canvasHint');
+  const metricsEl = $('#metrics');
+  const legendEl = $('#legend');
+  const miniChartEl = $('#miniChart');
+  const miniCanvas = $('#miniCanvas');
+  const miniTitleEl = $('#miniTitle');
+  const ruleCardEl = $('#ruleCard');
+  const conclusionBody = $('#conclusionBody');
+  const revealToggle = $('#revealToggle');
+  const phaseTabs = $('#phaseTabs');
+  const promptText = $('#promptText');
+  const predictChip = $('#predictChip');
+  const objectiveBar = $('#objectiveBar');
+  const objIcon = $('#objIcon');
+  const objText = $('#objText');
+  const objProgress = $('#objProgress');
+
+  const app = { active: 'intro', phase: 'observe', running: false };
+  const moduleDone = {};
+  const predictAnswered = {};
+
+  // ---------- 画布适配（仅在 enter/resize 调 fit；render 用存好的 w/h） ----------
+  function fit(canvas) {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.max(1, Math.round(rect.width));
+    const h = Math.max(1, Math.round(rect.height));
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w, h };
+  }
+  let mainStage = { ctx: mainCanvas.getContext('2d'), w: 1, h: 1 };
+  let miniStage = { ctx: miniCanvas.getContext('2d'), w: 1, h: 1 };
+
+  // ---------- 通用 UI ----------
+  function renderMetrics(pairs) {
+    metricsEl.innerHTML = pairs.map(([l, v]) => `<div class="metric"><span>${l}</span><strong>${v}</strong></div>`).join('');
+  }
+  function renderLegend(items) {
+    legendEl.innerHTML = items.map(([c, l]) => `<div class="legend-item"><span class="swatch" style="background:${c}"></span>${l}</div>`).join('');
+  }
+  function setObjective(icon, text) {
+    objectiveBar.classList.remove('hidden');
+    objIcon.textContent = icon;
+    objText.innerHTML = text;
+  }
+  function setProgress(html, met) {
+    objProgress.innerHTML = html;
+    objectiveBar.classList.toggle('met', !!met);
+    if (met && !moduleDone[app.active]) { moduleDone[app.active] = true; refreshNav(); }
+  }
+  function hideObjective() { objectiveBar.classList.add('hidden'); }
+
+  function setPredict(moduleId, question, options) {
+    if (!question) { predictChip.classList.add('hidden'); return; }
+    predictChip.classList.remove('hidden');
+    if (predictAnswered[moduleId]) {
+      predictChip.classList.add('answered');
+      predictChip.innerHTML = `<span class="pc-q">✓ 你猜了「${predictAnswered[moduleId]}」，下面去验证</span>`;
+      return;
+    }
+    predictChip.classList.remove('answered');
+    predictChip.innerHTML = `<span class="pc-q">💡 先猜：${question}</span>` +
+      options.map(o => `<button class="pc-opt" type="button" data-ans="${o}">${o}</button>`).join('');
+    predictChip.querySelectorAll('.pc-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        predictAnswered[moduleId] = btn.dataset.ans;
+        setPredict(moduleId, question, options);
+      });
+    });
+  }
+
+  function setPrompt() {
+    const m = MODULES.find(x => x.id === app.active);
+    promptText.textContent = m.prompts[app.phase];
+  }
+  phaseTabs.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      app.phase = btn.dataset.phase;
+      phaseTabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+      setPrompt();
+    });
+  });
+
+  revealToggle.addEventListener('click', () => {
+    const hidden = conclusionBody.classList.toggle('hidden');
+    revealToggle.textContent = hidden ? '显示结论' : '隐藏结论';
+  });
+
+  function refreshNav() {
+    moduleListEl.querySelectorAll('.module-card').forEach(card => {
+      const id = card.dataset.id;
+      card.classList.toggle('active', id === app.active);
+      card.classList.toggle('done', !!moduleDone[id]);
+    });
+  }
+
+  // ---------- 模块控制器 ----------
+  const controllers = {};
+
+  // 通用模拟体
+  function newSim({ length, vmax, p, density, seed }) {
+    const sim = { length, vmax, p, density, seed, generation: 0, road: null, rng: null, flowHist: [], jamHist: [], lastFlow: 0, lastMeanV: 0, jamCars: 0, cars: 0 };
+    resetSim(sim);
+    return sim;
+  }
+  function resetSim(sim, initialV) {
+    sim.rng = E.makeRng(sim.seed);
+    sim.road = E.createRoad(sim.length);
+    E.placeByDensity(sim.road, sim.density, E.makeRng(sim.seed + 1), initialV || 0);
+    sim.generation = 0;
+    sim.flowHist = [];
+    sim.jamHist = [];
+    sim.lastFlow = 0; sim.lastMeanV = 0; sim.jamCars = 0;
+    sim.cars = E.countCars(sim.road);
+  }
+  function advance(sim) {
+    const r = E.stepNasch({ road: sim.road, vmax: sim.vmax, p: sim.p, rng: sim.rng });
+    sim.road = r.road;
+    sim.generation += 1;
+    sim.lastFlow = r.flow; sim.lastMeanV = r.meanV; sim.jamCars = r.jamCars; sim.cars = r.cars;
+    sim.flowHist.push(r.flow); if (sim.flowHist.length > 400) sim.flowHist.shift();
+    sim.jamHist.push(r.jamCars); if (sim.jamHist.length > 400) sim.jamHist.shift();
+    if (!flags.everRan) { flags.everRan = true; }
+    return r;
+  }
+
+  // 折线/柱状迷你图
+  function drawSparkline(stage, data, opts) {
+    const { ctx, w, h } = stage;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#fbfdfe'; ctx.fillRect(0, 0, w, h);
+    const padL = 30, padR = 8, padT = 10, padB = 18;
+    const plotW = w - padL - padR, plotH = h - padT - padB;
+    const maxY = Math.max(opts.maxY || 0.01, ...data, 0.01);
+    ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); ctx.lineTo(padL + plotW, padT + plotH); ctx.stroke();
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px Segoe UI'; ctx.textAlign = 'right';
+    ctx.fillText(fmt2(maxY), padL - 3, padT + 8);
+    ctx.fillText('0', padL - 3, padT + plotH);
+    ctx.textAlign = 'center';
+    ctx.fillText(opts.xLabel || '时间 →', padL + plotW / 2, h - 4);
+    if (data.length > 1) {
+      ctx.strokeStyle = opts.color || '#3b82f6'; ctx.lineWidth = 1.6; ctx.beginPath();
+      for (let i = 0; i < data.length; i++) {
+        const x = padL + (i / (data.length - 1)) * plotW;
+        const y = padT + plotH - (Math.min(data[i], maxY) / maxY) * plotH;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    if (opts.curLabel) {
+      ctx.fillStyle = '#475569'; ctx.textAlign = 'left'; ctx.font = '11px Segoe UI';
+      ctx.fillText(opts.curLabel, padL + 4, padT + 12);
+    }
+  }
+
+  // 路面横条（迷你/M4 顶条）
+  function drawRoadStrip(ctx, x0, y0, w, h, road, vmax) {
+    ctx.fillStyle = '#eef4f5'; ctx.fillRect(x0, y0, w, h);
+    const L = road.length; const cw = w / L;
+    for (let i = 0; i < L; i++) {
+      const v = road[i]; if (v < 0) continue;
+      ctx.fillStyle = speedColor(v, vmax);
+      ctx.fillRect(x0 + i * cw, y0, Math.max(1.2, cw), h);
+    }
+  }
+
+  // 时空图
+  function drawTimeSpace(ctx, x0, y0, w, h, rows, L, maxRows, vmax) {
+    ctx.fillStyle = '#fbfdfe'; ctx.fillRect(x0, y0, w, h);
+    const cw = w / L, ch = h / maxRows;
+    for (let y = 0; y < rows.length; y++) {
+      const row = rows[y]; const py = y0 + y * ch;
+      for (let x = 0; x < L; x++) {
+        const v = row[x]; if (v < 0) continue;
+        ctx.fillStyle = speedColor(v, vmax);
+        ctx.fillRect(x0 + x * cw, py, Math.max(1, cw), Math.max(1, ch));
+      }
+    }
+  }
+
+  // ===== M0 入门地图 =====
+  controllers.intro = {
+    micro: null,
+    enter() {
+      hideObjective();
+      setPredict('intro', '明明没人出事，这条小路会不会自己堵起来？', ['会', '不会']);
+      renderMetrics([['当前实验', 'M0'], ['路况', '演示中']]);
+      renderLegend([['#16a34a', '快（接近最高速）'], ['#f59e0b', '慢'], ['#dc2626', '停住（堵）'], ['#eef4f5', '空位']]);
+      ruleCardEl.classList.remove('hidden');
+      ruleCardEl.innerHTML = '<strong>五要素</strong>：① 环形路（首尾相接）② 每辆车有速度 ③ 看前方留空决定加/减速 ④ 偶尔随机点一脚刹 ⑤ 所有车同时更新。';
+      conclusionBody.textContent = MODULES[0].conclusion;
+      htmlStage.classList.remove('hidden');
+      mainCanvas.classList.add('hidden');
+      canvasHint.classList.add('hidden');
+      htmlStage.innerHTML = `
+        <div class="intro-grid">
+          <div class="intro-card"><h3>🛣️ 环形公路</h3><p>把一条路首尾相接成圈，车一直绕圈跑——这样没有起点终点，方便观察「纯粹的」堵车。</p><span class="tag">M1 会用到</span></div>
+          <div class="intro-card"><h3>🚗 车有速度</h3><p>每辆车有一个 0 到最高速之间的整数速度，一拍走几格就由它决定。</p><span class="tag">越快越绿</span></div>
+          <div class="intro-card"><h3>👀 看前方留空</h3><p>前面空格多就加速，快撞上前车就减速——绝不追尾。</p><span class="tag">间距=安全</span></div>
+          <div class="intro-card"><h3>🎲 随机点刹</h3><p>每辆车每拍有一点点概率「无缘无故」点一脚刹。这就是幻影堵车的种子。</p><span class="tag">M4 关掉它对照</span></div>
+        </div>
+        <div class="micro-demo">
+          <p style="margin:8px 0 6px;color:var(--muted);font-size:13px;">▶ 一条小环路的微演示（车排好后，看红色车簇怎么自己冒出来）：</p>
+          <canvas class="micro-strip" id="microCanvas"></canvas>
+          <div class="micro-actions">
+            <button class="btn primary" id="microRun" type="button">让它跑</button>
+            <button class="btn subtle" id="microReset" type="button">重置</button>
+            <button class="btn" id="gotoM1" type="button">进入 M1 实验 →</button>
+          </div>
+          <p style="margin:10px 0 0;color:var(--accent-dark);font-weight:600;font-size:13.5px;">🤔 钩子：路上没事故、没红灯，红色的「堵点」却凭空出现并往后退——为什么？</p>
+        </div>`;
+      const mc = $('#microCanvas');
+      const sim = newSim({ length: 80, vmax: 5, p: 0.3, density: 0.22, seed: 7 });
+      let mctx = mc.getContext('2d');
+      const fitMicro = () => {
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        const rect = mc.getBoundingClientRect();
+        mc.width = Math.round(rect.width * dpr); mc.height = Math.round(rect.height * dpr);
+        mctx = mc.getContext('2d'); mctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return { w: rect.width, h: rect.height };
+      };
+      let dim = fitMicro();
+      const drawMicro = () => { drawRoadStrip(mctx, 0, 0, dim.w, dim.h, sim.road, sim.vmax); };
+      this.micro = { sim, run: false, last: 0, draw: drawMicro, refit: () => { dim = fitMicro(); drawMicro(); } };
+      drawMicro();
+      $('#microRun').addEventListener('click', () => {
+        this.micro.run = !this.micro.run;
+        $('#microRun').textContent = this.micro.run ? '暂停' : '让它跑';
+      });
+      $('#microReset').addEventListener('click', () => { resetSim(sim); this.micro.run = false; $('#microRun').textContent = '让它跑'; drawMicro(); });
+      $('#gotoM1').addEventListener('click', () => enterModule('ring'));
+      toolbarEl.innerHTML = '';
+    },
+    onFrame(now) {
+      const m = this.micro; if (!m || !m.run) return;
+      if (now - m.last < 90) return; m.last = now;
+      advance(m.sim); m.draw();
+      if (flags.everRan) syncAch();
+    },
+    resize() { if (this.micro) this.micro.refit(); },
+  };
+
+  // ===== M1 环路堵车波 =====
+  controllers.ring = {
+    sim: null, last: 0, freeStreak: 0,
+    enter() {
+      this.sim = newSim({ length: 130, vmax: 5, p: 0.3, density: 0.12, seed: 2024 });
+      this.freeStreak = 0;
+      htmlStage.classList.add('hidden');
+      mainCanvas.classList.remove('hidden');
+      setObjective('🎯', '任务①：调密度，找出「开始自发堵车」的<b>临界线</b>（既见过畅通，又见过自发堵车）。');
+      setPredict('ring', '车越多，整条路的车流量一定越大吗？', ['一定越大', '不一定']);
+      renderLegend([['#16a34a', '快'], ['#f59e0b', '慢'], ['#dc2626', '停住（堵）'], ['rgba(100,116,139,.18)', '路面']]);
+      miniTitleEl.textContent = '车流量 q 随时间';
+      ruleCardEl.classList.remove('hidden');
+      ruleCardEl.innerHTML = '<strong>密度 ρ = 车数 ÷ 车位</strong>。先低密度试畅通，再逐步加密找到堵车自发出现的那条线。';
+      conclusionBody.textContent = MODULES[1].conclusion;
+      this.buildToolbar();
+      canvasHint.classList.remove('hidden');
+      canvasHint.textContent = '红色车簇 = 堵车波；它会逆着车流往后退。';
+      this.refreshMetrics();
+    },
+    buildToolbar() {
+      const s = this.sim;
+      toolbarEl.innerHTML =
+        `<label>密度 <input type="range" id="rDen" min="0.02" max="0.6" step="0.01" value="${s.density}"><span class="val" id="rDenV">${fmt2(s.density)}</span></label>` +
+        `<label>最高速 <input type="range" id="rV" min="1" max="7" step="1" value="${s.vmax}"><span class="val" id="rVV">${s.vmax}</span></label>` +
+        `<label>点刹 p <input type="range" id="rP" min="0" max="0.6" step="0.05" value="${s.p}"><span class="val" id="rPV">${fmt2(s.p)}</span></label>` +
+        `<button class="primary" id="btnPlay" type="button">▶ 让它跑</button>` +
+        `<button id="btnStep" type="button">单步</button>` +
+        `<button class="subtle" id="btnReset" type="button">重置</button>`;
+      const reReset = () => { resetSim(this.sim); this.freeStreak = 0; this.draw(); this.drawMini(); this.refreshMetrics(); };
+      $('#rDen').addEventListener('input', e => { s.density = +e.target.value; $('#rDenV').textContent = fmt2(s.density); reReset(); });
+      $('#rV').addEventListener('input', e => { s.vmax = +e.target.value; $('#rVV').textContent = s.vmax; reReset(); });
+      $('#rP').addEventListener('input', e => { s.p = +e.target.value; $('#rPV').textContent = fmt2(s.p); reReset(); });
+      $('#btnPlay').addEventListener('click', () => { app.running = !app.running; $('#btnPlay').textContent = app.running ? '⏸ 暂停' : '▶ 让它跑'; });
+      $('#btnStep').addEventListener('click', () => { this.tick(); });
+      $('#btnReset').addEventListener('click', () => { app.running = false; $('#btnPlay').textContent = '▶ 让它跑'; reReset(); });
+    },
+    tick() {
+      const s = this.sim;
+      advance(s);
+      // 发现判定
+      if (s.jamCars >= 3) flags.sawJamWave = true;
+      if (s.cars > 0 && s.jamCars === 0) this.freeStreak += 1; else this.freeStreak = 0;
+      if (this.freeStreak >= 40 && s.density >= 0.05) flags.sawFreeFlow = true;
+      this.draw(); this.drawMini(); this.refreshMetrics(); syncAch();
+    },
+    refreshMetrics() {
+      const s = this.sim;
+      renderMetrics([
+        ['密度 ρ', fmt2(E.density(s.road))],
+        ['车流量 q', fmt2(s.lastFlow)],
+        ['平均车速', fmt1(s.lastMeanV)],
+        ['堵住', String(s.jamCars)],
+      ]);
+      const met = flags.sawJamWave && flags.sawFreeFlow;
+      const status = s.jamCars >= 3 ? '已堵' : (s.cars > 0 && s.jamCars === 0 ? '畅通' : '—');
+      setProgress(`密度 ${fmt2(s.density)} · ${status}${met ? ' · 临界线已框定 ✓' : ''}`, met);
+    },
+    onFrame(now) { if (!app.running) return; if (now - this.last < 70) return; this.last = now; this.tick(); },
+    draw() {
+      const { ctx, w, h } = mainStage; const s = this.sim;
+      ctx.clearRect(0, 0, w, h);
+      const cx = w / 2, cy = h / 2;
+      const R = Math.min(w, h) * 0.37;
+      ctx.lineWidth = Math.max(10, R * 0.15);
+      ctx.strokeStyle = 'rgba(100,116,139,0.18)';
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+      const L = s.length;
+      const dot = Math.max(2.6, Math.min(7, (2 * Math.PI * R) / L * 0.5));
+      for (let i = 0; i < L; i++) {
+        const v = s.road[i]; if (v < 0) continue;
+        const ang = (i / L) * Math.PI * 2 - Math.PI / 2;
+        ctx.fillStyle = speedColor(v, s.vmax);
+        ctx.beginPath(); ctx.arc(cx + Math.cos(ang) * R, cy + Math.sin(ang) * R, dot, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center'; ctx.font = '13px Segoe UI';
+      ctx.fillText('环形公路 · 车按速度着色', cx, cy - 6);
+      ctx.fillStyle = '#475569'; ctx.font = '12px Segoe UI';
+      ctx.fillText(`第 ${s.generation} 步`, cx, cy + 14);
+      // 行车方向箭头
+      ctx.fillStyle = '#94a3b8'; ctx.font = '11px Segoe UI';
+      ctx.fillText('↻ 车顺时针行驶', cx, cy + 32);
+    },
+    drawMini() { drawSparkline(miniStage, this.sim.flowHist, { color: '#3b82f6', xLabel: '时间 →', curLabel: 'q=' + fmt2(this.sim.lastFlow) }); },
+    resize() { this.draw(); this.drawMini(); },
+  };
+
+  // ===== M2 时空图 =====
+  controllers.timespace = {
+    sim: null, rows: [], maxRows: 130, last: 0, markers: [], filled: false,
+    enter() {
+      this.sim = newSim({ length: 110, vmax: 5, p: 0.3, density: 0.18, seed: 808 });
+      this.rows = []; this.markers = []; this.filled = false;
+      htmlStage.classList.add('hidden'); mainCanvas.classList.remove('hidden');
+      setObjective('🎯', '任务②：在红色斜带上点<b>两个点</b>，量出堵车波的逆行速度（斜率 = Δ位置 ÷ Δ时间）。');
+      setPredict('timespace', '红色斜带（堵车波）会往哪个方向倾斜？', ['顺车流向前', '逆车流向后']);
+      renderLegend([['#16a34a', '快'], ['#f59e0b', '慢'], ['#dc2626', '停住'], ['#1d4ed8', '你点的标记']]);
+      miniTitleEl.textContent = '当前这一刻的路面';
+      ruleCardEl.classList.remove('hidden');
+      ruleCardEl.innerHTML = '<strong>时空图</strong>：每一横行是某时刻整条路，时间自上而下。<strong>斜率 = Δ位置 ÷ Δ时间 = 波速</strong>。';
+      conclusionBody.textContent = MODULES[2].conclusion;
+      this.buildToolbar();
+      canvasHint.classList.remove('hidden');
+      canvasHint.textContent = '先「跑出时空图」，跑满后在同一条红色斜带上点两点。';
+      this.refreshMetrics();
+      this.draw();
+    },
+    buildToolbar() {
+      const s = this.sim;
+      toolbarEl.innerHTML =
+        `<label>密度 <input type="range" id="tsDen" min="0.05" max="0.5" step="0.01" value="${s.density}"><span class="val" id="tsDenV">${fmt2(s.density)}</span></label>` +
+        `<label>点刹 p <input type="range" id="tsP" min="0" max="0.6" step="0.05" value="${s.p}"><span class="val" id="tsPV">${fmt2(s.p)}</span></label>` +
+        `<button class="primary" id="btnPlay" type="button">▶ 跑出时空图</button>` +
+        `<button class="subtle" id="btnClear" type="button">清除标记</button>` +
+        `<button class="subtle" id="btnReset" type="button">重置</button>`;
+      const reset = () => { resetSim(this.sim); this.rows = []; this.markers = []; this.filled = false; app.running = false; $('#btnPlay').textContent = '▶ 跑出时空图'; this.draw(); this.drawMini(); this.refreshMetrics(); };
+      $('#tsDen').addEventListener('input', e => { s.density = +e.target.value; $('#tsDenV').textContent = fmt2(s.density); reset(); });
+      $('#tsP').addEventListener('input', e => { s.p = +e.target.value; $('#tsPV').textContent = fmt2(s.p); reset(); });
+      $('#btnPlay').addEventListener('click', () => {
+        if (this.filled) { reset(); }
+        app.running = !app.running; $('#btnPlay').textContent = app.running ? '⏸ 暂停' : '▶ 跑出时空图';
+      });
+      $('#btnClear').addEventListener('click', () => { this.markers = []; this.draw(); this.refreshMetrics(); });
+      $('#btnReset').addEventListener('click', reset);
+    },
+    tick() {
+      if (this.filled) return;
+      advance(this.sim);
+      this.rows.push(E.cloneRoad(this.sim.road));
+      if (this.rows.length >= this.maxRows) { this.filled = true; app.running = false; const b = $('#btnPlay'); if (b) b.textContent = '▶ 重新跑'; }
+      this.draw(); this.drawMini();
+    },
+    onFrame(now) { if (!app.running) return; if (now - this.last < 45) return; this.last = now; this.tick(); },
+    draw() {
+      const { ctx, w, h } = mainStage; const s = this.sim;
+      ctx.clearRect(0, 0, w, h);
+      drawTimeSpace(ctx, 0, 0, w, h, this.rows, s.length, this.maxRows, s.vmax);
+      // 坐标提示
+      ctx.fillStyle = '#64748b'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'left';
+      ctx.fillText('位置 →', 6, 14); ctx.save(); ctx.translate(12, h - 8); ctx.rotate(-Math.PI / 2); ctx.fillText('时间 ↓', 0, 0); ctx.restore();
+      // 标记
+      const cw = w / s.length, ch = h / this.maxRows;
+      this.markers.forEach((m, i) => {
+        const px = m.x * cw + cw / 2, py = m.t * ch + ch / 2;
+        ctx.strokeStyle = '#1d4ed8'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(px - 7, py); ctx.lineTo(px + 7, py); ctx.moveTo(px, py - 7); ctx.lineTo(px, py + 7); ctx.stroke();
+        ctx.fillStyle = '#1d4ed8'; ctx.font = 'bold 12px Segoe UI'; ctx.fillText(i === 0 ? 'A' : 'B', px + 9, py - 4);
+      });
+      if (this.markers.length === 2) {
+        const [a, b] = this.markers; const cw2 = w / s.length, ch2 = h / this.maxRows;
+        ctx.strokeStyle = 'rgba(29,78,216,0.55)'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+        ctx.beginPath(); ctx.moveTo(a.x * cw2 + cw2 / 2, a.t * ch2 + ch2 / 2); ctx.lineTo(b.x * cw2 + cw2 / 2, b.t * ch2 + ch2 / 2); ctx.stroke(); ctx.setLineDash([]);
+      }
+    },
+    drawMini() { drawRoadStripMini(this.sim); },
+    onCanvasClick(cx, cy) {
+      if (!this.rows.length) { canvasHint.textContent = '先点「跑出时空图」，跑满后再点两点测斜率。'; return; }
+      const { w, h } = mainStage; const s = this.sim;
+      const x = Math.floor(cx / (w / s.length));
+      const t = Math.floor(cy / (h / this.maxRows));
+      if (t >= this.rows.length) return;
+      this.markers.push({ x: Math.max(0, Math.min(s.length - 1, x)), t: Math.max(0, Math.min(this.rows.length - 1, t)) });
+      if (this.markers.length > 2) this.markers = this.markers.slice(-2);
+      if (this.markers.length === 2) this.evalSlope();
+      this.draw(); this.refreshMetrics();
+    },
+    evalSlope() {
+      const [a, b] = this.markers; const L = this.sim.length;
+      let dx = b.x - a.x; if (dx > L / 2) dx -= L; else if (dx < -L / 2) dx += L;
+      const dt = b.t - a.t;
+      this.slope = dt !== 0 ? dx / dt : 0;
+      if (this.slope < -0.05) { flags.measuredBackwardWave = true; syncAch(); }
+    },
+    refreshMetrics() {
+      const s = this.sim;
+      const slopeTxt = this.markers.length === 2 ? fmt2(this.slope) + ' 格/步' : '点两点';
+      renderMetrics([
+        ['密度 ρ', fmt2(s.density)],
+        ['已跑步数', String(this.rows.length)],
+        ['波速（斜率）', slopeTxt],
+        ['方向', this.markers.length === 2 ? (this.slope < -0.05 ? '逆行 ↩' : (this.slope > 0.05 ? '顺行 ↪' : '≈静止')) : '—'],
+      ]);
+      const met = flags.measuredBackwardWave;
+      setProgress(this.markers.length === 2 ? `波速 ${fmt2(this.slope)} 格/步${met ? ' · 逆行已量出 ✓' : ''}` : '跑满后点两点', met);
+    },
+    resize() { this.draw(); this.drawMini(); },
+  };
+  function drawRoadStripMini(sim) {
+    const { ctx, w, h } = miniStage;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#fbfdfe'; ctx.fillRect(0, 0, w, h);
+    drawRoadStrip(ctx, 6, h / 2 - 12, w - 12, 24, sim.road, sim.vmax);
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px Segoe UI'; ctx.textAlign = 'left';
+    ctx.fillText('第 ' + sim.generation + ' 步的整条路', 6, h / 2 - 18);
+  }
+
+  // ===== M3 基本图 =====
+  controllers.fundamental = {
+    data: [], peak: null, vmax: 5, p: 0.25, probe: null, probeLast: 0, guess: null,
+    enter() {
+      this.data = []; this.peak = null; this.guess = null;
+      this.probe = newSim({ length: 120, vmax: this.vmax, p: this.p, density: 0.12, seed: 555 });
+      htmlStage.classList.add('hidden'); mainCanvas.classList.remove('hidden');
+      setObjective('🎯', '任务③：扫出基本图后，在你认为<b>车流量最大</b>的密度处点一下曲线，找到临界密度。');
+      setPredict('fundamental', '流量-密度曲线长什么样？', ['一直上升', '先升后降']);
+      renderLegend([['#3b82f6', '基本图曲线'], ['#dc2626', '峰值（临界密度）'], ['#16a34a', '你的猜测'], ['#94a3b8', '探针点']]);
+      miniTitleEl.textContent = '探针密度下的路面';
+      ruleCardEl.classList.remove('hidden');
+      ruleCardEl.innerHTML = '<strong>车流量 q = 密度 ρ × 平均车速 v̄</strong>。先升（车多）后降（互堵），峰值处即最大吞吐。';
+      conclusionBody.textContent = MODULES[3].conclusion;
+      this.buildToolbar();
+      canvasHint.classList.remove('hidden');
+      canvasHint.textContent = '点「扫描基本图」生成曲线，再点曲线找峰值。';
+      this.refreshMetrics(); this.draw();
+    },
+    buildToolbar() {
+      toolbarEl.innerHTML =
+        `<label>最高速 <input type="range" id="fV" min="1" max="7" step="1" value="${this.vmax}"><span class="val" id="fVV">${this.vmax}</span></label>` +
+        `<label>点刹 p <input type="range" id="fP" min="0" max="0.5" step="0.05" value="${this.p}"><span class="val" id="fPV">${fmt2(this.p)}</span></label>` +
+        `<label>探针密度 <input type="range" id="fProbe" min="0.02" max="0.8" step="0.01" value="0.12"><span class="val" id="fProbeV">0.12</span></label>` +
+        `<button class="primary" id="btnSweep" type="button">扫描基本图</button>` +
+        `<button class="subtle" id="btnReset" type="button">重置</button>`;
+      $('#fV').addEventListener('input', e => { this.vmax = +e.target.value; this.probe.vmax = this.vmax; $('#fVV').textContent = this.vmax; this.clearSweep(); });
+      $('#fP').addEventListener('input', e => { this.p = +e.target.value; this.probe.p = this.p; $('#fPV').textContent = fmt2(this.p); this.clearSweep(); });
+      $('#fProbe').addEventListener('input', e => { const d = +e.target.value; $('#fProbeV').textContent = fmt2(d); this.probe.density = d; resetSim(this.probe); this.refreshMetrics(); });
+      $('#btnSweep').addEventListener('click', () => this.sweep());
+      $('#btnReset').addEventListener('click', () => { this.clearSweep(); });
+    },
+    clearSweep() { this.data = []; this.peak = null; this.guess = null; this.draw(); this.refreshMetrics(); },
+    sweep() {
+      const densities = [];
+      for (let d = 0.02; d <= 0.8001; d += 0.03) densities.push(Math.round(d * 100) / 100);
+      this.data = E.sweepFundamental({ length: 150, vmax: this.vmax, p: this.p, densities, warmup: 120, measure: 120, seed: 2024 });
+      this.peak = this.data.reduce((a, b) => (b.flow > a.flow ? b : a), this.data[0]);
+      flags.sweptDiagram = true;
+      this.draw(); this.refreshMetrics(); syncAch();
+      canvasHint.textContent = '曲线出来了！在你认为流量最大的密度处点一下。';
+    },
+    layout() {
+      const { w, h } = mainStage;
+      const padL = 48, padR = 18, padT = 20, padB = 40;
+      return { padL, padR, padT, padB, plotW: w - padL - padR, plotH: h - padT - padB, w, h };
+    },
+    maxFlowAxis() {
+      const m = this.data.length ? Math.max(...this.data.map(d => d.flow)) : 0.4;
+      return Math.max(0.1, Math.ceil(m * 12) / 10);
+    },
+    draw() {
+      const { ctx } = mainStage; const lo = this.layout(); ctx.clearRect(0, 0, lo.w, lo.h);
+      const maxF = this.maxFlowAxis();
+      const X = d => lo.padL + (d / 0.85) * lo.plotW;
+      const Y = q => lo.padT + lo.plotH - (q / maxF) * lo.plotH;
+      // 轴
+      ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(lo.padL, lo.padT); ctx.lineTo(lo.padL, lo.padT + lo.plotH); ctx.lineTo(lo.padL + lo.plotW, lo.padT + lo.plotH); ctx.stroke();
+      ctx.fillStyle = '#64748b'; ctx.font = '12px Segoe UI';
+      ctx.textAlign = 'center'; ctx.fillText('密度 ρ（车数 ÷ 车位）', lo.padL + lo.plotW / 2, lo.h - 12);
+      ctx.save(); ctx.translate(14, lo.padT + lo.plotH / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('车流量 q', 0, 0); ctx.restore();
+      ctx.textAlign = 'right'; ctx.font = '10px Segoe UI'; ctx.fillStyle = '#94a3b8';
+      ctx.fillText(fmt2(maxF), lo.padL - 4, lo.padT + 8); ctx.fillText('0', lo.padL - 4, lo.padT + lo.plotH);
+      ctx.textAlign = 'center';
+      for (let d = 0; d <= 0.8; d += 0.2) ctx.fillText(fmt1(d), X(d), lo.padT + lo.plotH + 16);
+      if (!this.data.length) {
+        ctx.fillStyle = '#94a3b8'; ctx.font = '13px Segoe UI'; ctx.textAlign = 'center';
+        ctx.fillText('点「扫描基本图」生成流量-密度曲线', lo.padL + lo.plotW / 2, lo.padT + lo.plotH / 2);
+        return;
+      }
+      // 曲线 + 点
+      ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2; ctx.beginPath();
+      this.data.forEach((pt, i) => { const x = X(pt.density), y = Y(pt.flow); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+      ctx.stroke();
+      ctx.fillStyle = '#3b82f6';
+      this.data.forEach(pt => { ctx.beginPath(); ctx.arc(X(pt.density), Y(pt.flow), 2.6, 0, Math.PI * 2); ctx.fill(); });
+      // 峰值
+      if (this.peak) {
+        const px = X(this.peak.density), py = Y(this.peak.flow);
+        ctx.fillStyle = '#dc2626'; ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(220,38,38,0.4)'; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, lo.padT + lo.plotH); ctx.stroke(); ctx.setLineDash([]);
+      }
+      // 猜测
+      if (this.guess != null) {
+        const gx = X(this.guess);
+        ctx.strokeStyle = '#16a34a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(gx, lo.padT); ctx.lineTo(gx, lo.padT + lo.plotH); ctx.stroke();
+        ctx.fillStyle = '#16a34a'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center'; ctx.fillText('你的猜测', gx, lo.padT - 4);
+      }
+    },
+    onCanvasClick(cx) {
+      if (!this.data.length) { canvasHint.textContent = '先点「扫描基本图」。'; return; }
+      const lo = this.layout();
+      const d = ((cx - lo.padL) / lo.plotW) * 0.85;
+      this.guess = Math.max(0, Math.min(0.85, d));
+      const diff = Math.abs(this.guess - this.peak.density);
+      if (diff <= 0.04) { flags.foundMaxFlow = true; canvasHint.textContent = `命中！临界密度≈${fmt2(this.peak.density)}，此处流量最大。`; syncAch(); }
+      else { canvasHint.textContent = `还差一点：峰值在 ρ≈${fmt2(this.peak.density)} 附近，再点近些。`; }
+      this.draw(); this.refreshMetrics();
+    },
+    refreshMetrics() {
+      const probeStep = () => { if (this.probe.generation < 80) advance(this.probe); };
+      renderMetrics([
+        ['探针密度', fmt2(this.probe.density)],
+        ['探针流量', fmt2(this.probe.lastFlow)],
+        ['峰值流量', this.peak ? fmt2(this.peak.flow) : '—'],
+        ['临界密度', this.peak ? fmt2(this.peak.density) : '扫描后出现'],
+      ]);
+      const met = flags.foundMaxFlow;
+      setProgress(this.peak ? `峰值 q=${fmt2(this.peak.flow)} @ ρ=${fmt2(this.peak.density)}${met ? ' · 已找到 ✓' : '（点曲线确认）'}` : '先扫描基本图', met);
+    },
+    onFrame(now) {
+      if (now - this.probeLast < 80) return; this.probeLast = now;
+      if (this.probe.generation < 200) { advance(this.probe); this.drawMini(); }
+    },
+    drawMini() {
+      const { ctx, w, h } = miniStage; ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = '#fbfdfe'; ctx.fillRect(0, 0, w, h);
+      drawRoadStrip(ctx, 6, h / 2 - 13, w - 12, 26, this.probe.road, this.probe.vmax);
+      ctx.fillStyle = '#94a3b8'; ctx.font = '10px Segoe UI'; ctx.textAlign = 'left';
+      ctx.fillText('ρ=' + fmt2(this.probe.density) + ' 的路面（拖探针密度看变化）', 6, h / 2 - 19);
+    },
+    resize() { this.draw(); this.drawMini(); },
+  };
+
+  // ===== M4 点刹连锁 =====
+  controllers.brake = {
+    sim: null, rows: [], maxRows: 108, last: 0, watch: null, lastOutcome: '',
+    live: false, obsCell: -1, obsLeft: 0, LIVE_P: 0.15, HOLD: 8,
+    enter() {
+      this.sim = newSim({ length: 110, vmax: 5, p: 0, density: 0.14, seed: 111 });
+      htmlStage.classList.add('hidden'); mainCanvas.classList.remove('hidden');
+      setObjective('🎯', '任务④：调密度 → 点路面让某处刹一下 → 看结果。找到「一脚刹车就引爆堵车」的<b>密度门槛</b>（既见消散又见引爆）。');
+      setPredict('brake', '低密度时，让某处车刹一脚会怎样？', ['引发大堵车', '很快消散']);
+      renderLegend([['#16a34a', '快'], ['#f59e0b', '慢'], ['#dc2626', '停住'], ['#1d4ed8', '你刹车的位置']]);
+      miniTitleEl.textContent = '堵住车数随时间';
+      ruleCardEl.classList.remove('hidden');
+      ruleCardEl.innerHTML = '<strong>先是确定性平滑车流</strong>。你点一下＝那里有辆车踩了一脚刹（短暂挡一下），同时打开一丝随机点刹。低密度被吸收，高密度被点燃成逆行波。';
+      conclusionBody.textContent = MODULES[4].conclusion;
+      this.buildToolbar();
+      canvasHint.classList.remove('hidden');
+      canvasHint.textContent = '▲ 在上方路面任意位置点一下，模拟那里有车踩了一脚刹车。';
+      this.place();
+    },
+    settleFreeFlow() {
+      // 均匀布车 + 确定性(p=0)跑到平滑自由流：任何密度下起步都不堵
+      const s = this.sim;
+      s.road = E.createRoad(s.length);
+      E.placeEvenly(s.road, Math.round(s.density * s.length), s.vmax);
+      s.rng = E.makeRng(s.seed);
+      s.generation = 0; s.flowHist = []; s.jamHist = [];
+      for (let i = 0; i < 40; i++) {
+        const r = E.stepNasch({ road: s.road, vmax: s.vmax, p: 0, rng: s.rng });
+        s.road = r.road; s.lastFlow = r.flow; s.lastMeanV = r.meanV; s.jamCars = r.jamCars; s.cars = r.cars;
+      }
+    },
+    buildToolbar() {
+      const s = this.sim;
+      toolbarEl.innerHTML =
+        `<label>密度 <input type="range" id="bDen" min="0.05" max="0.45" step="0.01" value="${s.density}"><span class="val" id="bDenV">${fmt2(s.density)}</span></label>` +
+        `<button class="primary" id="btnPlace" type="button">重新布车（平滑流）</button>` +
+        `<button id="btnPlay" type="button">⏸ 暂停</button>` +
+        `<button class="subtle" id="btnReset" type="button">重置</button>`;
+      $('#bDen').addEventListener('input', e => { s.density = +e.target.value; $('#bDenV').textContent = fmt2(s.density); this.place(); });
+      $('#btnPlace').addEventListener('click', () => this.place());
+      $('#btnPlay').addEventListener('click', () => { app.running = !app.running; $('#btnPlay').textContent = app.running ? '⏸ 暂停' : '▶ 继续'; });
+      $('#btnReset').addEventListener('click', () => { this.place(); });
+    },
+    place() {
+      this.settleFreeFlow();
+      this.rows = []; this.watch = null; this.lastOutcome = '';
+      this.live = false; this.obsCell = -1; this.obsLeft = 0;
+      app.running = true; const b = $('#btnPlay'); if (b) b.textContent = '⏸ 暂停';
+      canvasHint.textContent = '▲ 在上方路面任意位置点一下，模拟那里有车踩了一脚刹车。';
+      this.draw(); this.drawMini(); this.refreshMetrics();
+      flags.everRan = true; syncAch();
+    },
+    step() {
+      const s = this.sim;
+      const obs = this.obsLeft > 0 ? this.obsCell : -1;
+      const pUse = this.live ? this.LIVE_P : 0; // 暖机/空闲 p=0 平滑；刹车后开一丝随机点刹
+      const r = E.stepNasch({ road: s.road, vmax: s.vmax, p: pUse, rng: s.rng, obstacle: obs });
+      s.road = r.road; s.generation += 1; s.lastFlow = r.flow; s.lastMeanV = r.meanV; s.jamCars = r.jamCars; s.cars = r.cars;
+      s.jamHist.push(r.jamCars); if (s.jamHist.length > 400) s.jamHist.shift();
+      if (this.obsLeft > 0) this.obsLeft -= 1;
+      this.rows.push(E.cloneRoad(s.road)); if (this.rows.length > this.maxRows) this.rows.shift();
+      if (this.watch && this.watch.active) {
+        this.watch.stepsLeft -= 1;
+        if (this.watch.stepsLeft <= 15) this.watch.tail.push(s.jamCars);
+        if (this.watch.stepsLeft <= 0) {
+          this.watch.active = false;
+          const tail = this.watch.tail, avg = tail.reduce((a, b) => a + b, 0) / Math.max(1, tail.length);
+          if (avg >= 2) { flags.brakeTriggered = true; this.lastOutcome = '引爆了堵车波 💥'; }
+          else { flags.brakeDissipated = true; this.lastOutcome = '被吸收消散了 😌'; }
+          syncAch();
+        }
+      }
+      this.draw(); this.drawMini(); this.refreshMetrics();
+    },
+    onFrame(now) { if (!app.running) return; if (now - this.last < 60) return; this.last = now; this.step(); },
+    stripH() { return Math.max(34, mainStage.h * 0.16); },
+    draw() {
+      const { ctx, w, h } = mainStage; const s = this.sim;
+      ctx.clearRect(0, 0, w, h);
+      const sh = this.stripH();
+      drawRoadStrip(ctx, 0, 0, w, sh - 6, s.road, s.vmax);
+      // 刹车位置标记
+      if (this.obsLeft > 0 && this.obsCell >= 0) {
+        const cw = w / s.length, x = this.obsCell * cw;
+        ctx.fillStyle = '#1d4ed8'; ctx.fillRect(x - 1, 0, Math.max(3, cw), sh - 6);
+      }
+      ctx.fillStyle = '#475569'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'left';
+      ctx.fillText('↑ 当前路面（点任意位置＝那里刹一脚）', 6, sh + 8);
+      drawTimeSpace(ctx, 0, sh + 12, w, h - sh - 12, this.rows, s.length, this.maxRows, s.vmax);
+      ctx.fillStyle = '#64748b'; ctx.font = '11px Segoe UI';
+      ctx.save(); ctx.translate(12, h - 8); ctx.rotate(-Math.PI / 2); ctx.fillText('时间 ↓', 0, 0); ctx.restore();
+    },
+    drawMini() {
+      drawSparkline(miniStage, this.sim.jamHist, { color: '#dc2626', maxY: 8, xLabel: '时间 →', curLabel: '堵住=' + this.sim.jamCars });
+    },
+    onCanvasClick(cx, cy) {
+      const sh = this.stripH();
+      if (cy > sh) return;
+      const s = this.sim; const cw = mainStage.w / s.length;
+      const cell = Math.max(0, Math.min(s.length - 1, Math.floor(cx / cw)));
+      this.obsCell = cell; this.obsLeft = this.HOLD; this.live = true;
+      this.watch = { active: true, stepsLeft: 75, tail: [] };
+      this.lastOutcome = '观察中…';
+      app.running = true; const b = $('#btnPlay'); if (b) b.textContent = '⏸ 暂停';
+      canvasHint.textContent = '已在那里刹了一脚，盯住下方时空图与右侧「堵住车数」。';
+      this.draw(); this.refreshMetrics();
+    },
+    refreshMetrics() {
+      const s = this.sim;
+      renderMetrics([
+        ['密度 ρ', fmt2(s.density)],
+        ['平均车速', fmt1(s.lastMeanV)],
+        ['堵住', String(s.jamCars)],
+        ['本次刹车', this.lastOutcome || '点路面试试'],
+      ]);
+      const met = flags.brakeTriggered && flags.brakeDissipated;
+      setProgress(`密度 ${fmt2(s.density)} · ${this.lastOutcome || '点路面刹一脚'}${met ? ' · 门槛已框定 ✓' : ''}`, met);
+    },
+    resize() { this.draw(); this.drawMini(); },
+  };
+
+  // ===== M5 总结闯关 =====
+  controllers.summary = {
+    enter() {
+      hideObjective();
+      setPredict('summary', null);
+      renderMetrics([['模块', 'M5'], ['任务', '连现实 + 小测']]);
+      renderLegend([['#3b82f6', '概念'], ['#16a34a', '现实场景'], ['#dc2626', '小测']]);
+      ruleCardEl.classList.add('hidden');
+      conclusionBody.textContent = MODULES[5].conclusion;
+      htmlStage.classList.remove('hidden'); mainCanvas.classList.add('hidden'); canvasHint.classList.add('hidden');
+      toolbarEl.innerHTML = '';
+      htmlStage.innerHTML = `
+        <div class="intro-grid">
+          <div class="intro-card"><h3>📏 临界密度</h3><p>低于它扰动被吸收、车流畅通；高于它任何小扰动都会被放大成持续堵车。来自 M1。</p><span class="tag">实验①</span></div>
+          <div class="intro-card"><h3>↩️ 逆行波</h3><p>车往前开，堵车波却往后退；斜率 = Δ位置÷Δ时间 = 波速（负）。来自 M2。</p><span class="tag">实验②</span></div>
+          <div class="intro-card"><h3>📈 基本图</h3><p>q = ρ×v̄，先升后降；峰值密度让吞吐量最大。来自 M3。</p><span class="tag">实验③</span></div>
+          <div class="intro-card"><h3>💥 点刹连锁</h3><p>越过门槛后，单独一脚刹车就足以引爆自我维持的堵车波。来自 M4。</p><span class="tag">实验④</span></div>
+        </div>
+        <h3 style="margin:16px 0 8px;font-size:15px;">🌍 把堵车波带回现实</h3>
+        <div class="intro-grid">
+          <div class="transfer-card"><h3>🛣️ 高速幻影堵车</h3><p>车流密度一高，一个变道或点刹就会被后车层层放大——你被堵在原地，前面其实啥也没有。</p><span class="tag">同一套临界密度</span></div>
+          <div class="transfer-card"><h3>🚇 地铁发车间隔</h3><p>发车太密（高密度）一旦一班晚点，延误会像堵车波一样向后累积；留足间隔=留在临界密度以下。</p><span class="tag">间距=安全</span></div>
+          <div class="transfer-card"><h3>🌐 网络拥塞</h3><p>数据包太多、缓冲太满，丢包重传被放大成拥塞崩溃；拥塞控制就是把"密度"压回临界线下。</p><span class="tag">涌现同源</span></div>
+        </div>
+        <h3 style="margin:16px 0 8px;font-size:15px;">📝 闯关小测</h3>
+        <div id="quizWrap"></div>`;
+      this.buildQuiz();
+    },
+    buildQuiz() {
+      const QUIZ = [
+        { q: '幻影堵车（没有事故）最根本的原因是：', opts: ['有人乱开车', '车流密度越过了临界值', '路面质量差'], a: 1 },
+        { q: '在时空图上，堵车波的斜带通常：', opts: ['顺着车流向前倾', '逆着车流向后倾', '完全水平'], a: 1 },
+        { q: '流量-密度基本图的形状是：', opts: ['一直上升', '先升后降，有个峰值', '一直下降'], a: 1 },
+        { q: '车流量 q 和密度 ρ、平均车速 v̄ 的关系是：', opts: ['q = ρ + v̄', 'q = ρ × v̄', 'q = ρ ÷ v̄'], a: 1 },
+        { q: '要让一条路单位时间通过最多的车，应该把密度调到：', opts: ['越大越好', '越小越好', '基本图峰值对应的临界密度'], a: 2 },
+      ];
+      const wrap = $('#quizWrap'); let done = 0;
+      wrap.innerHTML = QUIZ.map((item, i) => `
+        <div class="quiz-card" data-qi="${i}">
+          <p><b>${i + 1}.</b> ${item.q}</p>
+          <div class="quiz-opts">${item.opts.map((o, j) => `<button class="quiz-opt" data-i="${i}" data-j="${j}">${o}</button>`).join('')}</div>
+          <div class="quiz-feedback" id="qf${i}"></div>
+        </div>`).join('');
+      wrap.querySelectorAll('.quiz-opt').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const i = +btn.dataset.i, j = +btn.dataset.j; const card = wrap.querySelector(`.quiz-card[data-qi="${i}"]`);
+          if (card.dataset.answered) return;
+          const correct = QUIZ[i].a;
+          card.querySelectorAll('.quiz-opt').forEach(b => {
+            if (+b.dataset.j === correct) b.classList.add('correct');
+            else if (b === btn) b.classList.add('wrong');
+          });
+          card.dataset.answered = '1';
+          $('#qf' + i).textContent = j === correct ? '✓ 答对了！' : '正确答案已高亮，对照实验再想想。';
+          done += 1;
+          if (done >= QUIZ.length && !flags.quizDone) { flags.quizDone = true; syncAch(); $('#qf' + (QUIZ.length - 1)).textContent += ' 🎓 完成闯关，解锁「学成出师」！'; }
+        });
+      });
+    },
+    onFrame() {},
+    resize() {},
+  };
+
+  // ---------- 模块切换 ----------
+  function enterModule(id) {
+    app.active = id; app.running = false; app.phase = 'observe';
+    phaseTabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.phase === 'observe'));
+    const m = MODULES.find(x => x.id === id);
+    stageTitleEl.textContent = m.title;
+    stageSubtitleEl.textContent = m.subtitle;
+    miniChartEl.style.display = m.usesMini ? '' : 'none';
+    conclusionBody.classList.add('hidden'); revealToggle.textContent = '显示结论';
+    refreshNav();
+    controllers[id].enter();
+    setPrompt();
+    // 同步 fit（读取 getBoundingClientRect 会强制布局，无需等 rAF；headless 更稳）
+    if (m.usesCanvas) { mainStage = fit(mainCanvas); }
+    if (m.usesMini) { miniStage = fit(miniCanvas); }
+    const c = controllers[id];
+    if (c.resize) c.resize();
+  }
+
+  // ---------- 画布点击路由 ----------
+  function canvasPoint(evt) {
+    const rect = mainCanvas.getBoundingClientRect();
+    const t = evt.touches && evt.touches[0] ? evt.touches[0] : evt;
+    return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+  }
+  mainCanvas.addEventListener('click', (e) => {
+    const c = controllers[app.active];
+    if (c && c.onCanvasClick) { const p = canvasPoint(e); c.onCanvasClick(p.x, p.y); }
+  });
+
+  // ---------- 成就弹窗 ----------
+  $('#openAchievements').addEventListener('click', () => { ach.renderList($('#achievementList')); $('#achievementModal').classList.add('open'); });
+  $('#closeAchievements').addEventListener('click', () => $('#achievementModal').classList.remove('open'));
+  $('#achievementModal').addEventListener('click', (e) => { if (e.target.id === 'achievementModal') e.target.classList.remove('open'); });
+  $('#resetAchievements').addEventListener('click', () => { ach.reset(); refreshNav(); ach.renderList($('#achievementList')); });
+
+  // ---------- 主循环 ----------
+  function loop(now) {
+    const c = controllers[app.active];
+    if (c && c.onFrame) c.onFrame(now);
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- 启动 ----------
+  function buildNav() {
+    moduleListEl.innerHTML = MODULES.map(m =>
+      `<button class="module-card" type="button" data-id="${m.id}"><strong>${m.label}</strong><span>${m.short}</span></button>`).join('');
+    moduleListEl.querySelectorAll('.module-card').forEach(card => {
+      card.addEventListener('click', () => enterModule(card.dataset.id));
+    });
+  }
+
+  function init() {
+    ach = createAchievements({ storageKey: 'phantom-jam-ach-v1', defs: ACH_DEFS, onUnlock: () => refreshNav() });
+    buildNav();
+    enterModule('intro');
+    requestAnimationFrame(loop);
+    window.addEventListener('resize', () => {
+      const m = MODULES.find(x => x.id === app.active);
+      if (m.usesCanvas) mainStage = fit(mainCanvas);
+      if (m.usesMini) miniStage = fit(miniCanvas);
+      const c = controllers[app.active];
+      if (c && c.resize) c.resize();
+    });
+    // 暴露给自测
+    window.__pj = { app, flags, controllers, enterModule, syncAch, ach: () => ach };
+  }
+
+  init();
+})();
+
+</script>
+</body>
+</html>

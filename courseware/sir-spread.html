@@ -1,0 +1,2047 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>传染病传播 SIR：一个人能影响多少人</title>
+  <style>
+:root {
+  --bg: #f4f7f8;
+  --surface: #ffffff;
+  --surface-strong: #eef4f5;
+  --line: #d7e1e3;
+  --text: #152529;
+  --muted: #66777d;
+  --accent: #3b82f6;
+  --accent-dark: #2563eb;
+  --accent-soft: #dbeafe;
+  --warning: #b45309;
+  --proof: #f3c44e;
+  --good: #15803d;
+  --bad: #b91c1c;
+  --sus: #f8fafc;
+  --inf: #dc2626;
+  --rec: #64748b;
+  --vac: #16a34a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+button, select, input {
+  font: inherit;
+}
+
+.topbar {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.subtitle, .eyebrow {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.eyebrow {
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.layout {
+  display: grid;
+  gap: 16px;
+  padding: 16px 24px;
+  min-height: calc(100vh - 64px);
+  grid-template-columns: 236px minmax(420px, 1fr) 330px;
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    "nav stage data"
+    "prompt prompt prompt";
+}
+
+.panel-shell {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 6px 22px rgba(20, 45, 55, 0.06);
+}
+
+.nav { grid-area: nav; padding: 16px; }
+.stage { grid-area: stage; padding: 16px; min-width: 0; }
+.data { grid-area: data; padding: 16px; }
+.prompt { grid-area: prompt; padding: 14px 16px; }
+
+.nav h2, .data h2, .stage h2 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+
+.module-list {
+  display: grid;
+  gap: 10px;
+}
+
+.module-card {
+  width: 100%;
+  min-height: 76px;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.module-card strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.module-card span {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.module-card.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.stage-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.stage-head h2 {
+  color: var(--text);
+  text-transform: none;
+  font-size: 20px;
+  margin: 0;
+}
+
+.stage-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn, .toolbar button, .toolbar select, .trophy-btn, .phase-tabs button, .icon-btn {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.toolbar label {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.toolbar input[type="range"] {
+  width: 96px;
+  accent-color: var(--accent);
+}
+
+.btn.primary, .toolbar button.primary, .phase-tabs button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn.subtle, .toolbar button.subtle {
+  background: var(--surface-strong);
+}
+
+.toolbar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.trophy-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fffbeb;
+  border-color: #f6d879;
+}
+
+.stage-body {
+  position: relative;
+  width: 100%;
+  min-height: 560px;
+  aspect-ratio: 16 / 10;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #fbfdfe;
+  touch-action: none;
+}
+
+.html-stage {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  padding: 18px;
+}
+
+.hidden { display: none !important; }
+
+.metrics {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--surface-strong);
+  padding: 6px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric span:first-child {
+  color: var(--muted);
+}
+
+.metric strong {
+  text-align: right;
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+}
+
+.rule-card, .muted-box {
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
+  border-radius: 8px;
+  padding: 12px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.rule-card {
+  margin-bottom: 12px;
+}
+
+.rule-card strong {
+  color: var(--text);
+}
+
+.phase-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.prompt p, .prompt #promptText {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.intro-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.intro-card, .quiz-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 14px;
+}
+
+.intro-card h3, .quiz-card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.intro-card p, .quiz-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.formula {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  font-family: Consolas, "Courier New", monospace;
+  color: var(--text);
+}
+
+.toast-stack {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  display: grid;
+  gap: 10px;
+  z-index: 20;
+}
+
+.toast {
+  width: min(360px, calc(100vw - 36px));
+  border: 1px solid #f6d879;
+  border-radius: 8px;
+  background: #fffbeb;
+  color: #4b3714;
+  padding: 12px 14px;
+  box-shadow: 0 10px 30px rgba(20, 45, 55, 0.16);
+}
+
+.toast strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(21, 37, 41, 0.38);
+  z-index: 30;
+  padding: 18px;
+}
+
+.modal-bg.open { display: flex; }
+
+.modal {
+  width: min(720px, 100%);
+  max-height: min(720px, 92vh);
+  overflow: auto;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  padding: 18px;
+}
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.modal-head h2 {
+  margin: 0;
+}
+
+.icon-btn {
+  width: 40px;
+  padding: 0;
+}
+
+.progress {
+  height: 10px;
+  background: var(--surface-strong);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 14px 0;
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+}
+
+.ach-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.achievement {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface-strong);
+}
+
+.achievement.unlocked {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+}
+
+.achievement strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.achievement p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.modal-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 1180px) {
+  .layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-areas:
+      "nav stage"
+      "data data"
+      "prompt prompt";
+  }
+
+  .stage-body {
+    min-height: 500px;
+  }
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    padding: 12px 14px;
+    align-items: flex-start;
+  }
+
+  .layout {
+    padding: 12px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "nav"
+      "stage"
+      "data"
+      "prompt";
+  }
+
+  .module-list {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(170px, 1fr);
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .stage-head {
+    display: block;
+  }
+
+  .toolbar {
+    justify-content: flex-start;
+    margin-top: 12px;
+  }
+
+  .toolbar label {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .toolbar input[type="range"] {
+    width: min(180px, 45vw);
+  }
+
+  .stage-body {
+    min-height: 420px;
+    aspect-ratio: 4 / 5;
+  }
+
+  .intro-grid, .ach-list {
+    grid-template-columns: 1fr;
+  }
+
+  .phase-tabs {
+    overflow-x: auto;
+  }
+}
+
+
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">R8 · 现实建模 / SIR 传播</p>
+      <h1>传染病传播 SIR</h1>
+      <p class="subtitle">一个人能影响多少人？</p>
+    </div>
+    <button class="trophy-btn" id="openAchievements" type="button">
+      <span>成就</span>
+      <strong><span id="trophyCount">0</span>/<span id="trophyTotal">0</span></strong>
+    </button>
+  </header>
+
+  <main class="layout">
+    <aside class="nav panel-shell">
+      <h2>实验路径</h2>
+      <div class="module-list" id="moduleList"></div>
+    </aside>
+
+    <section class="stage panel-shell">
+      <div class="stage-head">
+        <div>
+          <h2 id="stageTitle">网格传播</h2>
+          <p id="stageSubtitle"></p>
+        </div>
+        <div class="toolbar" id="toolbar"></div>
+      </div>
+      <div class="stage-body" id="stageBody">
+        <canvas id="mainCanvas" aria-label="SIR 传播实验画布"></canvas>
+        <div class="html-stage hidden" id="htmlStage"></div>
+      </div>
+    </section>
+
+    <aside class="data panel-shell">
+      <h2>数据面板</h2>
+      <div class="metrics" id="metrics"></div>
+      <div class="legend" id="legend"></div>
+      <div class="rule-card" id="ruleCard"></div>
+      <div class="conclusion">
+        <button id="revealToggle" class="btn subtle" type="button">显示结论</button>
+        <div class="conclusion-body muted-box" id="conclusionBody"></div>
+      </div>
+    </aside>
+
+    <footer class="prompt panel-shell">
+      <div class="phase-tabs" id="phaseTabs">
+        <button type="button" data-phase="observe">观察</button>
+        <button type="button" data-phase="verify">验证</button>
+        <button type="button" data-phase="prove">证明</button>
+      </div>
+      <p id="promptText"></p>
+    </footer>
+  </main>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+  <div class="modal-bg" id="achievementModal" role="dialog" aria-labelledby="achievementTitle">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="achievementTitle">发现成就</h2>
+        <button class="icon-btn" id="closeAchievements" type="button" aria-label="关闭">x</button>
+      </div>
+      <div class="progress"><span id="achievementProgress"></span></div>
+      <div class="ach-list" id="achievementList"></div>
+      <div class="modal-actions">
+        <button class="btn subtle" id="resetAchievements" type="button">清空成就</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  root.SIREngine = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  const STATES = Object.freeze({
+    S: 0,
+    I: 1,
+    R: 2,
+    V: 3,
+  });
+
+  function createGrid(rows, cols, fill = STATES.S) {
+    const grid = new Uint8Array(rows * cols);
+    if (fill) grid.fill(fill);
+    return grid;
+  }
+
+  function cloneGrid(grid) {
+    return new Uint8Array(grid);
+  }
+
+  function idx(cols, r, c) {
+    return r * cols + c;
+  }
+
+  function inBounds(rows, cols, r, c) {
+    return r >= 0 && r < rows && c >= 0 && c < cols;
+  }
+
+  function wrap(n, size) {
+    return (n % size + size) % size;
+  }
+
+  function clamp01(value) {
+    if (!Number.isFinite(value)) return 0;
+    return Math.max(0, Math.min(1, value));
+  }
+
+  function makeRng(seed) {
+    let x = seed >>> 0;
+    return function rng() {
+      x += 0x6D2B79F5;
+      let t = x;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function neighborOffsets(mode = 'moore') {
+    if (mode === 'vonNeumann') {
+      return [[-1, 0], [0, 1], [1, 0], [0, -1]];
+    }
+    return [
+      [-1, -1], [-1, 0], [-1, 1],
+      [0, -1], [0, 1],
+      [1, -1], [1, 0], [1, 1],
+    ];
+  }
+
+  function neighbors(rows, cols, r, c, mode = 'moore', wrapEdges = false) {
+    const out = [];
+    for (const [dr, dc] of neighborOffsets(mode)) {
+      let rr = r + dr;
+      let cc = c + dc;
+      if (wrapEdges) {
+        rr = wrap(rr, rows);
+        cc = wrap(cc, cols);
+      } else if (!inBounds(rows, cols, rr, cc)) {
+        continue;
+      }
+      out.push(idx(cols, rr, cc));
+    }
+    return out;
+  }
+
+  function countStates(grid) {
+    const counts = { susceptible: 0, infected: 0, recovered: 0, vaccinated: 0 };
+    for (let i = 0; i < grid.length; i++) {
+      if (grid[i] === STATES.S) counts.susceptible += 1;
+      else if (grid[i] === STATES.I) counts.infected += 1;
+      else if (grid[i] === STATES.R) counts.recovered += 1;
+      else if (grid[i] === STATES.V) counts.vaccinated += 1;
+    }
+    return counts;
+  }
+
+  function stepGridSir(options) {
+    const {
+      grid,
+      rows,
+      cols,
+      beta,
+      gamma,
+      neighborMode = 'moore',
+      wrapEdges = false,
+      rng = Math.random,
+    } = options;
+    const infectionRate = clamp01(beta);
+    const recoveryRate = clamp01(gamma);
+    const next = cloneGrid(grid);
+    let newInfections = 0;
+    let recoveries = 0;
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const i = idx(cols, r, c);
+        const state = grid[i];
+        if (state === STATES.S) {
+          let infectedNeighbors = 0;
+          const ns = neighbors(rows, cols, r, c, neighborMode, wrapEdges);
+          for (const j of ns) {
+            if (grid[j] === STATES.I) infectedNeighbors += 1;
+          }
+          if (infectedNeighbors > 0) {
+            const p = 1 - Math.pow(1 - infectionRate, infectedNeighbors);
+            if (rng() < p) {
+              next[i] = STATES.I;
+              newInfections += 1;
+            }
+          }
+        } else if (state === STATES.I && rng() < recoveryRate) {
+          next[i] = STATES.R;
+          recoveries += 1;
+        }
+      }
+    }
+
+    return {
+      grid: next,
+      newInfections,
+      recoveries,
+      counts: countStates(next),
+    };
+  }
+
+  function seedInfection(grid, rows, cols, r, c) {
+    if (!inBounds(rows, cols, r, c)) return false;
+    const i = idx(cols, r, c);
+    if (grid[i] === STATES.S) {
+      grid[i] = STATES.I;
+      return true;
+    }
+    return false;
+  }
+
+  function vaccinateRandom(grid, coverage, rng = Math.random) {
+    const target = clamp01(coverage);
+    let vaccinated = 0;
+    for (let i = 0; i < grid.length; i++) {
+      if (grid[i] === STATES.S && rng() < target) {
+        grid[i] = STATES.V;
+        vaccinated += 1;
+      }
+    }
+    return vaccinated;
+  }
+
+  function vaccinateBlock(grid, rows, cols, centerR, centerC, radius) {
+    let vaccinated = 0;
+    const r2 = radius * radius;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const d2 = (r - centerR) * (r - centerR) + (c - centerC) * (c - centerC);
+        const i = idx(cols, r, c);
+        if (d2 <= r2 && grid[i] === STATES.S) {
+          grid[i] = STATES.V;
+          vaccinated += 1;
+        }
+      }
+    }
+    return vaccinated;
+  }
+
+  function estimateR0({ beta, gamma, contacts, susceptibleFraction = 1 }) {
+    const g = Number(gamma);
+    if (!Number.isFinite(g) || g <= 0) return Infinity;
+    const value = clamp01(beta) * Math.max(0, contacts || 0) * clamp01(susceptibleFraction) / g;
+    return round(value, 2);
+  }
+
+  function herdImmunityThreshold(r0) {
+    const value = Number(r0);
+    if (!Number.isFinite(value) || value <= 1) return 0;
+    return clamp01(1 - 1 / value);
+  }
+
+  function round(value, digits = 2) {
+    const m = Math.pow(10, digits);
+    return Math.round(value * m) / m;
+  }
+
+  function createRingNetwork(count, ringDegree = 2) {
+    const safeCount = Math.max(1, count | 0);
+    const degree = Math.max(0, Math.min(safeCount - 1, ringDegree | 0));
+    const edges = Array.from({ length: safeCount }, () => []);
+    const half = Math.max(1, Math.floor(degree / 2));
+    for (let i = 0; i < safeCount; i++) {
+      for (let d = 1; d <= half; d++) {
+        addUndirectedEdge(edges, i, (i + d) % safeCount);
+        addUndirectedEdge(edges, i, (i - d + safeCount) % safeCount);
+      }
+    }
+    return {
+      nodes: Array.from({ length: safeCount }, () => ({ state: STATES.S })),
+      edges,
+    };
+  }
+
+  function createHubNetwork({ count, ringDegree = 2, hubDegree = 8 }) {
+    const network = createRingNetwork(count, ringDegree);
+    const limit = Math.min(network.nodes.length - 1, Math.max(0, hubDegree | 0));
+    network.edges[0] = [];
+    for (let i = 1; i < network.nodes.length; i++) {
+      network.edges[i] = network.edges[i].filter(j => j !== 0);
+    }
+    for (let i = 1; i <= limit; i++) {
+      addUndirectedEdge(network.edges, 0, i);
+    }
+    preserveNonHubDegree(network.edges, Math.max(0, ringDegree | 0));
+    return network;
+  }
+
+  function preserveNonHubDegree(edges, minDegree) {
+    const n = edges.length;
+    if (n <= 2 || minDegree <= 0) return;
+    for (let i = 1; i < n; i++) {
+      let offset = 1;
+      while (edges[i].length < minDegree && offset < n) {
+        const j = ((i - 1 + offset) % (n - 1)) + 1;
+        addUndirectedEdge(edges, i, j);
+        offset += 1;
+      }
+    }
+  }
+
+  function addUndirectedEdge(edges, a, b) {
+    if (a === b) return;
+    if (!edges[a].includes(b)) edges[a].push(b);
+    if (!edges[b].includes(a)) edges[b].push(a);
+  }
+
+  function networkDegrees(network) {
+    return network.edges.map(list => list.length);
+  }
+
+  function cloneNetwork(network) {
+    return {
+      nodes: network.nodes.map(node => ({ ...node })),
+      edges: network.edges.map(list => list.slice()),
+    };
+  }
+
+  function stepNetworkSir(options) {
+    const {
+      network,
+      beta,
+      gamma,
+      rng = Math.random,
+    } = options;
+    const infectionRate = clamp01(beta);
+    const recoveryRate = clamp01(gamma);
+    const next = cloneNetwork(network);
+    let newInfections = 0;
+    let recoveries = 0;
+
+    for (let i = 0; i < network.nodes.length; i++) {
+      const state = network.nodes[i].state;
+      if (state === STATES.S) {
+        let infectedNeighbors = 0;
+        for (const j of network.edges[i] || []) {
+          if (network.nodes[j].state === STATES.I) infectedNeighbors += 1;
+        }
+        if (infectedNeighbors > 0) {
+          const p = 1 - Math.pow(1 - infectionRate, infectedNeighbors);
+          if (rng() < p) {
+            next.nodes[i].state = STATES.I;
+            newInfections += 1;
+          }
+        }
+      } else if (state === STATES.I && rng() < recoveryRate) {
+        next.nodes[i].state = STATES.R;
+        recoveries += 1;
+      }
+    }
+
+    return {
+      network: next,
+      newInfections,
+      recoveries,
+      counts: countStates(next.nodes.map(node => node.state)),
+    };
+  }
+
+  return {
+    STATES,
+    createGrid,
+    cloneGrid,
+    idx,
+    inBounds,
+    makeRng,
+    neighborOffsets,
+    neighbors,
+    countStates,
+    stepGridSir,
+    seedInfection,
+    vaccinateRandom,
+    vaccinateBlock,
+    estimateR0,
+    herdImmunityThreshold,
+    createRingNetwork,
+    createHubNetwork,
+    addUndirectedEdge,
+    preserveNonHubDegree,
+    networkDegrees,
+    cloneNetwork,
+    stepNetworkSir,
+  };
+});
+
+</script>
+  <script>
+(function () {
+  'use strict';
+
+  const SIR = window.SIREngine;
+  const $ = (sel) => document.querySelector(sel);
+
+  const COLORS = {
+    [SIR.STATES.S]: '#f8fafc',
+    [SIR.STATES.I]: '#dc2626',
+    [SIR.STATES.R]: '#64748b',
+    [SIR.STATES.V]: '#16a34a',
+  };
+
+  const MODULES = [
+    {
+      id: 'intro',
+      label: 'M0 入门地图',
+      short: 'S/I/R/V + R0',
+      title: 'M0 一个红点能点燃多少人',
+      subtitle: '先把传染病传播翻译成状态、接触、概率、迭代和网络结构。',
+      prompts: {
+        observe: '先观察四种状态：白色易感、红色感染、灰色康复、绿色接种。后面所有实验都在这四类状态之间切换。',
+        verify: '点“下一步”看模型语言：局部接触决定下一步，曲线记录总体变化，R0 判断平均一个感染者会带来几人。',
+        prove: '能把现实问题说成“状态 + 接触网络 + 转移概率 + 多次迭代”，就抓住了 SIR 建模的骨架。',
+      },
+      conclusion: 'SIR 模型不预测某一次真实疫情，而是帮我们看清阈值：传播率、康复率、接种比例和网络结构怎样决定爆发或熄灭。',
+    },
+    {
+      id: 'grid',
+      label: 'M1 网格传播',
+      short: '点击第一例',
+      title: 'M1 网格传播：点燃第一例',
+      subtitle: '在网格上点一个初始感染者，调感染率和康复率，看红色是否爆发。',
+      prompts: {
+        observe: '先只点一个红点，不急着调参数。看红色是不是向周围一圈一圈扩散，曲线峰值在哪里出现。',
+        verify: '把感染率调高或把康复率调低，比较新增感染数和红色峰值；再反向调一次，看它是否自己熄灭。',
+        prove: '每个白格只看周围感染邻居。连锁爆发来自许多局部概率事件叠加，而不是红色主动寻找目标。',
+      },
+      conclusion: '在网格里，感染者只影响邻居。beta 越大、gamma 越小，感染链越容易持续；反过来，红色会在几代后消失。',
+    },
+    {
+      id: 'vaccine',
+      label: 'M2 疫苗阈值',
+      short: '绿色挡住红色',
+      title: 'M2 疫苗阈值：刚好挡住要多少',
+      subtitle: '调接种比例，重新铺设绿色免疫者，尝试找到刚好阻断扩散的区间。',
+      prompts: {
+        observe: '先把接种比例从 0% 慢慢加到理论阈值附近，点中心感染者，看红色能不能穿过绿色空隙。',
+        verify: '右侧的 R0 和阈值是粗略参照。多试几次同一比例，比较“偶然小感染”和“大爆发”的差别。',
+        prove: '群体免疫阈值 1 - 1/R0 不是魔法线，而是让每个感染者平均传给不到 1 人的目标比例。',
+      },
+      conclusion: '疫苗的数学作用是减少可被感染、可继续传播的人。接种比例越接近阈值，大爆发越难持续，但随机模型里仍会有小范围波动。',
+    },
+    {
+      id: 'flatten',
+      label: 'M3 拉平曲线',
+      short: '峰值对比',
+      title: 'M3 拉平曲线：峰值能不能降下来',
+      subtitle: '同一随机种子下对比无干预和降传播/接种两条曲线。',
+      prompts: {
+        observe: '点“运行对比”，只盯红色曲线的最高点：哪条更高，哪条更早到峰值？',
+        verify: '调低干预组感染率或提高接种比例，比较峰值下降比例和峰值出现时间。',
+        prove: '拉平曲线不等于没人感染；它的数学含义是降低同一时间的感染峰值，给系统留出处理空间。',
+      },
+      conclusion: '干预会把感染峰值压低并推迟。曲线下面积代表累计感染，峰值高度代表同一时间的压力，两者要分开看。',
+    },
+    {
+      id: 'network',
+      label: 'M4 超级传播者',
+      short: '网络位置很重要',
+      title: 'M4 超级传播者网络：感染谁差别有多大',
+      subtitle: '节点越大连接越多。点 hub 或普通节点作为第一例，比较最终影响人数。',
+      prompts: {
+        observe: '先感染中心的大节点，再重置感染外圈小节点。不要先看结论，比较红色通过哪些边扩散。',
+        verify: '试一次“优先接种高连接者”。看绿色节点是否把网络切成更小的传播片段。',
+        prove: '网络里的“邻居数”会改变有效传播能力。一个人能影响多少人，不只看疾病，也看连接位置。',
+      },
+      conclusion: '超级传播者不是更“厉害”的病毒，而是网络位置更关键。高连接节点感染时会接触更多人；优先保护这些节点常比随机保护更有效。',
+    },
+  ];
+
+  const ACHIEVEMENTS = [
+    { id: 'patient-zero', icon: '1', name: '第一例', desc: '亲手点出第一个感染者。', check: s => s.discoveries.patientZero },
+    { id: 'first-wave', icon: 'W', name: '红色浪潮', desc: '让任一网格实验的感染峰值达到 80 人。', check: s => maxGridPeak(s) >= 80 },
+    { id: 'self-extinct', icon: 'E', name: '自己熄灭', desc: '观察到一次感染链最终归零。', check: s => s.discoveries.extinct },
+    { id: 'r0-switch', icon: 'R', name: '跨过 R0=1', desc: '把任一网格实验的估算 R0 调到 1 以下。', check: s => currentR0(s) < 1 },
+    { id: 'herd-wall', icon: 'H', name: '绿色防线', desc: '在接种比例接近阈值时阻断一次传播。', check: s => s.discoveries.thresholdBlocked },
+    { id: 'flattened', icon: 'F', name: '拉平曲线', desc: '让干预组峰值比无干预组至少低 35%。', check: s => comparisonReduction(s.comparison) >= 0.35 },
+    { id: 'hub-seed', icon: 'N', name: '超级传播者实验', desc: '从 hub 点燃一次网络传播。', check: s => s.discoveries.seededHub },
+    { id: 'targeted-vaccine', icon: 'T', name: '关键节点防守', desc: '对网络执行一次高连接者优先接种。', check: s => s.discoveries.targetedVaccine },
+    { id: 'master', icon: '+', name: '传播建模入门', desc: '解锁前面所有 SIR 发现。', check: s => unlockedWithoutMaster(s).length >= ACHIEVEMENTS.length - 1 },
+  ];
+
+  const canvas = $('#mainCanvas');
+  const ctx = canvas.getContext('2d');
+  const htmlStage = $('#htmlStage');
+
+  let dpr = Math.max(1, window.devicePixelRatio || 1);
+  let drawInfo = null;
+  let lastTick = 0;
+  let raf = 0;
+
+  const app = {
+    active: 'intro',
+    phase: 'observe',
+    reveal: false,
+    running: false,
+    intro: { step: 0 },
+    grid: newGridExperiment({ beta: 0.28, gamma: 0.08, coverage: 0, seed: 2408 }),
+    vaccine: newGridExperiment({ beta: 0.3, gamma: 0.1, coverage: 0.35, seed: 9102 }),
+    comparison: newComparisonState(),
+    network: newNetworkState(),
+    discoveries: {
+      patientZero: false,
+      extinct: false,
+      thresholdBlocked: false,
+      seededHub: false,
+      targetedVaccine: false,
+    },
+  };
+
+  const userState = {
+    unlocked: loadUnlocked(),
+  };
+
+  function moduleConfig(id = app.active) {
+    return MODULES.find(m => m.id === id);
+  }
+
+  function newGridExperiment({ beta, gamma, coverage, seed }) {
+    const state = {
+      rows: 42,
+      cols: 54,
+      beta,
+      gamma,
+      coverage,
+      seed,
+      rng: SIR.makeRng(seed),
+      tool: 'infect',
+      generation: 0,
+      grid: SIR.createGrid(42, 54, SIR.STATES.S),
+      history: [],
+      last: { newInfections: 0, recoveries: 0 },
+      peakInfected: 0,
+      everInfected: 0,
+      ended: false,
+      painting: false,
+    };
+    rebuildGrid(state);
+    return state;
+  }
+
+  function rebuildGrid(state) {
+    state.rng = SIR.makeRng(state.seed + Math.floor(state.coverage * 1000) + state.generation);
+    state.grid = SIR.createGrid(state.rows, state.cols, SIR.STATES.S);
+    if (state.coverage > 0) {
+      SIR.vaccinateRandom(state.grid, state.coverage, SIR.makeRng(state.seed + 17));
+    }
+    state.generation = 0;
+    state.history = [SIR.countStates(state.grid)];
+    state.last = { newInfections: 0, recoveries: 0 };
+    state.peakInfected = 0;
+    state.everInfected = 0;
+    state.ended = false;
+  }
+
+  function stepGridExperiment(state, steps = 1) {
+    for (let n = 0; n < steps; n++) {
+      const before = SIR.countStates(state.grid);
+      if (before.infected === 0) {
+        if (state.everInfected > 0 && !state.ended) {
+          state.ended = true;
+          app.discoveries.extinct = true;
+          maybeMarkThresholdBlocked(state);
+        }
+        break;
+      }
+      const result = SIR.stepGridSir({
+        grid: state.grid,
+        rows: state.rows,
+        cols: state.cols,
+        beta: state.beta,
+        gamma: state.gamma,
+        neighborMode: 'moore',
+        rng: state.rng,
+      });
+      state.grid = result.grid;
+      state.generation += 1;
+      state.last = { newInfections: result.newInfections, recoveries: result.recoveries };
+      const counts = result.counts;
+      state.history.push(counts);
+      if (state.history.length > 260) state.history.shift();
+      state.peakInfected = Math.max(state.peakInfected, counts.infected);
+      state.everInfected += result.newInfections;
+      if (counts.infected === 0 && state.everInfected > 0) {
+        state.ended = true;
+        app.discoveries.extinct = true;
+        maybeMarkThresholdBlocked(state);
+        break;
+      }
+    }
+  }
+
+  function maybeMarkThresholdBlocked(state) {
+    const r0 = gridR0(state);
+    const threshold = SIR.herdImmunityThreshold(r0);
+    const total = state.rows * state.cols;
+    if (state.coverage >= Math.max(0.05, threshold - 0.05) && state.peakInfected < total * 0.08) {
+      app.discoveries.thresholdBlocked = true;
+    }
+  }
+
+  function seedAt(state, r, c, recordDiscovery = true) {
+    const changed = SIR.seedInfection(state.grid, state.rows, state.cols, r, c);
+    if (changed) {
+      state.history[state.history.length - 1] = SIR.countStates(state.grid);
+      state.peakInfected = Math.max(state.peakInfected, 1);
+      if (recordDiscovery) app.discoveries.patientZero = true;
+      state.ended = false;
+    }
+    return changed;
+  }
+
+  function seedCenter(state, recordDiscovery = true) {
+    const r = Math.floor(state.rows / 2);
+    const c = Math.floor(state.cols / 2);
+    return seedAt(state, r, c, recordDiscovery);
+  }
+
+  function newComparisonState() {
+    const state = {
+      betaBase: 0.31,
+      betaIntervention: 0.17,
+      gamma: 0.08,
+      vaccine: 0.22,
+      seed: 3307,
+      maxSteps: 150,
+      baseline: null,
+      intervention: null,
+      running: false,
+      complete: false,
+    };
+    resetComparison(state);
+    return state;
+  }
+
+  function makeComparisonGrid(beta, gamma, coverage, seed) {
+    const state = newGridExperiment({ beta, gamma, coverage, seed });
+    seedCenter(state, false);
+    return state;
+  }
+
+  function resetComparison(state) {
+    state.baseline = makeComparisonGrid(state.betaBase, state.gamma, 0, state.seed);
+    state.intervention = makeComparisonGrid(state.betaIntervention, state.gamma, state.vaccine, state.seed);
+    state.running = false;
+    state.complete = false;
+  }
+
+  function stepComparison(state, steps = 1) {
+    for (let i = 0; i < steps; i++) {
+      stepGridExperiment(state.baseline, 1);
+      stepGridExperiment(state.intervention, 1);
+      const baseInfected = SIR.countStates(state.baseline.grid).infected;
+      const intInfected = SIR.countStates(state.intervention.grid).infected;
+      if (state.baseline.generation >= state.maxSteps || (baseInfected === 0 && intInfected === 0)) {
+        state.running = false;
+        state.complete = true;
+        break;
+      }
+    }
+  }
+
+  function newNetworkState() {
+    const state = {
+      beta: 0.23,
+      gamma: 0.07,
+      seed: 7801,
+      rng: SIR.makeRng(7801),
+      network: SIR.createHubNetwork({ count: 74, ringDegree: 2, hubDegree: 14 }),
+      generation: 0,
+      history: [],
+      last: { newInfections: 0, recoveries: 0 },
+      peakInfected: 0,
+      positions: [],
+    };
+    resetNetwork(state);
+    return state;
+  }
+
+  function resetNetwork(state) {
+    state.rng = SIR.makeRng(state.seed);
+    state.network = SIR.createHubNetwork({ count: 74, ringDegree: 2, hubDegree: 14 });
+    state.positions = makeNetworkPositions(state.network, SIR.makeRng(state.seed + 19));
+    state.generation = 0;
+    state.history = [SIR.countStates(state.network.nodes.map(n => n.state))];
+    state.last = { newInfections: 0, recoveries: 0 };
+    state.peakInfected = 0;
+  }
+
+  function makeNetworkPositions(network, rng) {
+    const points = [{ x: 0.5, y: 0.5 }];
+    const count = network.nodes.length;
+    for (let i = 1; i < count; i++) {
+      const t = (i - 1) / (count - 1);
+      const angle = t * Math.PI * 2;
+      const band = i % 3;
+      const radius = 0.28 + band * 0.075 + (rng() - 0.5) * 0.035;
+      points.push({
+        x: 0.5 + Math.cos(angle) * radius,
+        y: 0.5 + Math.sin(angle) * radius,
+      });
+    }
+    return points;
+  }
+
+  function stepNetwork(state, steps = 1) {
+    for (let i = 0; i < steps; i++) {
+      const before = SIR.countStates(state.network.nodes.map(n => n.state));
+      if (before.infected === 0) break;
+      const result = SIR.stepNetworkSir({
+        network: state.network,
+        beta: state.beta,
+        gamma: state.gamma,
+        rng: state.rng,
+      });
+      state.network = result.network;
+      state.generation += 1;
+      state.last = { newInfections: result.newInfections, recoveries: result.recoveries };
+      state.history.push(result.counts);
+      if (state.history.length > 220) state.history.shift();
+      state.peakInfected = Math.max(state.peakInfected, result.counts.infected);
+      if (result.counts.infected === 0) break;
+    }
+  }
+
+  function setActive(id) {
+    app.active = id;
+    app.running = false;
+    app.reveal = false;
+    renderAll();
+  }
+
+  function renderAll() {
+    renderModules();
+    renderHeader();
+    renderToolbar();
+    renderMetrics();
+    renderLegend();
+    renderRuleCard();
+    renderConclusion();
+    renderPrompt();
+    renderAchievementsCount();
+    renderStageMode();
+    fitCanvas();
+    draw();
+    checkAchievements();
+  }
+
+  function renderModules() {
+    const list = $('#moduleList');
+    list.innerHTML = '';
+    for (const mod of MODULES) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `module-card${mod.id === app.active ? ' active' : ''}`;
+      btn.innerHTML = `<strong>${mod.label}</strong><span>${mod.short}</span>`;
+      btn.addEventListener('click', () => setActive(mod.id));
+      list.appendChild(btn);
+    }
+  }
+
+  function renderHeader() {
+    const mod = moduleConfig();
+    $('#stageTitle').textContent = mod.title;
+    $('#stageSubtitle').textContent = mod.subtitle;
+  }
+
+  function renderToolbar() {
+    const bar = $('#toolbar');
+    bar.innerHTML = '';
+    if (app.active === 'intro') {
+      addButton(bar, '上一步', () => {
+        app.intro.step = Math.max(0, app.intro.step - 1);
+        renderAll();
+      }, { disabled: app.intro.step === 0 });
+      addButton(bar, '下一步', () => {
+        app.intro.step = Math.min(4, app.intro.step + 1);
+        renderAll();
+      }, { primary: true, disabled: app.intro.step === 4 });
+      return;
+    }
+    if (app.active === 'grid') {
+      const state = app.grid;
+      addButton(bar, app.running ? '暂停' : '播放', () => { app.running = !app.running; renderAll(); }, { primary: true });
+      addButton(bar, '下一步', () => { stepGridExperiment(state, 1); renderAll(); });
+      addButton(bar, '重置', () => { rebuildGrid(state); app.running = false; renderAll(); }, { subtle: true });
+      addSelect(bar, state.tool, [['infect', '点感染者'], ['vaccine', '点疫苗'], ['erase', '擦除']], value => { state.tool = value; renderAll(); });
+      addRange(bar, '感染率', state.beta, 0.02, 0.65, 0.01, value => { state.beta = value; renderAll(); });
+      addRange(bar, '康复率', state.gamma, 0.01, 0.35, 0.01, value => { state.gamma = value; renderAll(); });
+      return;
+    }
+    if (app.active === 'vaccine') {
+      const state = app.vaccine;
+      addButton(bar, app.running ? '暂停' : '播放', () => { app.running = !app.running; renderAll(); }, { primary: true });
+      addButton(bar, '下一步', () => { if (SIR.countStates(state.grid).infected === 0) seedCenter(state); stepGridExperiment(state, 1); renderAll(); });
+      addButton(bar, '重置', () => { rebuildGrid(state); seedCenter(state); app.running = false; renderAll(); }, { subtle: true });
+      addRange(bar, '接种', state.coverage, 0, 0.85, 0.01, value => { state.coverage = value; rebuildGrid(state); seedCenter(state); renderAll(); });
+      addRange(bar, '感染率', state.beta, 0.02, 0.65, 0.01, value => { state.beta = value; renderAll(); });
+      addRange(bar, '康复率', state.gamma, 0.01, 0.35, 0.01, value => { state.gamma = value; renderAll(); });
+      return;
+    }
+    if (app.active === 'flatten') {
+      const state = app.comparison;
+      addButton(bar, state.running ? '暂停' : '运行对比', () => { state.running = !state.running; app.running = state.running; renderAll(); }, { primary: true });
+      addButton(bar, '下一步', () => { stepComparison(state, 3); renderAll(); });
+      addButton(bar, '重置', () => { resetComparison(state); app.running = false; renderAll(); }, { subtle: true });
+      addRange(bar, '干预感染率', state.betaIntervention, 0.05, 0.3, 0.01, value => { state.betaIntervention = value; resetComparison(state); renderAll(); });
+      addRange(bar, '干预接种', state.vaccine, 0, 0.6, 0.01, value => { state.vaccine = value; resetComparison(state); renderAll(); });
+      return;
+    }
+    if (app.active === 'network') {
+      const state = app.network;
+      addButton(bar, app.running ? '暂停' : '播放', () => { app.running = !app.running; renderAll(); }, { primary: true });
+      addButton(bar, '下一步', () => { stepNetwork(state, 1); renderAll(); });
+      addButton(bar, '重置', () => { resetNetwork(state); app.running = false; renderAll(); }, { subtle: true });
+      addButton(bar, '感染 hub', () => { infectNetworkNode(state, 0); app.discoveries.seededHub = true; renderAll(); });
+      addButton(bar, '高连接接种', () => { vaccinateNetworkHighDegree(state, 0.18); app.discoveries.targetedVaccine = true; renderAll(); });
+      addRange(bar, '感染率', state.beta, 0.03, 0.5, 0.01, value => { state.beta = value; renderAll(); });
+      addRange(bar, '康复率', state.gamma, 0.01, 0.3, 0.01, value => { state.gamma = value; renderAll(); });
+    }
+  }
+
+  function addButton(parent, text, onClick, options = {}) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = text;
+    if (options.primary) btn.classList.add('primary');
+    if (options.subtle) btn.classList.add('subtle');
+    btn.disabled = Boolean(options.disabled);
+    btn.addEventListener('click', onClick);
+    parent.appendChild(btn);
+    return btn;
+  }
+
+  function addSelect(parent, value, options, onChange) {
+    const select = document.createElement('select');
+    for (const [v, text] of options) {
+      const option = document.createElement('option');
+      option.value = v;
+      option.textContent = text;
+      select.appendChild(option);
+    }
+    select.value = value;
+    select.addEventListener('change', () => onChange(select.value));
+    parent.appendChild(select);
+  }
+
+  function addRange(parent, text, value, min, max, step, onInput) {
+    const label = document.createElement('label');
+    const span = document.createElement('span');
+    const readout = document.createElement('strong');
+    const input = document.createElement('input');
+    span.textContent = text;
+    readout.textContent = formatPct(value);
+    input.type = 'range';
+    input.min = String(min);
+    input.max = String(max);
+    input.step = String(step);
+    input.value = String(value);
+    input.addEventListener('input', () => {
+      const next = Number(input.value);
+      readout.textContent = formatPct(next);
+      onInput(next);
+    });
+    label.append(span, input, readout);
+    parent.appendChild(label);
+  }
+
+  function renderMetrics() {
+    const metrics = $('#metrics');
+    metrics.innerHTML = '';
+    if (app.active === 'intro') {
+      metric(metrics, '模型状态', 'S / I / R / V');
+      metric(metrics, '核心变量', 'beta, gamma, R0');
+      metric(metrics, '本课任务', '爆发 / 熄灭 / 阈值');
+      return;
+    }
+    if (app.active === 'grid' || app.active === 'vaccine') {
+      const state = activeGridState();
+      const counts = SIR.countStates(state.grid);
+      const r0 = gridR0(state);
+      const threshold = SIR.herdImmunityThreshold(r0);
+      metric(metrics, '第几代', state.generation);
+      metric(metrics, '易感 S', counts.susceptible);
+      metric(metrics, '感染 I', counts.infected);
+      metric(metrics, '康复 R', counts.recovered);
+      metric(metrics, '接种 V', counts.vaccinated);
+      metric(metrics, '新增 / 康复', `${state.last.newInfections} / ${state.last.recoveries}`);
+      metric(metrics, '感染峰值', state.peakInfected);
+      metric(metrics, '估算 R0', finiteText(r0));
+      metric(metrics, '阈值 1-1/R0', formatPct(threshold));
+      return;
+    }
+    if (app.active === 'flatten') {
+      const c = app.comparison;
+      metric(metrics, '模拟代数', c.baseline.generation);
+      metric(metrics, '无干预峰值', c.baseline.peakInfected);
+      metric(metrics, '干预峰值', c.intervention.peakInfected);
+      metric(metrics, '峰值下降', formatPct(comparisonReduction(c)));
+      metric(metrics, '无干预累计', totalAffected(c.baseline));
+      metric(metrics, '干预累计', totalAffected(c.intervention));
+      return;
+    }
+    if (app.active === 'network') {
+      const state = app.network;
+      const counts = SIR.countStates(state.network.nodes.map(n => n.state));
+      const degrees = SIR.networkDegrees(state.network);
+      const avgDegree = degrees.reduce((a, b) => a + b, 0) / degrees.length;
+      metric(metrics, '第几代', state.generation);
+      metric(metrics, '感染 I', counts.infected);
+      metric(metrics, '康复 R', counts.recovered);
+      metric(metrics, '接种 V', counts.vaccinated);
+      metric(metrics, '新增 / 康复', `${state.last.newInfections} / ${state.last.recoveries}`);
+      metric(metrics, 'hub 度数', degrees[0]);
+      metric(metrics, '平均度', avgDegree.toFixed(1));
+      metric(metrics, '感染峰值', state.peakInfected);
+    }
+  }
+
+  function metric(parent, label, value) {
+    const row = document.createElement('div');
+    row.className = 'metric';
+    row.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+    parent.appendChild(row);
+  }
+
+  function renderLegend() {
+    const legend = $('#legend');
+    legend.innerHTML = '';
+    const items = [
+      ['易感 S', COLORS[SIR.STATES.S]],
+      ['感染 I', COLORS[SIR.STATES.I]],
+      ['康复 R', COLORS[SIR.STATES.R]],
+      ['接种 V', COLORS[SIR.STATES.V]],
+    ];
+    for (const [name, color] of items) {
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML = `<span class="swatch" style="background:${color}"></span><span>${name}</span>`;
+      legend.appendChild(item);
+    }
+  }
+
+  function renderRuleCard() {
+    const card = $('#ruleCard');
+    if (app.active === 'intro') {
+      card.innerHTML = '<strong>规则骨架</strong><br>S + I -> 2I，I -> R。绿色 V 代表接种免疫，本课不让 V 继续传播。';
+      return;
+    }
+    if (app.active === 'grid') {
+      card.innerHTML = '<strong>网格规则</strong><br>白格只看周围 8 个邻居。若有 k 个红邻居，感染概率为 1-(1-beta)^k。红格以 gamma 概率康复。';
+      return;
+    }
+    if (app.active === 'vaccine') {
+      const state = app.vaccine;
+      const r0 = gridR0(state);
+      card.innerHTML = `<strong>阈值参照</strong><br>当前 R0 约 ${finiteText(r0)}，理论群体免疫阈值约 ${formatPct(SIR.herdImmunityThreshold(r0))}。绿色格不会感染，也不会传播。`;
+      return;
+    }
+    if (app.active === 'flatten') {
+      card.innerHTML = '<strong>对比规则</strong><br>两组从同一中心感染开始。干预组降低感染率并设置一部分绿色免疫者，比较红色峰值和累计影响。';
+      return;
+    }
+    card.innerHTML = '<strong>网络规则</strong><br>感染只沿边传播。节点越大，连接越多；hub 感染后一次接触到的邻居更多。';
+  }
+
+  function renderConclusion() {
+    const btn = $('#revealToggle');
+    const body = $('#conclusionBody');
+    btn.textContent = app.reveal ? '隐藏结论' : '显示结论';
+    body.textContent = app.reveal ? moduleConfig().conclusion : '先操作实验，再点这里对照结论。';
+  }
+
+  function renderPrompt() {
+    const tabs = $('#phaseTabs');
+    for (const btn of tabs.querySelectorAll('button')) {
+      btn.classList.toggle('active', btn.dataset.phase === app.phase);
+    }
+    $('#promptText').textContent = moduleConfig().prompts[app.phase];
+  }
+
+  function renderStageMode() {
+    const isIntro = app.active === 'intro';
+    canvas.classList.toggle('hidden', isIntro);
+    htmlStage.classList.toggle('hidden', !isIntro);
+    if (isIntro) renderIntro();
+  }
+
+  function renderIntro() {
+    const steps = [
+      ['状态', 'S 是还可能被感染的人；I 正在传播；R 已康复暂时免疫；V 是接种后免疫。'],
+      ['局部接触', '一个人不是影响所有人，而是先影响邻居或网络连接上的人。许多局部传播叠加，才形成全局爆发。'],
+      ['R0', 'R0 可以粗略理解为一个感染者平均会带来多少新感染。大于 1 容易增长，小于 1 倾向熄灭。'],
+      ['群体免疫', '如果 R0>1，阈值约为 1 - 1/R0。接种让有效传播对象变少，平均传播数被压低。'],
+      ['网络结构', '连接多的人不是“更坏”，只是更容易把传播带到很多分支。网络位置会改变影响人数。'],
+    ];
+    const current = app.intro.step;
+    htmlStage.innerHTML = `
+      <div class="intro-grid">
+        ${steps.map((item, index) => `
+          <section class="intro-card" style="${index === current ? 'border-color:#3b82f6;background:#eff6ff' : ''}">
+            <h3>${index + 1}. ${item[0]}</h3>
+            <p>${item[1]}</p>
+            ${index === 2 ? '<div class="formula">R0 ≈ 感染率 beta × 接触数 ÷ 康复率 gamma</div>' : ''}
+            ${index === 3 ? '<div class="formula">群体免疫阈值 ≈ 1 - 1/R0</div>' : ''}
+          </section>`).join('')}
+      </div>`;
+  }
+
+  function fitCanvas() {
+    if (canvas.classList.contains('hidden')) return;
+    const rect = canvas.getBoundingClientRect();
+    dpr = Math.max(1, window.devicePixelRatio || 1);
+    const width = Math.max(320, Math.floor(rect.width));
+    const height = Math.max(320, Math.floor(rect.height));
+    if (canvas.width !== Math.floor(width * dpr) || canvas.height !== Math.floor(height * dpr)) {
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+  }
+
+  function draw() {
+    if (canvas.classList.contains('hidden')) return;
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#fbfdfe';
+    ctx.fillRect(0, 0, w, h);
+    drawInfo = null;
+    if (app.active === 'grid') drawGrid(app.grid, w, h, '点击白格设为感染者；也可以切换为点疫苗。');
+    else if (app.active === 'vaccine') drawGrid(app.vaccine, w, h, '绿色接种者会阻断传播路径。拖动接种比例后重新实验。');
+    else if (app.active === 'flatten') drawComparison(app.comparison, w, h);
+    else if (app.active === 'network') drawNetwork(app.network, w, h);
+  }
+
+  function drawGrid(state, w, h, hint) {
+    const narrow = w < 690;
+    const pad = 22;
+    const gridW = narrow ? w - pad * 2 : Math.min(w * 0.58, h - pad * 2);
+    const cell = Math.max(4, Math.floor(Math.min(gridW / state.cols, (narrow ? h * 0.56 : h - pad * 2) / state.rows)));
+    const gw = cell * state.cols;
+    const gh = cell * state.rows;
+    const gx = narrow ? (w - gw) / 2 : pad;
+    const gy = pad;
+    drawRoundedRect(gx - 8, gy - 8, gw + 16, gh + 16, 8, '#eef4f5', '#d7e1e3');
+
+    for (let r = 0; r < state.rows; r++) {
+      for (let c = 0; c < state.cols; c++) {
+        const value = state.grid[SIR.idx(state.cols, r, c)];
+        ctx.fillStyle = COLORS[value];
+        ctx.fillRect(gx + c * cell, gy + r * cell, cell - 0.6, cell - 0.6);
+      }
+    }
+
+    drawInfo = { type: 'grid', state, gx, gy, cell, rows: state.rows, cols: state.cols };
+
+    const chart = narrow
+      ? { x: pad, y: gy + gh + 28, w: w - pad * 2, h: Math.max(130, h - (gy + gh + 52)) }
+      : { x: gx + gw + 34, y: pad + 6, w: Math.max(230, w - (gx + gw + 58)), h: Math.max(210, h * 0.45) };
+    drawSirChart(state.history, state.rows * state.cols, chart, 'S/I/R/V 曲线');
+
+    const noteY = chart.y + chart.h + 22;
+    ctx.fillStyle = '#66777d';
+    ctx.font = '13px "Segoe UI", "Microsoft YaHei", sans-serif';
+    wrapText(hint, chart.x, noteY, chart.w, 20);
+    if (SIR.countStates(state.grid).infected === 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.86)';
+      ctx.fillRect(gx + 18, gy + 18, Math.min(340, gw - 36), 64);
+      ctx.strokeStyle = '#d7e1e3';
+      ctx.strokeRect(gx + 18, gy + 18, Math.min(340, gw - 36), 64);
+      ctx.fillStyle = '#152529';
+      ctx.font = '16px "Segoe UI", "Microsoft YaHei", sans-serif';
+      ctx.fillText('点击一个白格作为第一例', gx + 34, gy + 46);
+      ctx.fillStyle = '#66777d';
+      ctx.font = '13px "Segoe UI", "Microsoft YaHei", sans-serif';
+      ctx.fillText('或点“下一步”从中心开始', gx + 34, gy + 68);
+    }
+  }
+
+  function drawSirChart(history, total, rect, title) {
+    drawRoundedRect(rect.x, rect.y, rect.w, rect.h, 8, '#ffffff', '#d7e1e3');
+    ctx.fillStyle = '#152529';
+    ctx.font = '14px "Segoe UI", "Microsoft YaHei", sans-serif';
+    ctx.fillText(title, rect.x + 12, rect.y + 22);
+    const plot = { x: rect.x + 34, y: rect.y + 38, w: rect.w - 48, h: rect.h - 62 };
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = plot.y + plot.h * i / 4;
+      line(plot.x, y, plot.x + plot.w, y);
+    }
+    drawLineSeries(history.map(c => c.susceptible), total, plot, COLORS[SIR.STATES.S], '#94a3b8');
+    drawLineSeries(history.map(c => c.infected), total, plot, COLORS[SIR.STATES.I]);
+    drawLineSeries(history.map(c => c.recovered), total, plot, COLORS[SIR.STATES.R]);
+    drawLineSeries(history.map(c => c.vaccinated), total, plot, COLORS[SIR.STATES.V]);
+  }
+
+  function drawLineSeries(values, total, plot, color, strokeOverride) {
+    if (values.length < 2) return;
+    ctx.beginPath();
+    values.forEach((value, index) => {
+      const x = plot.x + (index / Math.max(1, values.length - 1)) * plot.w;
+      const y = plot.y + plot.h - (value / Math.max(1, total)) * plot.h;
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = strokeOverride || color;
+    ctx.lineWidth = color === COLORS[SIR.STATES.I] ? 2.5 : 1.8;
+    ctx.stroke();
+  }
+
+  function drawComparison(state, w, h) {
+    const pad = 24;
+    const chart = { x: pad, y: pad, w: w - pad * 2, h: Math.max(230, h * 0.52) };
+    drawRoundedRect(chart.x, chart.y, chart.w, chart.h, 8, '#ffffff', '#d7e1e3');
+    ctx.fillStyle = '#152529';
+    ctx.font = '16px "Segoe UI", "Microsoft YaHei", sans-serif';
+    ctx.fillText('红色感染曲线对比', chart.x + 14, chart.y + 25);
+    const plot = { x: chart.x + 48, y: chart.y + 48, w: chart.w - 72, h: chart.h - 76 };
+    ctx.strokeStyle = '#e2e8f0';
+    for (let i = 0; i <= 4; i++) {
+      const y = plot.y + plot.h * i / 4;
+      line(plot.x, y, plot.x + plot.w, y);
+    }
+    const total = state.baseline.rows * state.baseline.cols;
+    drawNamedCurve(state.baseline.history.map(c => c.infected), total, plot, '#dc2626', '无干预');
+    drawNamedCurve(state.intervention.history.map(c => c.infected), total, plot, '#2563eb', '干预组');
+
+    const y0 = chart.y + chart.h + 24;
+    const boxW = (w - pad * 3) / 2;
+    drawMiniGrid(state.baseline, pad, y0, boxW, h - y0 - pad, '无干预');
+    drawMiniGrid(state.intervention, pad * 2 + boxW, y0, boxW, h - y0 - pad, '降传播 + 接种');
+  }
+
+  function drawNamedCurve(values, total, plot, color, label) {
+    drawLineSeries(values, total, plot, color, color);
+    const last = values[values.length - 1] || 0;
+    const x = plot.x + plot.w - 74;
+    const y = plot.y + plot.h - (last / Math.max(1, total)) * plot.h;
+    ctx.fillStyle = color;
+    ctx.font = '13px "Segoe UI", "Microsoft YaHei", sans-serif';
+    ctx.fillText(label, x, Math.max(plot.y + 14, Math.min(plot.y + plot.h - 6, y)));
+  }
+
+  function drawMiniGrid(state, x, y, w, h, title) {
+    drawRoundedRect(x, y, w, h, 8, '#ffffff', '#d7e1e3');
+    ctx.fillStyle = '#152529';
+    ctx.font = '14px "Segoe UI", "Microsoft YaHei", sans-serif';
+    ctx.fillText(title, x + 12, y + 22);
+    const cell = Math.max(2, Math.floor(Math.min((w - 24) / state.cols, (h - 44) / state.rows)));
+    const gx = x + (w - cell * state.cols) / 2;
+    const gy = y + 34;
+    for (let r = 0; r < state.rows; r++) {
+      for (let c = 0; c < state.cols; c++) {
+        ctx.fillStyle = COLORS[state.grid[SIR.idx(state.cols, r, c)]];
+        ctx.fillRect(gx + c * cell, gy + r * cell, cell - 0.4, cell - 0.4);
+      }
+    }
+  }
+
+  function drawNetwork(state, w, h) {
+    const pad = 24;
+    const chartH = Math.max(145, h * 0.25);
+    const area = { x: pad, y: pad, w: w - pad * 2, h: h - chartH - pad * 3 };
+    drawRoundedRect(area.x, area.y, area.w, area.h, 8, '#ffffff', '#d7e1e3');
+    const degrees = SIR.networkDegrees(state.network);
+    const positions = state.positions.map(p => ({
+      x: area.x + p.x * area.w,
+      y: area.y + p.y * area.h,
+    }));
+    ctx.strokeStyle = '#d7e1e3';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < state.network.edges.length; i++) {
+      for (const j of state.network.edges[i]) {
+        if (j < i) continue;
+        line(positions[i].x, positions[i].y, positions[j].x, positions[j].y);
+      }
+    }
+    for (let i = 0; i < state.network.nodes.length; i++) {
+      const node = state.network.nodes[i];
+      const radius = 5 + Math.min(12, degrees[i] * 0.7);
+      ctx.beginPath();
+      ctx.arc(positions[i].x, positions[i].y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = COLORS[node.state];
+      ctx.fill();
+      ctx.strokeStyle = i === 0 ? '#111827' : '#ffffff';
+      ctx.lineWidth = i === 0 ? 2.2 : 1.5;
+      ctx.stroke();
+    }
+    drawInfo = { type: 'network', state, positions, degrees };
+    const chart = { x: pad, y: h - chartH - pad, w: w - pad * 2, h: chartH };
+    drawSirChart(state.history, state.network.nodes.length, chart, '网络 S/I/R/V 曲线');
+  }
+
+  function drawRoundedRect(x, y, w, h, r, fill, stroke) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+
+  function line(x1, y1, x2, y2) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+
+  function wrapText(text, x, y, maxWidth, lineHeight) {
+    const chars = text.split('');
+    let lineText = '';
+    let yy = y;
+    for (const ch of chars) {
+      const test = lineText + ch;
+      if (ctx.measureText(test).width > maxWidth && lineText) {
+        ctx.fillText(lineText, x, yy);
+        lineText = ch;
+        yy += lineHeight;
+      } else {
+        lineText = test;
+      }
+    }
+    if (lineText) ctx.fillText(lineText, x, yy);
+  }
+
+  function handleCanvasPointer(event) {
+    if (!drawInfo) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    if (drawInfo.type === 'grid') handleGridPointer(drawInfo, x, y);
+    if (drawInfo.type === 'network') handleNetworkPointer(drawInfo, x, y);
+  }
+
+  function handleGridPointer(info, x, y) {
+    const c = Math.floor((x - info.gx) / info.cell);
+    const r = Math.floor((y - info.gy) / info.cell);
+    if (r < 0 || r >= info.rows || c < 0 || c >= info.cols) return;
+    const i = SIR.idx(info.cols, r, c);
+    const state = info.state;
+    if (state.tool === 'vaccine') {
+      if (state.grid[i] === SIR.STATES.S) state.grid[i] = SIR.STATES.V;
+      else if (state.grid[i] === SIR.STATES.V) state.grid[i] = SIR.STATES.S;
+    } else if (state.tool === 'erase') {
+      state.grid[i] = SIR.STATES.S;
+    } else {
+      seedAt(state, r, c);
+    }
+    state.history[state.history.length - 1] = SIR.countStates(state.grid);
+    renderAll();
+  }
+
+  function handleNetworkPointer(info, x, y) {
+    let best = -1;
+    let bestD = Infinity;
+    for (let i = 0; i < info.positions.length; i++) {
+      const p = info.positions[i];
+      const dx = x - p.x;
+      const dy = y - p.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      const radius = 8 + Math.min(14, info.degrees[i] * 0.7);
+      if (d < radius && d < bestD) {
+        best = i;
+        bestD = d;
+      }
+    }
+    if (best >= 0) {
+      infectNetworkNode(info.state, best);
+      if (best === 0) app.discoveries.seededHub = true;
+      renderAll();
+    }
+  }
+
+  function infectNetworkNode(state, index) {
+    const node = state.network.nodes[index];
+    if (node && node.state === SIR.STATES.S) {
+      node.state = SIR.STATES.I;
+      state.peakInfected = Math.max(state.peakInfected, 1);
+      state.history[state.history.length - 1] = SIR.countStates(state.network.nodes.map(n => n.state));
+      app.discoveries.patientZero = true;
+    }
+  }
+
+  function vaccinateNetworkHighDegree(state, coverage) {
+    const count = Math.max(1, Math.floor(state.network.nodes.length * coverage));
+    const degrees = SIR.networkDegrees(state.network);
+    const order = degrees.map((degree, index) => ({ degree, index })).sort((a, b) => b.degree - a.degree);
+    let vaccinated = 0;
+    for (const item of order) {
+      const node = state.network.nodes[item.index];
+      if (node.state === SIR.STATES.S) {
+        node.state = SIR.STATES.V;
+        vaccinated += 1;
+        if (vaccinated >= count) break;
+      }
+    }
+    state.history[state.history.length - 1] = SIR.countStates(state.network.nodes.map(n => n.state));
+  }
+
+  function activeGridState() {
+    return app.active === 'vaccine' ? app.vaccine : app.grid;
+  }
+
+  function gridR0(state) {
+    const contacts = 8;
+    const counts = SIR.countStates(state.grid);
+    const susceptibleFraction = (counts.susceptible + counts.infected) / state.grid.length;
+    return SIR.estimateR0({ beta: state.beta, gamma: state.gamma, contacts, susceptibleFraction });
+  }
+
+  function currentR0(state) {
+    if (state.active === 'grid' || state.active === 'vaccine') return gridR0(activeGridState());
+    return Infinity;
+  }
+
+  function maxGridPeak(state) {
+    return Math.max(state.grid.peakInfected, state.vaccine.peakInfected);
+  }
+
+  function totalAffected(state) {
+    const counts = SIR.countStates(state.grid);
+    return counts.infected + counts.recovered;
+  }
+
+  function comparisonReduction(c) {
+    const base = c.baseline.peakInfected;
+    const intervention = c.intervention.peakInfected;
+    if (!base) return 0;
+    return Math.max(0, (base - intervention) / base);
+  }
+
+  function finiteText(value) {
+    if (!Number.isFinite(value)) return '无穷大';
+    return Number(value).toFixed(value < 10 ? 2 : 1);
+  }
+
+  function formatPct(value) {
+    return `${Math.round(value * 100)}%`;
+  }
+
+  function loadUnlocked() {
+    try {
+      const raw = localStorage.getItem('sir-spread-ach-v1');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function saveUnlocked() {
+    try {
+      localStorage.setItem('sir-spread-ach-v1', JSON.stringify([...userState.unlocked]));
+    } catch {
+      // localStorage can be blocked in some embedded previews.
+    }
+  }
+
+  function checkAchievements() {
+    let changed = false;
+    for (const def of ACHIEVEMENTS) {
+      if (!userState.unlocked.has(def.id) && def.check(app)) {
+        userState.unlocked.add(def.id);
+        showToast(def);
+        changed = true;
+      }
+    }
+    if (changed) {
+      saveUnlocked();
+      renderAchievementsCount();
+    }
+  }
+
+  function unlockedWithoutMaster() {
+    return [...userState.unlocked].filter(id => id !== 'master');
+  }
+
+  function renderAchievementsCount() {
+    $('#trophyCount').textContent = String(userState.unlocked.size);
+    $('#trophyTotal').textContent = String(ACHIEVEMENTS.length);
+  }
+
+  function showToast(def) {
+    const stack = $('#toastStack');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `<strong>解锁：${def.name}</strong><span>${def.desc}</span>`;
+    stack.appendChild(toast);
+    setTimeout(() => toast.remove(), 4200);
+  }
+
+  function renderAchievementModal() {
+    const list = $('#achievementList');
+    list.innerHTML = '';
+    for (const def of ACHIEVEMENTS) {
+      const unlocked = userState.unlocked.has(def.id);
+      const item = document.createElement('div');
+      item.className = `achievement${unlocked ? ' unlocked' : ''}`;
+      item.innerHTML = `<strong>${def.icon} ${def.name}</strong><p>${def.desc}</p>`;
+      list.appendChild(item);
+    }
+    const pct = ACHIEVEMENTS.length ? userState.unlocked.size / ACHIEVEMENTS.length * 100 : 0;
+    $('#achievementProgress').style.width = `${pct}%`;
+  }
+
+  function animationLoop(time) {
+    if (time - lastTick > 85) {
+      if (app.running) {
+        if (app.active === 'grid') stepGridExperiment(app.grid, 1);
+        if (app.active === 'vaccine') {
+          if (SIR.countStates(app.vaccine.grid).infected === 0 && app.vaccine.everInfected === 0) seedCenter(app.vaccine);
+          stepGridExperiment(app.vaccine, 1);
+        }
+        if (app.active === 'flatten') {
+          app.comparison.running = true;
+          stepComparison(app.comparison, 2);
+          app.running = app.comparison.running;
+        }
+        if (app.active === 'network') stepNetwork(app.network, 1);
+        renderMetrics();
+        renderRuleCard();
+        draw();
+        checkAchievements();
+      }
+      lastTick = time;
+    }
+    raf = requestAnimationFrame(animationLoop);
+  }
+
+  $('#phaseTabs').addEventListener('click', event => {
+    const btn = event.target.closest('button[data-phase]');
+    if (!btn) return;
+    app.phase = btn.dataset.phase;
+    renderPrompt();
+  });
+
+  $('#revealToggle').addEventListener('click', () => {
+    app.reveal = !app.reveal;
+    renderConclusion();
+  });
+
+  $('#openAchievements').addEventListener('click', () => {
+    renderAchievementModal();
+    $('#achievementModal').classList.add('open');
+  });
+
+  $('#closeAchievements').addEventListener('click', () => {
+    $('#achievementModal').classList.remove('open');
+  });
+
+  $('#achievementModal').addEventListener('click', event => {
+    if (event.target.id === 'achievementModal') $('#achievementModal').classList.remove('open');
+  });
+
+  $('#resetAchievements').addEventListener('click', () => {
+    userState.unlocked.clear();
+    saveUnlocked();
+    renderAchievementModal();
+    renderAchievementsCount();
+  });
+
+  canvas.addEventListener('pointerdown', event => {
+    if (app.active === 'grid') app.grid.painting = true;
+    if (app.active === 'vaccine') app.vaccine.painting = true;
+    handleCanvasPointer(event);
+  });
+
+  canvas.addEventListener('pointermove', event => {
+    if ((app.active === 'grid' && app.grid.painting) || (app.active === 'vaccine' && app.vaccine.painting)) {
+      handleCanvasPointer(event);
+    }
+  });
+
+  window.addEventListener('pointerup', () => {
+    app.grid.painting = false;
+    app.vaccine.painting = false;
+  });
+
+  window.addEventListener('resize', () => {
+    fitCanvas();
+    draw();
+  });
+
+  renderAll();
+  raf = requestAnimationFrame(animationLoop);
+})();
+
+</script>
+</body>
+</html>
+

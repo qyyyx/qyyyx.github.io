@@ -1,0 +1,1870 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>标数法与最短路径 - 单文件交互课件</title>
+  <link rel="icon" href="data:,">
+  <style>
+:root {
+  --bg: #f4f7f8;
+  --surface: #ffffff;
+  --surface-strong: #eef4f5;
+  --line: #d7e1e3;
+  --text: #152529;
+  --muted: #66777d;
+  --accent: #3b82f6;
+  --accent-dark: #2563eb;
+  --accent-soft: #dbeafe;
+  --warning: #c47a1c;
+  --proof: #f3c44e;
+  --good: #15803d;
+  --bad: #b91c1c;
+  --violet: #7c3aed;
+  --avoid: #dc2626;
+  --wall: #475569;
+  --shadow: 0 6px 22px rgba(20, 45, 55, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+button,
+select,
+input {
+  font: inherit;
+}
+
+button,
+select {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+button {
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.topbar {
+  min-height: 68px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar h1 {
+  margin: 2px 0 0;
+  font-size: 24px;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--accent-dark);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 242px minmax(440px, 1fr) 330px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "nav stage data"
+    "prompt prompt prompt";
+  gap: 16px;
+  min-height: calc(100vh - 68px);
+  padding: 16px 24px;
+}
+
+.panel {
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.nav {
+  grid-area: nav;
+  padding: 16px;
+}
+
+.stage {
+  grid-area: stage;
+  padding: 16px;
+}
+
+.data {
+  grid-area: data;
+  padding: 16px;
+}
+
+.prompt {
+  grid-area: prompt;
+  display: grid;
+  grid-template-columns: auto minmax(240px, 1fr) minmax(240px, 0.8fr);
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+}
+
+.nav h2,
+.data h2 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.module-list {
+  display: grid;
+  gap: 10px;
+}
+
+.module-card {
+  width: 100%;
+  min-height: 72px;
+  text-align: left;
+}
+
+.module-card strong,
+.module-card span {
+  display: block;
+}
+
+.module-card strong {
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+
+.module-card span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.module-card.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.progress-card {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.progress-head,
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-head span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.progressbar {
+  height: 8px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+
+.progressbar i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+}
+
+.trophy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  background: #fffbeb;
+  border-color: #f6d879;
+}
+
+.stage-head {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.stage-head h2 {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1.2;
+}
+
+.stage-head p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn-primary,
+.toolbar button.active,
+.phase-tabs button.active {
+  color: #fff;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.btn-subtle {
+  background: var(--surface-strong);
+}
+
+.board-shell {
+  min-height: 610px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.board-caption {
+  min-height: 24px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.board {
+  align-self: stretch;
+  justify-self: center;
+  width: min(100%, 720px);
+  max-height: 70vh;
+  aspect-ratio: 1;
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #dce6ea;
+  touch-action: manipulation;
+}
+
+.node {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid rgba(91, 113, 121, 0.35);
+  border-radius: 8px;
+  color: var(--text);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.78)),
+    rgba(59, 130, 246, var(--heat, 0));
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+  overflow: hidden;
+}
+
+.node:hover,
+.node.selected {
+  outline: 3px solid rgba(59, 130, 246, 0.42);
+  z-index: 2;
+}
+
+.node.unseen {
+  color: transparent;
+  background: #f1f5f9;
+}
+
+.node.unreachable {
+  color: #94a3b8;
+  background: #edf2f4;
+}
+
+.node.start {
+  color: #fff;
+  border-color: var(--good);
+  background: var(--good);
+}
+
+.node.end {
+  color: #fff;
+  border-color: var(--accent-dark);
+  background: var(--accent-dark);
+}
+
+.node.blocked {
+  color: #fff;
+  border-color: var(--wall);
+  background: repeating-linear-gradient(135deg, var(--wall) 0 8px, #334155 8px 16px);
+}
+
+.node.avoid {
+  color: #fff;
+  border-color: var(--avoid);
+  background: var(--avoid);
+}
+
+.node.must {
+  color: #fff;
+  border-color: var(--violet);
+  background: var(--violet);
+}
+
+.node .tag {
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  color: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.node .value {
+  display: block;
+  max-width: 100%;
+  padding: 0 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(12px, 2.1vw, 24px);
+}
+
+.metrics {
+  display: grid;
+  gap: 8px;
+}
+
+.metric {
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.metric span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.metric strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.metric small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.rule-card {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf5;
+  color: #3f3417;
+  line-height: 1.55;
+  font-size: 14px;
+}
+
+.rule-card code,
+.metric code {
+  font-family: Consolas, "SFMono-Regular", monospace;
+  font-size: 0.95em;
+}
+
+.phase-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.prompt-text,
+.conclusion {
+  min-height: 44px;
+  line-height: 1.55;
+}
+
+.prompt-text {
+  color: var(--text);
+}
+
+.conclusion {
+  padding: 10px 12px;
+  border-left: 4px solid var(--proof);
+  border-radius: 8px;
+  background: #fffbeb;
+}
+
+.achievement-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.ach-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.ach-row.locked {
+  opacity: 0.64;
+}
+
+.ach-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ach-desc,
+.ach-status {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.toast-stack {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 20;
+  display: grid;
+  gap: 10px;
+  width: min(330px, calc(100vw - 36px));
+}
+
+.toast {
+  padding: 12px;
+  border: 1px solid #f6d879;
+  border-radius: 8px;
+  background: #fffbeb;
+  box-shadow: 0 12px 30px rgba(20, 45, 55, 0.18);
+}
+
+.toast strong,
+.toast span {
+  display: block;
+}
+
+.toast span {
+  margin-top: 4px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.quiz-list {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.quiz-board {
+  width: 100%;
+  max-height: none;
+  aspect-ratio: auto;
+  display: block;
+  overflow: auto;
+  background: #f8fafc;
+}
+
+.quiz-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.quiz-card p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.quiz-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quiz-options button.active {
+  color: #fff;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.quiz-card.correct {
+  border-color: rgba(21, 128, 61, 0.55);
+  background: #f0fdf4;
+}
+
+.quiz-card.wrong {
+  border-color: rgba(185, 28, 28, 0.45);
+  background: #fef2f2;
+}
+
+.explain {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+@media (max-width: 1120px) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "nav"
+      "stage"
+      "data"
+      "prompt";
+  }
+
+  .module-list {
+    grid-template-columns: repeat(6, minmax(180px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .module-card {
+    min-width: 180px;
+  }
+
+  .prompt {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 12px 14px;
+  }
+
+  .layout {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .stage-head {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar {
+    justify-content: flex-start;
+  }
+
+  .board-shell {
+    min-height: 430px;
+  }
+
+  .board {
+    gap: 4px;
+    padding: 5px;
+  }
+
+  .node {
+    border-radius: 6px;
+  }
+}
+
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">O-计1 · 三春 / 五暑 · 加法原理与网格计数</p>
+      <h1>标数法与最短路径</h1>
+    </div>
+    <button class="trophy-btn" id="achievementButton" type="button">
+      <span>成就</span>
+      <strong><span data-ach-count>0</span>/<span data-ach-total>8</span></strong>
+    </button>
+  </header>
+
+  <main class="layout">
+    <nav class="panel nav">
+      <h2>学习路径</h2>
+      <div class="module-list" id="moduleList"></div>
+      <div class="progress-card">
+        <div class="progress-head">
+          <span>发现进度</span>
+          <strong><span data-ach-count>0</span>/<span data-ach-total>8</span></strong>
+        </div>
+        <div class="progressbar"><i data-ach-progress></i></div>
+      </div>
+    </nav>
+
+    <section class="panel stage">
+      <div class="stage-head">
+        <div>
+          <h2 id="moduleTitle"></h2>
+          <p id="moduleSubtitle"></p>
+        </div>
+        <div class="toolbar" id="toolbar"></div>
+      </div>
+
+      <div class="board-shell">
+        <div class="board-caption" id="boardCaption"></div>
+        <div class="board" id="board" aria-label="标数法棋盘"></div>
+      </div>
+    </section>
+
+    <aside class="panel data">
+      <h2>数据面板</h2>
+      <div class="metrics" id="metrics"></div>
+      <div class="rule-card" id="ruleCard"></div>
+      <div class="achievement-list hidden" id="achievementList"></div>
+    </aside>
+
+    <section class="panel prompt">
+      <div class="phase-tabs" id="phaseTabs"></div>
+      <div class="prompt-text" id="promptText"></div>
+      <div class="conclusion hidden" id="conclusion"></div>
+    </section>
+  </main>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+  <script>
+/*
+ * path-count-engine.js
+ * 标数法与最短路径规则引擎（UMD：浏览器全局 + Node require）
+ *
+ * 模型约定：
+ * - grid 使用点阵而不是方格面；每个节点可以标数。
+ * - 最短路径只朝终点的横向/纵向方向前进，例如从左下到右上就是“向右/向上”。
+ * - blocked 节点标 0，不参与后续加法。
+ * - 必经点通过“分段标数再相乘”计算。
+ */
+(function (global) {
+  'use strict';
+
+  function clonePoint(p) {
+    return [Number(p[0]), Number(p[1])];
+  }
+
+  function keyOf(p) {
+    return p[0] + ',' + p[1];
+  }
+
+  function pointFromKey(key) {
+    var parts = String(key).split(',');
+    return [Number(parts[0]), Number(parts[1])];
+  }
+
+  function toPointList(points) {
+    if (!points) return [];
+    if (points instanceof Set) {
+      return Array.from(points).map(pointFromKey);
+    }
+    return points.map(clonePoint);
+  }
+
+  function toKeySet(points) {
+    var set = new Set();
+    toPointList(points).forEach(function (p) { set.add(keyOf(p)); });
+    return set;
+  }
+
+  function sign(n) {
+    return n === 0 ? 0 : (n > 0 ? 1 : -1);
+  }
+
+  function withinGrid(rows, cols, p) {
+    return p[0] >= 0 && p[0] < rows && p[1] >= 0 && p[1] < cols;
+  }
+
+  function between(a, b, x) {
+    return x >= Math.min(a, b) && x <= Math.max(a, b);
+  }
+
+  function inSegmentBox(start, end, p) {
+    return between(start[0], end[0], p[0]) && between(start[1], end[1], p[1]);
+  }
+
+  function normalizeConfig(config) {
+    if (!config) throw new Error('config required');
+    var rows = Number(config.rows);
+    var cols = Number(config.cols);
+    if (!Number.isInteger(rows) || rows <= 0) throw new Error('rows must be a positive integer');
+    if (!Number.isInteger(cols) || cols <= 0) throw new Error('cols must be a positive integer');
+    var start = clonePoint(config.start || [rows - 1, 0]);
+    var end = clonePoint(config.end || [0, cols - 1]);
+    if (!withinGrid(rows, cols, start)) throw new Error('start outside grid');
+    if (!withinGrid(rows, cols, end)) throw new Error('end outside grid');
+    return {
+      rows: rows,
+      cols: cols,
+      start: start,
+      end: end,
+      blocked: toKeySet(config.blocked || []),
+    };
+  }
+
+  function blankMatrix(rows, cols, fill) {
+    var matrix = [];
+    for (var r = 0; r < rows; r++) {
+      var row = [];
+      for (var c = 0; c < cols; c++) row.push(fill);
+      matrix.push(row);
+    }
+    return matrix;
+  }
+
+  function compareProgress(start, a, b) {
+    var da = Math.abs(a[0] - start[0]) + Math.abs(a[1] - start[1]);
+    var db = Math.abs(b[0] - start[0]) + Math.abs(b[1] - start[1]);
+    if (da !== db) return da - db;
+    if (a[0] !== b[0]) return a[0] - b[0];
+    return a[1] - b[1];
+  }
+
+  function makeLayerIndex(start, p) {
+    return Math.abs(p[0] - start[0]) + Math.abs(p[1] - start[1]);
+  }
+
+  function computeCounts(config) {
+    var cfg = normalizeConfig(config);
+    var rows = cfg.rows, cols = cfg.cols;
+    var start = cfg.start, end = cfg.end;
+    var dr = sign(end[0] - start[0]);
+    var dc = sign(end[1] - start[1]);
+    var values = blankMatrix(rows, cols, null);
+    var reachable = blankMatrix(rows, cols, false);
+    var layers = [];
+    var maxDist = Math.abs(end[0] - start[0]) + Math.abs(end[1] - start[1]);
+
+    for (var dist = 0; dist <= maxDist; dist++) {
+      var layer = [];
+      for (var r = 0; r < rows; r++) {
+        for (var c = 0; c < cols; c++) {
+          var p = [r, c];
+          if (!inSegmentBox(start, end, p)) continue;
+          if (makeLayerIndex(start, p) !== dist) continue;
+
+          var key = keyOf(p);
+          reachable[r][c] = true;
+          if (cfg.blocked.has(key)) {
+            values[r][c] = 0;
+          } else if (r === start[0] && c === start[1]) {
+            values[r][c] = 1;
+          } else {
+            var sum = 0;
+            var prevR = dr === 0 ? null : [r - dr, c];
+            var prevC = dc === 0 ? null : [r, c - dc];
+            if (prevR && withinGrid(rows, cols, prevR) && values[prevR[0]][prevR[1]] !== null) {
+              sum += values[prevR[0]][prevR[1]];
+            }
+            if (prevC && withinGrid(rows, cols, prevC) && values[prevC[0]][prevC[1]] !== null) {
+              sum += values[prevC[0]][prevC[1]];
+            }
+            values[r][c] = sum;
+          }
+          layer.push({ point: p, value: values[r][c], blocked: cfg.blocked.has(key) });
+        }
+      }
+      layers.push(layer.sort(function (a, b) { return a.point[0] - b.point[0] || a.point[1] - b.point[1]; }));
+    }
+
+    return {
+      rows: rows,
+      cols: cols,
+      start: start,
+      end: end,
+      blocked: Array.from(cfg.blocked).map(pointFromKey),
+      values: values,
+      reachable: reachable,
+      layers: layers,
+      total: values[end[0]][end[1]] || 0,
+      maxLayer: maxDist,
+    };
+  }
+
+  function isMonotoneBetween(start, end, p) {
+    return inSegmentBox(start, end, p);
+  }
+
+  function uniqueWaypoints(points) {
+    var out = [];
+    var seen = new Set();
+    toPointList(points).forEach(function (p) {
+      var key = keyOf(p);
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(p);
+      }
+    });
+    return out;
+  }
+
+  function countThroughWaypoints(config, waypoints) {
+    var cfg = normalizeConfig(config);
+    var ordered = uniqueWaypoints(waypoints || [])
+      .filter(function (p) {
+        return !(p[0] === cfg.start[0] && p[1] === cfg.start[1]) &&
+          !(p[0] === cfg.end[0] && p[1] === cfg.end[1]);
+      })
+      .sort(function (a, b) { return compareProgress(cfg.start, a, b); });
+    var chain = [cfg.start].concat(ordered).concat([cfg.end]);
+    var segments = [];
+    var total = 1;
+
+    for (var i = 0; i + 1 < chain.length; i++) {
+      var a = chain[i];
+      var b = chain[i + 1];
+      if (!isMonotoneBetween(cfg.start, cfg.end, b) || !isMonotoneBetween(a, cfg.end, b)) {
+        total = 0;
+        segments.push({ start: a, end: b, total: 0, impossible: true });
+        continue;
+      }
+      var segment = computeCounts({
+        rows: cfg.rows,
+        cols: cfg.cols,
+        start: a,
+        end: b,
+        blocked: Array.from(cfg.blocked).map(pointFromKey),
+      });
+      segments.push({ start: a, end: b, total: segment.total, impossible: false });
+      total *= segment.total;
+    }
+
+    return { total: total, ordered: ordered, segments: segments };
+  }
+
+  function computeSegmentedCounts(config, waypoints) {
+    var cfg = normalizeConfig(config);
+    var ordered = uniqueWaypoints(waypoints || [])
+      .filter(function (p) {
+        return !(p[0] === cfg.start[0] && p[1] === cfg.start[1]) &&
+          !(p[0] === cfg.end[0] && p[1] === cfg.end[1]);
+      })
+      .sort(function (a, b) { return compareProgress(cfg.start, a, b); });
+    var chain = [cfg.start].concat(ordered).concat([cfg.end]);
+    var labels = blankMatrix(cfg.rows, cfg.cols, null);
+    var values = blankMatrix(cfg.rows, cfg.cols, null);
+    var reachable = blankMatrix(cfg.rows, cfg.cols, false);
+    var segments = [];
+    var total = 1;
+    var maxValue = 0;
+
+    function addPart(r, c, part) {
+      if (!labels[r][c]) labels[r][c] = { parts: [] };
+      labels[r][c].parts.push(part);
+      reachable[r][c] = true;
+      values[r][c] = values[r][c] === null ? part.value : Math.max(values[r][c], part.value);
+      if (part.value > maxValue) maxValue = part.value;
+    }
+
+    for (var i = 0; i + 1 < chain.length; i++) {
+      var a = chain[i];
+      var b = chain[i + 1];
+      if (!isMonotoneBetween(cfg.start, cfg.end, b) || !isMonotoneBetween(a, cfg.end, b)) {
+        total = 0;
+        segments.push({ start: a, end: b, total: 0, impossible: true });
+        continue;
+      }
+
+      var segment = computeCounts({
+        rows: cfg.rows,
+        cols: cfg.cols,
+        start: a,
+        end: b,
+        blocked: Array.from(cfg.blocked).map(pointFromKey),
+      });
+      segments.push({ start: a, end: b, total: segment.total, impossible: false, counts: segment });
+      total *= segment.total;
+
+      for (var r = 0; r < cfg.rows; r++) {
+        for (var c = 0; c < cfg.cols; c++) {
+          var v = segment.values[r][c];
+          if (v === null) continue;
+          addPart(r, c, {
+            segmentIndex: i,
+            value: v,
+            start: a,
+            end: b,
+          });
+        }
+      }
+    }
+
+    return {
+      rows: cfg.rows,
+      cols: cfg.cols,
+      start: cfg.start,
+      end: cfg.end,
+      ordered: ordered,
+      segments: segments,
+      labels: labels,
+      values: values,
+      reachable: reachable,
+      total: total,
+      maxValue: Math.max(1, maxValue),
+    };
+  }
+
+  function countAvoidingPoint(config, point) {
+    var base = computeCounts(config);
+    var through = countThroughWaypoints(config, [point]);
+    return {
+      total: Math.max(0, base.total - through.total),
+      baseTotal: base.total,
+      through: through.total,
+      point: clonePoint(point),
+    };
+  }
+
+  function cellContribution(config, point) {
+    var cfg = normalizeConfig(config);
+    var before = computeCounts({
+      rows: cfg.rows,
+      cols: cfg.cols,
+      start: cfg.start,
+      end: clonePoint(point),
+      blocked: cfg.blocked,
+    }).total;
+    var after = computeCounts({
+      rows: cfg.rows,
+      cols: cfg.cols,
+      start: clonePoint(point),
+      end: cfg.end,
+      blocked: cfg.blocked,
+    }).total;
+    return {
+      point: clonePoint(point),
+      before: before,
+      after: after,
+      through: before * after,
+    };
+  }
+
+  function makeBlockedFromPredicate(rows, cols, predicate) {
+    var out = [];
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        if (predicate(r, c)) out.push([r, c]);
+      }
+    }
+    return out;
+  }
+
+  function binomial(n, k) {
+    n = Number(n);
+    k = Number(k);
+    if (!Number.isInteger(n) || !Number.isInteger(k) || n < 0 || k < 0 || k > n) return 0;
+    k = Math.min(k, n - k);
+    var result = 1;
+    for (var i = 1; i <= k; i++) {
+      result = result * (n - k + i) / i;
+    }
+    return Math.round(result);
+  }
+
+  function shortestPathCountByFormula(rows, cols) {
+    return binomial(rows + cols - 2, rows - 1);
+  }
+
+  var api = {
+    keyOf: keyOf,
+    computeCounts: computeCounts,
+    computeSegmentedCounts: computeSegmentedCounts,
+    countThroughWaypoints: countThroughWaypoints,
+    countAvoidingPoint: countAvoidingPoint,
+    cellContribution: cellContribution,
+    makeBlockedFromPredicate: makeBlockedFromPredicate,
+    binomial: binomial,
+    shortestPathCountByFormula: shortestPathCountByFormula,
+  };
+
+  global.PathCountEngine = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
+  <script>
+(function () {
+  'use strict';
+
+  var E = window.PathCountEngine;
+  var $ = function (sel) { return document.querySelector(sel); };
+
+  var PHASES = [
+    { id: 'observe', label: '观察' },
+    { id: 'verify', label: '验证' },
+    { id: 'prove', label: '证明' },
+  ];
+
+  var MODULES = [
+    {
+      id: 'intro',
+      label: 'M0 入门地图',
+      short: '逐层标数',
+      title: 'M0 从 1 开始：每个数从哪里来',
+      subtitle: '从起点逐层推进，看到“左边 + 下边”怎样长成一张杨辉式标数表。',
+      prompts: {
+        observe: '先只看起点附近两三层。每一层出现的新数，能不能从它相邻的已知数解释出来？',
+        verify: '点“下一步”逐层标数，任选一个节点，把它的左邻和下邻加起来检查。',
+        prove: '最短路不能绕远。到达某点的最后一步只可能来自两个方向，所以路径数必须分类相加。',
+      },
+      conclusion: '标数法的本质是递推：当前点路径数 = 所有能一步到达它的前序点路径数之和。',
+    },
+    {
+      id: 'sandbox',
+      label: 'M1 自由棋盘',
+      short: '障碍 / 必经 / 禁走',
+      title: 'M1 路线沙盘：自己造一个最短路径题',
+      subtitle: '切换工具点击格点，设置障碍、必经点或禁走点，观察终点标数怎样变化。',
+      prompts: {
+        observe: '先设一个障碍点。注意被挡住的不只是这个点，它右上方一片区域的数也会变。',
+        verify: '再设一个必经点，比较“终点标数”和“起点到必经点 × 必经点到终点”。',
+        prove: '障碍是不允许贡献，必经是把全程拆成几段。两者都没有改变“加法递推”的核心规则。',
+      },
+      conclusion: '禁走点可以直接标 0；必经点不能直接标 0，而要分段相乘。',
+    },
+    {
+      id: 'must',
+      label: 'M2 必经与不经',
+      short: '分段相乘 / 排除',
+      title: 'M2 市中心问题：经过还是不经过',
+      subtitle: '同一个格点既可以是“必须经过”的市中心，也可以是“不能经过”的商店。',
+      prompts: {
+        observe: '观察紫色必经点：它把从学校到养老院的路分成了前后两段。',
+        verify: '把模式切到“禁走”后点同一位置，对比“全部路线 - 经过它的路线”。',
+        prove: '经过某点是乘法原理分段，不经过某点是排除法。两种思路经常互相校验。',
+      },
+      conclusion: '必经 A 的最短路线数 = 起点到 A 的路线数 × A 到终点的路线数；不经 A = 总数 - 经 A。',
+    },
+    {
+      id: 'obstacle',
+      label: 'M3 障碍雨区',
+      short: '标 0 与绕行',
+      title: 'M3 下雨封路：一片障碍怎样改写全局',
+      subtitle: '切换雨区、窄桥、双障碍预设，也可以继续手动增删障碍。',
+      prompts: {
+        observe: '先看障碍附近：它们本身为 0，右上方节点会少收到一部分贡献。',
+        verify: '切换预设后，找一个数变化最大的节点，点它查看经过该点的路线热度。',
+        prove: '封路区域不是简单少一个点，而是改变了后续许多点的递推来源。',
+      },
+      conclusion: '有障碍时仍然逐格标数，只是障碍点贡献为 0，后面的点自动完成绕行计数。',
+    },
+    {
+      id: 'stair',
+      label: 'M4 阶梯标数',
+      short: '不越过对角线',
+      title: 'M4 比赛计分：乙始终不领先甲',
+      subtitle: '把甲得分看作向右，乙得分看作向上，越过对角线的状态全部禁走。',
+      prompts: {
+        observe: '灰色区域表示“乙已经领先甲”，这些状态不允许出现。',
+        verify: '调大比分规模，终点标数会变成 1, 2, 5, 14, 42 这一串熟悉的数。',
+        prove: '阶梯标数只是把“不合法状态”删掉。合法区域内仍然使用左边 + 下边的递推。',
+      },
+      conclusion: '阶梯型标数把顺序限制转成网格形状限制，是标数法从路线题走向计数题的关键一步。',
+    },
+    {
+      id: 'quiz',
+      label: 'M5 总结闯关',
+      short: '把方法说清楚',
+      title: 'M5 总结闯关：你会选择哪种标数策略',
+      subtitle: '5 个判断题检查“加法递推、必经分段、禁走标 0、阶梯限制”是否真的会用。',
+      prompts: {
+        observe: '先回忆前四个模块：普通、必经、不经、障碍、阶梯分别改了什么。',
+        verify: '提交后逐题看解释，把错题对应回前面的棋盘操作。',
+        prove: '如果能说清“为什么是加、为什么是乘、为什么能减”，就掌握了标数法骨架。',
+      },
+      conclusion: '标数法不是背图形答案，而是把限制条件翻译成递推边界。',
+    },
+  ];
+
+  var QUIZ = [
+    {
+      id: 'add',
+      text: '到达某点的最短路径数，等于所有能一步到达它的前序点路径数之和。',
+      answer: true,
+      explain: '正确。这就是加法原理在网格递推里的形式。',
+    },
+    {
+      id: 'must',
+      text: '要求必须经过 A 点时，可以直接把 A 点标成 0。',
+      answer: false,
+      explain: '不对。标 0 是禁走；必经 A 要分成“起点到 A”和“A 到终点”两段相乘。',
+    },
+    {
+      id: 'avoid',
+      text: '要求不经过 A 点，可以用总路线数减去经过 A 点的路线数。',
+      answer: true,
+      explain: '正确。这是排除法，也可以直接把 A 点设为禁走点来校验。',
+    },
+    {
+      id: 'wall',
+      text: '障碍点只影响自己，不会影响后面其他点的标数。',
+      answer: false,
+      explain: '不对。障碍点变成 0 后，它原本会传给右上方节点的贡献都消失了。',
+    },
+    {
+      id: 'stair',
+      text: '阶梯标数可以看成把所有不合法状态从网格中删掉，再照常递推。',
+      answer: true,
+      explain: '正确。比如“乙不领先甲”就是删去对角线上方区域。',
+    },
+  ];
+
+  var ACHIEVEMENTS = [
+    { id: 'intro', name: '逐层标完', desc: '完成 M0 的逐层标数。', check: function (s) { return s.introComplete; } },
+    { id: 'edit', name: '第一次改路', desc: '在自由棋盘中设置一个障碍、必经或禁走点。', check: function (s) { return s.edited; } },
+    { id: 'must', name: '会用分段', desc: '设置必经点并得到非零分段结果。', check: function (s) { return s.mustReady; } },
+    { id: 'avoid', name: '会做排除', desc: '设置禁走点并看到总数减少。', check: function (s) { return s.avoidReady; } },
+    { id: 'wall', name: '绕开雨区', desc: '在障碍模块中完成一个有可行路线的封路局面。', check: function (s) { return s.wallReady; } },
+    { id: 'stair', name: '阶梯侦探', desc: '查看 4 比 4 或更大的阶梯标数。', check: function (s) { return s.stairReady; } },
+    { id: 'quiz', name: '标数过关', desc: '总结闯关至少答对 4 题。', check: function (s) { return s.quizPassed; } },
+    { id: 'master', name: '路线计数师', desc: '解锁全部核心发现。', check: function (s) { return s.unlockedCore >= 7; } },
+  ];
+
+  function key(r, c) { return r + ',' + c; }
+  function pointFromKey(k) { return k.split(',').map(Number); }
+  function makeSet(list) { return new Set((list || []).map(function (p) { return key(p[0], p[1]); })); }
+  function setToPoints(set) { return Array.from(set).map(pointFromKey); }
+  function fmt(n) { return Number(n || 0).toLocaleString('zh-CN'); }
+
+  var state = {
+    active: 'intro',
+    phase: 'observe',
+    reveal: false,
+    showAchievements: false,
+    discoveries: {
+      edited: false,
+      visitedStair: false,
+    },
+    scenes: {
+      intro: { rows: 5, cols: 6, start: [4, 0], end: [0, 5], blocked: makeSet([]), avoid: makeSet([]), must: makeSet([]), selected: null, layer: 0, mode: 'inspect' },
+      sandbox: { rows: 6, cols: 7, start: [5, 0], end: [0, 6], blocked: makeSet([]), avoid: makeSet([]), must: makeSet([]), selected: null, mode: 'block', showNumbers: false },
+      must: { rows: 5, cols: 6, start: [4, 0], end: [0, 5], blocked: makeSet([]), avoid: makeSet([]), must: makeSet([[2, 2]]), selected: [2, 2], mode: 'must', showNumbers: false },
+      obstacle: { rows: 6, cols: 7, start: [5, 0], end: [0, 6], blocked: makeSet([[4, 2], [3, 2], [2, 3], [2, 4]]), avoid: makeSet([]), must: makeSet([]), selected: null, mode: 'block', scenario: 'rain', showNumbers: false },
+      stair: { n: 4, selected: null, mode: 'inspect', showNumbers: false },
+    },
+    quiz: { answers: {}, submitted: false },
+    unlocked: loadUnlocked(),
+  };
+
+  function activeModule() {
+    return MODULES.find(function (m) { return m.id === state.active; });
+  }
+
+  function hasNumberToggle() {
+    return state.active === 'sandbox' || state.active === 'must' || state.active === 'obstacle' || state.active === 'stair';
+  }
+
+  function shouldShowNumbers(scene) {
+    if (!hasNumberToggle()) return true;
+    return !!scene.showNumbers;
+  }
+
+  function hiddenMetricValue(value, scene) {
+    return shouldShowNumbers(scene) ? value : '未显示';
+  }
+
+  function numberToggleHint(scene) {
+    return shouldShowNumbers(scene) ? '标数已显示，可先让学生解释来源。' : '标数已隐藏，点击“显示标数”后再揭晓。';
+  }
+
+  function getScene() {
+    if (state.active === 'stair') {
+      var n = state.scenes.stair.n;
+      return {
+        rows: n + 1,
+        cols: n + 1,
+        start: [n, 0],
+        end: [0, n],
+        blocked: makeSet(E.makeBlockedFromPredicate(n + 1, n + 1, function (r, c) {
+          var aScore = c;
+          var bScore = n - r;
+          return bScore > aScore;
+        })),
+        avoid: makeSet([]),
+        must: makeSet([]),
+        selected: state.scenes.stair.selected,
+        mode: 'inspect',
+        showNumbers: state.scenes.stair.showNumbers,
+      };
+    }
+    return state.scenes[state.active];
+  }
+
+  function sceneConfig(scene, includeConstraints) {
+    var blocked = new Set(scene.blocked);
+    if (includeConstraints !== false) {
+      scene.avoid.forEach(function (k) { blocked.add(k); });
+    }
+    return {
+      rows: scene.rows,
+      cols: scene.cols,
+      start: scene.start,
+      end: scene.end,
+      blocked: setToPoints(blocked),
+    };
+  }
+
+  function analyzeScene(scene) {
+    var constrainedConfig = sceneConfig(scene, true);
+    var freeConfig = sceneConfig(scene, false);
+    var counts = E.computeCounts(constrainedConfig);
+    var freeCounts = E.computeCounts(freeConfig);
+    var mustPoints = setToPoints(scene.must);
+    var segmented = mustPoints.length ? E.computeSegmentedCounts(constrainedConfig, mustPoints) : null;
+    var must = segmented ? { total: segmented.total, ordered: segmented.ordered, segments: segmented.segments } : { total: counts.total, ordered: [], segments: [] };
+    var spanRows = Math.abs(scene.end[0] - scene.start[0]) + 1;
+    var spanCols = Math.abs(scene.end[1] - scene.start[1]) + 1;
+    var selected = scene.selected ? E.cellContribution(constrainedConfig, scene.selected) : null;
+    var maxValue = 0;
+    (segmented ? segmented.values : counts.values).forEach(function (row) {
+      row.forEach(function (v) { if (v !== null && v > maxValue) maxValue = v; });
+    });
+    return {
+      counts: counts,
+      freeCounts: freeCounts,
+      segmented: segmented,
+      must: must,
+      currentTotal: mustPoints.length ? must.total : counts.total,
+      formulaTotal: E.shortestPathCountByFormula(spanRows, spanCols),
+      selected: selected,
+      maxValue: Math.max(1, maxValue),
+      blockedCount: scene.blocked.size,
+      avoidCount: scene.avoid.size,
+      mustCount: scene.must.size,
+    };
+  }
+
+  function displayCell(analysis, r, c) {
+    if (analysis.segmented) {
+      return {
+        value: analysis.segmented.values[r][c],
+        label: analysis.segmented.labels[r][c],
+        reachable: analysis.segmented.reachable[r][c],
+      };
+    }
+    return {
+      value: analysis.counts.values[r][c],
+      label: null,
+      reachable: analysis.counts.reachable[r][c],
+    };
+  }
+
+  function renderAll() {
+    var mod = activeModule();
+    $('#moduleTitle').textContent = mod.title;
+    $('#moduleSubtitle').textContent = mod.subtitle;
+    renderModules();
+    renderToolbar();
+    if (state.active === 'quiz') renderQuiz();
+    else renderBoard();
+    renderMetrics();
+    renderRuleCard();
+    renderPrompt();
+    renderAchievements();
+    checkAchievements();
+  }
+
+  function renderModules() {
+    var list = $('#moduleList');
+    list.innerHTML = '';
+    MODULES.forEach(function (mod) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'module-card' + (mod.id === state.active ? ' active' : '');
+      btn.innerHTML = '<strong>' + mod.label + '</strong><span>' + mod.short + '</span>';
+      btn.addEventListener('click', function () {
+        state.active = mod.id;
+        state.phase = 'observe';
+        state.reveal = false;
+        if (state.scenes[mod.id] && Object.prototype.hasOwnProperty.call(state.scenes[mod.id], 'showNumbers')) {
+          state.scenes[mod.id].showNumbers = false;
+        }
+        if (mod.id === 'stair') state.discoveries.visitedStair = true;
+        renderAll();
+      });
+      list.appendChild(btn);
+    });
+  }
+
+  function renderToolbar() {
+    var bar = $('#toolbar');
+    bar.innerHTML = '';
+    if (state.active === 'intro') {
+      addButton(bar, '上一步', function () {
+        var s = state.scenes.intro;
+        s.layer = Math.max(0, s.layer - 1);
+        renderAll();
+      });
+      addButton(bar, '下一步', function () {
+        var s = state.scenes.intro;
+        var max = E.computeCounts(sceneConfig(s, true)).maxLayer;
+        s.layer = Math.min(max, s.layer + 1);
+        renderAll();
+      }, true);
+      addButton(bar, '重置', function () {
+        state.scenes.intro.layer = 0;
+        state.reveal = false;
+        renderAll();
+      }, false, 'btn-subtle');
+      addRevealButton(bar);
+      return;
+    }
+    if (state.active === 'quiz') {
+      addButton(bar, '提交', submitQuiz, true);
+      addButton(bar, '重置', resetQuiz, false, 'btn-subtle');
+      addRevealButton(bar);
+      return;
+    }
+    if (state.active === 'stair') {
+      var stairScene = getScene();
+      addButton(bar, '规模 -', function () {
+        state.scenes.stair.n = Math.max(2, state.scenes.stair.n - 1);
+        state.scenes.stair.showNumbers = false;
+        renderAll();
+      });
+      addButton(bar, '规模 +', function () {
+        state.scenes.stair.n = Math.min(7, state.scenes.stair.n + 1);
+        state.scenes.stair.showNumbers = false;
+        state.discoveries.visitedStair = true;
+        renderAll();
+      }, true);
+      addNumberToggle(bar, stairScene);
+      addRevealButton(bar);
+      return;
+    }
+    var scene = getScene();
+    ['block', 'must', 'avoid', 'inspect'].forEach(function (mode) {
+      addButton(bar, modeLabel(mode), function () {
+        scene.mode = mode;
+        renderAll();
+      }, false, scene.mode === mode ? 'active' : '');
+    });
+    if (state.active === 'sandbox') {
+      addButton(bar, '5×6', function () { resizeSandbox(5, 6); }, false, 'btn-subtle');
+      addButton(bar, '7×8', function () { resizeSandbox(7, 8); }, false, 'btn-subtle');
+    }
+    if (state.active === 'obstacle') {
+      addButton(bar, '雨区', function () { setObstacleScenario('rain'); }, false, scene.scenario === 'rain' ? 'active' : '');
+      addButton(bar, '窄桥', function () { setObstacleScenario('bridge'); }, false, scene.scenario === 'bridge' ? 'active' : '');
+      addButton(bar, '双障碍', function () { setObstacleScenario('double'); }, false, scene.scenario === 'double' ? 'active' : '');
+    }
+    addNumberToggle(bar, scene);
+    addButton(bar, '重置', resetActiveScene, false, 'btn-subtle');
+    addRevealButton(bar);
+  }
+
+  function addButton(parent, label, onClick, primary, extraClass) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = label;
+    btn.className = (primary ? 'btn-primary ' : '') + (extraClass || '');
+    btn.addEventListener('click', onClick);
+    parent.appendChild(btn);
+  }
+
+  function addNumberToggle(parent, scene) {
+    addButton(parent, shouldShowNumbers(scene) ? '隐藏标数' : '显示标数', function () {
+      if (state.active === 'stair') state.scenes.stair.showNumbers = !state.scenes.stair.showNumbers;
+      else state.scenes[state.active].showNumbers = !state.scenes[state.active].showNumbers;
+      renderAll();
+    }, false, shouldShowNumbers(scene) ? 'active' : 'btn-subtle');
+  }
+
+  function addRevealButton(parent) {
+    addButton(parent, state.reveal ? '隐藏结论' : '显示结论', function () {
+      state.reveal = !state.reveal;
+      renderAll();
+    }, false, 'btn-subtle');
+  }
+
+  function modeLabel(mode) {
+    return mode === 'block' ? '障碍' :
+      mode === 'must' ? '必经' :
+      mode === 'avoid' ? '禁走' : '检查';
+  }
+
+  function resizeSandbox(rows, cols) {
+    var s = state.scenes.sandbox;
+    s.rows = rows;
+    s.cols = cols;
+    s.start = [rows - 1, 0];
+    s.end = [0, cols - 1];
+    s.blocked.clear();
+    s.avoid.clear();
+    s.must.clear();
+    s.selected = null;
+    s.showNumbers = false;
+    renderAll();
+  }
+
+  function setObstacleScenario(name) {
+    var s = state.scenes.obstacle;
+    s.scenario = name;
+    s.avoid.clear();
+    s.must.clear();
+    s.selected = null;
+    s.showNumbers = false;
+    if (name === 'rain') {
+      s.blocked = makeSet([[4, 2], [3, 2], [2, 3], [2, 4]]);
+    } else if (name === 'bridge') {
+      s.blocked = makeSet([[5, 2], [4, 2], [3, 2], [1, 2], [0, 2], [3, 4], [2, 4], [1, 4]]);
+    } else {
+      s.blocked = makeSet([[4, 1], [3, 2], [2, 2], [1, 3], [3, 5], [2, 5]]);
+    }
+    renderAll();
+  }
+
+  function resetActiveScene() {
+    if (state.active === 'sandbox') {
+      state.scenes.sandbox.blocked.clear();
+      state.scenes.sandbox.avoid.clear();
+      state.scenes.sandbox.must.clear();
+      state.scenes.sandbox.selected = null;
+      state.scenes.sandbox.showNumbers = false;
+    } else if (state.active === 'must') {
+      state.scenes.must.blocked = makeSet([]);
+      state.scenes.must.avoid = makeSet([]);
+      state.scenes.must.must = makeSet([[2, 2]]);
+      state.scenes.must.selected = [2, 2];
+      state.scenes.must.mode = 'must';
+      state.scenes.must.showNumbers = false;
+    } else if (state.active === 'obstacle') {
+      setObstacleScenario(state.scenes.obstacle.scenario || 'rain');
+      return;
+    }
+    state.reveal = false;
+    renderAll();
+  }
+
+  function renderBoard() {
+    var scene = getScene();
+    var analysis = analyzeScene(scene);
+    var board = $('#board');
+    board.className = 'board';
+    board.innerHTML = '';
+    board.style.gridTemplateColumns = 'repeat(' + scene.cols + ', minmax(0, 1fr))';
+    board.style.gridTemplateRows = 'repeat(' + scene.rows + ', minmax(0, 1fr))';
+    $('#boardCaption').textContent = boardCaption(scene, analysis);
+
+    for (var r = 0; r < scene.rows; r++) {
+      for (var c = 0; c < scene.cols; c++) {
+        var p = [r, c];
+        var k = key(r, c);
+        var cell = displayCell(analysis, r, c);
+        var value = cell.value;
+        var showValue = value !== null && shouldShowNumbers(scene);
+        if (state.active === 'intro') {
+          showValue = E.computeCounts(sceneConfig(scene, true)).layers
+            .slice(0, state.scenes.intro.layer + 1)
+            .some(function (layer) { return layer.some(function (item) { return item.point[0] === r && item.point[1] === c; }); });
+        }
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = nodeClass(scene, p, analysis, showValue, cell);
+        btn.style.setProperty('--heat', showValue && value && analysis.maxValue ? Math.min(0.72, Math.sqrt(value / analysis.maxValue) * 0.62).toFixed(3) : '0');
+        btn.innerHTML = '<span class="tag">' + nodeTag(scene, p) + '</span><span class="value">' + nodeText(scene, p, cell, showValue) + '</span>';
+        btn.title = showValue
+          ? '第 ' + (r + 1) + ' 行，第 ' + (c + 1) + ' 列，标数 ' + nodeText(scene, p, cell, showValue)
+          : '第 ' + (r + 1) + ' 行，第 ' + (c + 1) + ' 列，标数已隐藏';
+        btn.addEventListener('click', handleNodeClick.bind(null, r, c));
+        board.appendChild(btn);
+      }
+    }
+  }
+
+  function nodeClass(scene, p, analysis, showValue, cell) {
+    var k = key(p[0], p[1]);
+    var classes = ['node'];
+    if (!cell.reachable) classes.push('unreachable');
+    if (!showValue) classes.push('unseen');
+    if (p[0] === scene.start[0] && p[1] === scene.start[1]) classes.push('start');
+    if (p[0] === scene.end[0] && p[1] === scene.end[1]) classes.push('end');
+    if (scene.blocked.has(k)) classes.push('blocked');
+    if (scene.avoid.has(k)) classes.push('avoid');
+    if (scene.must.has(k)) classes.push('must');
+    if (scene.selected && scene.selected[0] === p[0] && scene.selected[1] === p[1]) classes.push('selected');
+    return classes.join(' ');
+  }
+
+  function nodeTag(scene, p) {
+    var k = key(p[0], p[1]);
+    if (p[0] === scene.start[0] && p[1] === scene.start[1]) return '起';
+    if (p[0] === scene.end[0] && p[1] === scene.end[1]) return '终';
+    if (scene.must.has(k)) return '必';
+    if (scene.avoid.has(k)) return '禁';
+    if (scene.blocked.has(k)) return '0';
+    return '';
+  }
+
+  function nodeText(scene, p, cell, showValue) {
+    var k = key(p[0], p[1]);
+    if (!showValue) return '';
+    if (scene.blocked.has(k) || scene.avoid.has(k)) return '0';
+    if (cell.label && cell.label.parts.length > 1) {
+      return cell.label.parts.map(function (part) { return fmt(part.value); }).join(' | ');
+    }
+    if (cell.value === null) return '';
+    return fmt(cell.value);
+  }
+
+  function handleNodeClick(r, c) {
+    if (state.active === 'intro' || state.active === 'stair') {
+      if (state.active === 'stair') state.scenes.stair.selected = [r, c];
+      else state.scenes.intro.selected = [r, c];
+      renderAll();
+      return;
+    }
+    if (state.active === 'quiz') return;
+    var scene = getScene();
+    if ((r === scene.start[0] && c === scene.start[1]) || (r === scene.end[0] && c === scene.end[1])) {
+      scene.selected = [r, c];
+      renderAll();
+      return;
+    }
+    var k = key(r, c);
+    if (scene.mode === 'inspect') {
+      scene.selected = [r, c];
+    } else if (scene.mode === 'block') {
+      toggle(scene.blocked, k);
+      scene.avoid.delete(k);
+      scene.must.delete(k);
+      scene.selected = [r, c];
+      state.discoveries.edited = true;
+    } else if (scene.mode === 'avoid') {
+      toggle(scene.avoid, k);
+      scene.blocked.delete(k);
+      scene.must.delete(k);
+      scene.selected = [r, c];
+      state.discoveries.edited = true;
+    } else if (scene.mode === 'must') {
+      scene.blocked.delete(k);
+      scene.avoid.delete(k);
+      if (scene.must.has(k)) scene.must.delete(k);
+      else {
+        if (scene.must.size >= 2) scene.must.delete(scene.must.values().next().value);
+        scene.must.add(k);
+      }
+      scene.selected = [r, c];
+      state.discoveries.edited = true;
+    }
+    renderAll();
+  }
+
+  function toggle(set, k) {
+    if (set.has(k)) set.delete(k);
+    else set.add(k);
+  }
+
+  function boardCaption(scene, analysis) {
+    if (state.active === 'intro') {
+      return '当前显示第 ' + state.scenes.intro.layer + ' 层；终点完整标数为 ' + fmt(analysis.counts.total) + '。';
+    }
+    if (state.active === 'sandbox') {
+      return '当前工具：' + modeLabel(scene.mode) + '。点击起点/终点只会选中查看，不会改动。' + numberToggleHint(scene);
+    }
+    if (state.active === 'must') {
+      return '紫色是必经点，红色是禁走点。可以切换工具后点击同一位置比较两种题型。' + numberToggleHint(scene);
+    }
+    if (state.active === 'obstacle') {
+      return '灰色为封路障碍。障碍点标 0，后续节点自动按可走来源相加。' + numberToggleHint(scene);
+    }
+    if (state.active === 'stair') {
+      return '规模 ' + state.scenes.stair.n + ' 比 ' + state.scenes.stair.n + '；灰色区域表示乙领先甲，不能进入。' + numberToggleHint(scene);
+    }
+    return '';
+  }
+
+  function renderMetrics() {
+    var wrap = $('#metrics');
+    wrap.innerHTML = '';
+    if (state.active === 'quiz') {
+      addMetric(wrap, '闯关得分', quizScore() + ' / ' + QUIZ.length, state.quiz.submitted ? '答对 4 题及以上解锁成就。' : '先判断，再提交查看解释。');
+      addMetric(wrap, '已作答', Object.keys(state.quiz.answers).length + ' 题', '每题都要选择对或错。');
+      return;
+    }
+    var scene = getScene();
+    var a = analyzeScene(scene);
+    addMetric(wrap, '当前可行路线', hiddenMetricValue(fmt(a.currentTotal), scene), shouldShowNumbers(scene) ? (a.mustCount ? '已按必经点分段相乘。' : '终点格点的标数。') : '先操作棋盘，再点击“显示标数”揭晓。');
+    addMetric(wrap, '无约束公式值', hiddenMetricValue(fmt(a.formulaTotal), scene), shouldShowNumbers(scene) ? 'C(横步+竖步, 竖步)，用于和标数表校验。' : '隐藏公式校验，避免提前泄露总数。');
+    addMetric(wrap, '限制条件', a.blockedCount + ' 障碍 · ' + a.avoidCount + ' 禁走 · ' + a.mustCount + ' 必经', '限制越多，终点标数通常越小。');
+    if (a.mustCount) {
+      var detail = a.must.segments.map(function (seg) { return fmt(seg.total); }).join(' × ');
+      addMetric(wrap, '必经分段', hiddenMetricValue(detail + ' = ' + fmt(a.must.total), scene), shouldShowNumbers(scene) ? '每一段仍然是一次标数。' : '点击“显示标数”后查看分段乘积。');
+    }
+    if (scene.selected && a.selected) {
+      addMetric(wrap, '选中点路线热度', hiddenMetricValue(fmt(a.selected.through), scene), shouldShowNumbers(scene) ? '前段 ' + fmt(a.selected.before) + ' × 后段 ' + fmt(a.selected.after) : '点击“显示标数”后查看经过该点的路线数。');
+    }
+  }
+
+  function addMetric(parent, label, value, note) {
+    var card = document.createElement('div');
+    card.className = 'metric';
+    card.innerHTML = '<span>' + label + '</span><strong>' + value + '</strong><small>' + note + '</small>';
+    parent.appendChild(card);
+  }
+
+  function renderRuleCard() {
+    var box = $('#ruleCard');
+    if (state.active === 'quiz') {
+      box.innerHTML = '判断时只问三件事：限制是禁走、必经，还是状态边界？对应动作分别是标 0、分段相乘、删去非法区域。';
+      return;
+    }
+    if (state.active === 'stair') {
+      box.innerHTML = '阶梯规则：横向是甲得分，纵向是乙得分。所有 <code>乙分 &gt; 甲分</code> 的点都标 0。';
+      return;
+    }
+    if (state.active === 'must') {
+      box.innerHTML = '同一点两种问法：<br>必经 A：<code>S→A</code> 的标数乘 <code>A→T</code> 的标数。<br>不经 A：总数减去经过 A 的路线数。';
+      return;
+    }
+    box.innerHTML = '普通规则：起点标 1；障碍和禁走点标 0；其余点按“左边 + 下边”逐格相加。';
+  }
+
+  function renderPrompt() {
+    var tabs = $('#phaseTabs');
+    tabs.innerHTML = '';
+    PHASES.forEach(function (p) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = state.phase === p.id ? 'active' : '';
+      btn.textContent = p.label;
+      btn.addEventListener('click', function () {
+        state.phase = p.id;
+        renderAll();
+      });
+      tabs.appendChild(btn);
+    });
+    var mod = activeModule();
+    $('#promptText').textContent = mod.prompts[state.phase];
+    var conclusion = $('#conclusion');
+    conclusion.textContent = mod.conclusion;
+    conclusion.classList.toggle('hidden', !state.reveal);
+  }
+
+  function renderQuiz() {
+    $('#boardCaption').textContent = '每题选“对”或“错”，提交后会显示解释。';
+    var board = $('#board');
+    board.className = 'board quiz-board';
+    board.style.gridTemplateColumns = '';
+    board.style.gridTemplateRows = '';
+    board.innerHTML = '';
+    var list = document.createElement('div');
+    list.className = 'quiz-list';
+    QUIZ.forEach(function (q, idx) {
+      var selected = state.quiz.answers[q.id];
+      var done = state.quiz.submitted;
+      var correct = done && selected === q.answer;
+      var wrong = done && selected !== undefined && selected !== q.answer;
+      var card = document.createElement('div');
+      card.className = 'quiz-card' + (correct ? ' correct' : '') + (wrong ? ' wrong' : '');
+      card.innerHTML = '<p><strong>' + (idx + 1) + '.</strong> ' + q.text + '</p>';
+      var options = document.createElement('div');
+      options.className = 'quiz-options';
+      addQuizOption(options, q, true, selected === true);
+      addQuizOption(options, q, false, selected === false);
+      card.appendChild(options);
+      if (done) {
+        var explain = document.createElement('div');
+        explain.className = 'explain';
+        explain.textContent = q.explain;
+        card.appendChild(explain);
+      }
+      list.appendChild(card);
+    });
+    board.appendChild(list);
+  }
+
+  function addQuizOption(parent, q, value, active) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = value ? '对' : '错';
+    btn.className = active ? 'active' : '';
+    btn.addEventListener('click', function () {
+      state.quiz.answers[q.id] = value;
+      state.quiz.submitted = false;
+      renderAll();
+    });
+    parent.appendChild(btn);
+  }
+
+  function submitQuiz() {
+    state.quiz.submitted = true;
+    state.phase = 'verify';
+    renderAll();
+  }
+
+  function resetQuiz() {
+    state.quiz = { answers: {}, submitted: false };
+    state.reveal = false;
+    renderAll();
+  }
+
+  function quizScore() {
+    var score = 0;
+    QUIZ.forEach(function (q) {
+      if (state.quiz.answers[q.id] === q.answer) score++;
+    });
+    return score;
+  }
+
+  function snapshot() {
+    var scene = state.active === 'quiz' ? null : getScene();
+    var analysis = scene ? analyzeScene(scene) : null;
+    var coreUnlocked = ACHIEVEMENTS.filter(function (a) { return a.id !== 'master' && state.unlocked.has(a.id); }).length;
+    return {
+      introComplete: state.scenes.intro.layer >= E.computeCounts(sceneConfig(state.scenes.intro, true)).maxLayer,
+      edited: state.discoveries.edited,
+      mustReady: !!analysis && analysis.mustCount > 0 && analysis.must.total > 0,
+      avoidReady: !!analysis && analysis.avoidCount > 0 && analysis.counts.total < analysis.freeCounts.total,
+      wallReady: state.active === 'obstacle' && !!analysis && analysis.blockedCount >= 3 && analysis.currentTotal > 0,
+      stairReady: state.discoveries.visitedStair && state.scenes.stair.n >= 4,
+      quizPassed: state.quiz.submitted && quizScore() >= 4,
+      unlockedCore: coreUnlocked,
+    };
+  }
+
+  function checkAchievements() {
+    var s = snapshot();
+    ACHIEVEMENTS.filter(function (def) { return def.id !== 'master'; }).forEach(function (def) {
+      if (!state.unlocked.has(def.id) && def.check(s)) {
+        state.unlocked.add(def.id);
+        saveUnlocked();
+        showToast(def);
+      }
+    });
+    var master = ACHIEVEMENTS.find(function (def) { return def.id === 'master'; });
+    var coreUnlocked = ACHIEVEMENTS.filter(function (a) { return a.id !== 'master' && state.unlocked.has(a.id); }).length;
+    if (master && !state.unlocked.has(master.id) && master.check(Object.assign({}, s, { unlockedCore: coreUnlocked }))) {
+      state.unlocked.add(master.id);
+      saveUnlocked();
+      showToast(master);
+    }
+    renderAchievements();
+  }
+
+  function renderAchievements() {
+    var count = state.unlocked.size;
+    document.querySelectorAll('[data-ach-count]').forEach(function (el) { el.textContent = count; });
+    document.querySelectorAll('[data-ach-total]').forEach(function (el) { el.textContent = ACHIEVEMENTS.length; });
+    document.querySelectorAll('[data-ach-progress]').forEach(function (el) {
+      el.style.width = Math.round(count / ACHIEVEMENTS.length * 100) + '%';
+    });
+    var list = $('#achievementList');
+    list.classList.toggle('hidden', !state.showAchievements);
+    if (!state.showAchievements) return;
+    list.innerHTML = '';
+    ACHIEVEMENTS.forEach(function (a) {
+      var got = state.unlocked.has(a.id);
+      var row = document.createElement('div');
+      row.className = 'ach-row' + (got ? '' : ' locked');
+      row.innerHTML =
+        '<div>' + (got ? '✓' : '-') + '</div>' +
+        '<div><div class="ach-name">' + a.name + '</div><div class="ach-desc">' + a.desc + '</div></div>' +
+        '<div class="ach-status">' + (got ? '已解锁' : '未解锁') + '</div>';
+      list.appendChild(row);
+    });
+  }
+
+  function showToast(def) {
+    var toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = '<strong>解锁成就：' + def.name + '</strong><span>' + def.desc + '</span>';
+    $('#toastStack').appendChild(toast);
+    setTimeout(function () {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 3600);
+  }
+
+  function loadUnlocked() {
+    try {
+      return new Set(JSON.parse(localStorage.getItem('path-count-ach-v1') || '[]'));
+    } catch (err) {
+      return new Set();
+    }
+  }
+
+  function saveUnlocked() {
+    try {
+      localStorage.setItem('path-count-ach-v1', JSON.stringify(Array.from(state.unlocked)));
+    } catch (err) {
+      /* localStorage may be unavailable under strict privacy settings. */
+    }
+  }
+
+  $('#achievementButton').addEventListener('click', function () {
+    state.showAchievements = !state.showAchievements;
+    renderAchievements();
+  });
+
+  renderAll();
+})();
+
+</script>
+</body>
+</html>

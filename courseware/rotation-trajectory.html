@@ -1,0 +1,2135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旋转与轨迹实验室 · 第十五讲</title>
+<style>
+/* ===== src/achievements.css ===== */
+/*
+ * achievements.css —— 成就系统底座配套样式
+ * 配合 achievements.js 使用；可整段内联进单 HTML。
+ * 颜色沿用数学实验室型变量（品牌蓝 #3b82f6 / 浅色卡片），无变量时有兜底值。
+ */
+
+/* ---- toast 解锁提示（右下角堆叠） ---- */
+.ach-toast-stack {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.ach-toast {
+  min-width: 220px;
+  max-width: 300px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #d7e1e3);
+  border-left: 4px solid var(--accent, #3b82f6);
+  box-shadow: 0 6px 20px rgba(15, 30, 40, 0.12);
+  animation: ach-toast-in 0.25s ease-out;
+}
+.ach-toast-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--accent-dark, #2563eb);
+  font-weight: 600;
+}
+.ach-toast-name {
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #152529);
+}
+.ach-toast-desc {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted, #66777d);
+}
+@keyframes ach-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- 奖杯进度条（在任意位置放 [data-ach-progress] 的轨道即可） ---- */
+.ach-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-strong, #eef4f5);
+  overflow: hidden;
+}
+.ach-progress-track > [data-ach-progress] {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: var(--accent, #3b82f6);
+  transition: width 0.3s ease;
+}
+
+/* ---- 成就清单行（奖杯弹窗内） ---- */
+.ach-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #d7e1e3);
+  background: var(--surface, #ffffff);
+  opacity: 0.55;
+}
+.ach-row.is-unlocked { opacity: 1; border-color: var(--accent-soft, #dbeafe); }
+.ach-row .ach-icon { font-size: 22px; text-align: center; }
+.ach-row .ach-name { font-weight: 600; color: var(--text, #152529); }
+.ach-row .ach-desc { font-size: 12px; color: var(--muted, #66777d); }
+.ach-row .ach-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted, #66777d);
+  white-space: nowrap;
+}
+.ach-row.is-unlocked .ach-status { color: var(--accent-dark, #2563eb); }
+
+/* 触控目标：奖杯入口按钮不小于 40px */
+.ach-trophy-btn {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line, #d7e1e3);
+  background: var(--surface, #ffffff);
+  color: var(--text, #152529);
+  cursor: pointer;
+}
+
+
+/* ===== src/styles.css ===== */
+/* ============ 主题（ui-standard 浅色数学实验室） ============ */
+:root{
+  --bg:#f4f7f8; --surface:#ffffff; --surface-strong:#eef4f5; --line:#d7e1e3;
+  --text:#152529; --muted:#66777d; --accent:#3b82f6; --accent-dark:#2563eb;
+  --accent-soft:#dbeafe; --warning:#c47a1c; --proof:#f3c44e;
+  --trail:#ef4444; --trail-soft:rgba(239,68,68,.16);
+  --sweep:rgba(59,130,246,.20); --sweep2:rgba(16,185,129,.22);
+  --good:#16a34a; --bad:#dc2626;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);
+  font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.55}
+button{font:inherit;cursor:pointer}
+.num,.metric-val,td.num{font-variant-numeric:tabular-nums;font-family:"SF Mono",Consolas,Menlo,monospace}
+
+/* ============ 顶栏 ============ */
+.topbar{display:flex;align-items:center;gap:14px;padding:10px 18px;background:var(--surface);
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
+.topbar h1{font-size:17px;font-weight:700}
+.topbar .sub{color:var(--muted);font-size:12.5px}
+.topbar .spacer{flex:1}
+.ach-entry{display:flex;align-items:center;gap:8px;background:var(--surface-strong);
+  border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-height:40px}
+.ach-entry .bar{width:90px;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.ach-entry .bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:4px;transition:width .4s}
+
+/* ============ 三栏布局 ============ */
+.layout{display:grid;grid-template-columns:230px minmax(0,1fr) 300px;gap:14px;
+  padding:14px 18px;max-width:1520px;margin:0 auto;align-items:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+
+/* 左导航 */
+.nav .panel-label{font-size:12px;color:var(--muted);letter-spacing:.08em;margin-bottom:8px}
+.nav-item{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:none;
+  border:1px solid transparent;border-radius:10px;padding:9px 10px;min-height:40px;color:var(--text)}
+.nav-item:hover{background:var(--surface-strong)}
+.nav-item.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-dark);font-weight:600}
+.nav-item .idx{flex:none;width:26px;height:26px;border-radius:8px;background:var(--surface-strong);
+  display:grid;place-items:center;font-size:12.5px;font-weight:700;color:var(--muted)}
+.nav-item.active .idx{background:var(--accent);color:#fff}
+.nav-item.done .idx{background:#16a34a;color:#fff}
+
+/* 中部模块视图 */
+.mod-view{display:none}
+.mod-view.active{display:block}
+.mod-head{margin-bottom:10px}
+.mod-head .kicker{font-size:12px;color:var(--accent-dark);font-weight:700;letter-spacing:.08em}
+.mod-head h2{font-size:19px;margin:2px 0 4px}
+.mod-head p{color:var(--muted);font-size:13.5px}
+.stage-wrap{background:var(--surface-strong);border:1px solid var(--line);border-radius:12px;
+  padding:8px;margin-bottom:12px}
+canvas.stage{display:block;width:100%;height:auto;border-radius:8px;background:#fff;touch-action:none}
+
+/* 控件区 */
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.btn{min-height:40px;padding:8px 16px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--text);font-weight:600}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-dark)}
+.btn.is-locked{border-style:dashed;opacity:.62;position:relative}
+.btn.ghost{background:none;border-color:transparent;color:var(--muted)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.lock-tip{font-size:12px;color:var(--warning);font-weight:600}
+.slider-row{display:flex;align-items:center;gap:10px;min-height:40px;flex:1 1 240px}
+.slider-row label{font-size:13px;color:var(--muted);white-space:nowrap}
+.slider-row input[type=range]{flex:1;accent-color:var(--accent);min-height:40px}
+.slider-row .val{font-size:13px;min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{min-height:40px;padding:8px 13px;background:var(--surface);border:none;color:var(--muted);font-weight:600}
+.seg button.on{background:var(--accent);color:#fff}
+.switch-row{display:flex;align-items:center;gap:8px;min-height:40px;font-size:13.5px}
+.switch-row input{width:18px;height:18px;accent-color:var(--accent)}
+
+/* 预测区 */
+.predict{border:1px dashed var(--accent);border-radius:12px;padding:12px;margin-bottom:12px;background:#f8fbff}
+.predict .eyebrow{font-size:12px;font-weight:700;color:var(--accent-dark);letter-spacing:.08em}
+.predict p{margin:4px 0 8px;font-size:14px}
+.option-list{display:flex;flex-wrap:wrap;gap:8px}
+.option-list button{min-height:40px;padding:8px 14px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);text-align:left}
+.option-list button.sel{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+.option-list button.right{border-color:#16a34a;background:#dcfce7}
+.option-list button.wrong{border-color:#dc2626;background:#fee2e2}
+.predict .feedback{margin-top:8px;font-size:13.5px;color:var(--muted)}
+.predict.flash{animation:flash 1s ease 2}
+@keyframes flash{0%,100%{background:#f8fbff}50%{background:#dbeafe}}
+
+/* 实时公式卡 */
+.formula-live{border:1px solid var(--accent);border-radius:12px;padding:11px 14px;margin-bottom:12px;
+  background:linear-gradient(180deg,#f8fbff,#eef4f5)}
+.formula-live .fl-head{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.formula-live .fl-tag{font-size:11px;color:var(--muted)}
+.formula-live .fl-eq{font-family:"SF Mono",Consolas,monospace;font-size:14px;line-height:1.95;color:var(--text)}
+.formula-live .fl-eq b{color:var(--accent-dark)}
+.formula-live .fl-eq .hi{background:#fff7ed;border-radius:4px;padding:1px 5px;color:#b45309;font-weight:700}
+
+/* 结论区 */
+.reveal-box{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface)}
+.reveal-box .placeholder{color:var(--muted);font-size:13.5px}
+.reveal-box .content{display:none;font-size:14px}
+.reveal-box.open .content{display:block}
+.reveal-box.open .placeholder{display:none}
+.reveal-box .formula{background:var(--surface-strong);border-radius:8px;padding:8px 12px;margin:8px 0;
+  font-family:"SF Mono",Consolas,monospace;font-size:13.5px}
+
+/* 右栏数据面板 */
+.data-panel .panel-label{font-size:12px;color:var(--muted);letter-spacing:.08em;margin-bottom:8px}
+#metrics{display:grid;gap:8px}
+#metrics .m-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  background:var(--surface-strong);border-radius:10px;padding:8px 12px}
+#metrics .m-row dt{font-size:12.5px;color:var(--muted)}
+#metrics .m-row dd{font-size:15px;font-weight:700}
+#metricNote{margin-top:10px;font-size:12.5px;color:var(--muted)}
+.chip{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12.5px;font-weight:700}
+.chip-blue{background:var(--accent-soft);color:var(--accent-dark)}
+.chip-amber{background:#fef3c7;color:#92400e}
+.chip-green{background:#dcfce7;color:#14532d}
+
+/* 底部提示条 */
+.prompt-bar{grid-column:1/-1;display:flex;gap:12px;align-items:flex-start}
+.prompt-bar .stage-tabs{display:flex;gap:6px;flex:none}
+.prompt-bar .stage-tabs button{min-height:40px;padding:8px 14px;border-radius:10px;
+  border:1px solid var(--line);background:var(--surface);font-weight:600;color:var(--muted)}
+.prompt-bar .stage-tabs button.on{background:var(--proof);border-color:var(--proof);color:#4a3a06}
+.prompt-bar .stage-tabs button.on.obs{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-dark)}
+.prompt-bar .stage-tabs button.on.ver{background:#dcfce7;border-color:#16a34a;color:#14532d}
+#promptText{flex:1;font-size:14px;padding:9px 4px;color:var(--text)}
+
+/* 连一连（M3） */
+.match-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.match-col{display:flex;flex-direction:column;gap:8px}
+.match-item{border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--surface);
+  font-size:13.5px;display:flex;align-items:center;gap:8px;min-height:42px;text-align:left}
+.match-item.sel{border-color:var(--accent);background:var(--accent-soft)}
+.match-item.matched{border-color:var(--good);background:#dcfce7;cursor:default}
+.match-item .big{font-size:20px}
+
+/* 概念卡 / 小测（M7） */
+.cards-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-bottom:14px}
+.concept-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface)}
+.concept-card h4{font-size:14.5px;margin-bottom:6px}
+.concept-card .tag{display:inline-block;font-size:11.5px;background:var(--accent-soft);
+  color:var(--accent-dark);border-radius:6px;padding:2px 8px;margin-bottom:6px}
+.concept-card p{font-size:13px;color:var(--muted)}
+.quiz-item{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:var(--surface)}
+.quiz-item h4{font-size:14px;margin-bottom:8px}
+.quiz-item .why{display:none;margin-top:8px;font-size:13px;color:var(--muted)}
+.quiz-item.answered .why{display:block}
+.rank-box{border:2px solid var(--accent);border-radius:12px;padding:14px;text-align:center;display:none}
+.rank-box.show{display:block}
+.rank-box .rank{font-size:22px;font-weight:800;color:var(--accent-dark)}
+
+/* 成就 toast / 弹窗 */
+.ach-toast-stack{position:fixed;right:16px;top:64px;z-index:99;display:flex;flex-direction:column;gap:8px}
+.ach-toast{background:#1f2937;color:#fff;border-radius:12px;padding:10px 14px;width:260px;
+  box-shadow:0 8px 24px rgba(0,0,0,.18);animation:slidein .3s ease}
+@keyframes slidein{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+.ach-toast-title{font-size:11.5px;letter-spacing:.1em;color:#fbbf24;display:flex;gap:6px;align-items:center}
+.ach-toast-name{font-weight:700;margin:2px 0}
+.ach-toast-desc{font-size:12.5px;color:#d1d5db}
+.ach-modal{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:98;display:none;place-items:center;padding:16px}
+.ach-modal.open{display:grid}
+.ach-modal .inner{background:var(--surface);border-radius:16px;padding:18px;width:min(480px,100%);
+  max-height:80vh;overflow:auto}
+.ach-modal h3{margin-bottom:10px}
+.ach-row{display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px}
+.ach-row.is-unlocked{background:var(--surface-strong)}
+.ach-row .ach-icon{flex:none;width:34px;height:34px;border-radius:10px;background:var(--accent-soft);
+  display:grid;place-items:center;font-size:17px}
+.ach-row .ach-name{font-weight:600;font-size:14px}
+.ach-row .ach-desc{font-size:12.5px;color:var(--muted)}
+.ach-status{margin-left:auto;font-size:12px;color:var(--muted)}
+
+/* ============ 响应式 ============ */
+@media (max-width:1099px){
+  .layout{grid-template-columns:minmax(0,1fr) 280px}
+  .nav{grid-column:1/-1}
+  .nav .nav-list{display:flex;overflow-x:auto;gap:6px}
+  .nav-item{flex:none;width:auto}
+}
+@media (max-width:699px){
+  .layout{grid-template-columns:minmax(0,1fr);padding:10px}
+  .data-panel{order:3}
+  .prompt-bar{flex-direction:column}
+  .topbar h1{font-size:15px}
+  .topbar .sub{display:none}
+  .match-wrap{grid-template-columns:1fr}
+}
+
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>🌀 旋转与轨迹实验室</h1>
+  <span class="sub">第十五讲 · 点动成线 → 线动成面 → 面动成体 · 探究式课件</span>
+  <span class="spacer"></span>
+  <button class="ach-entry" id="achOpen" title="查看成就">
+    <span>🏆 <b class="num" data-ach-count>0</b>/<span class="num" data-ach-total>0</span></span>
+    <span class="bar"><i data-ach-progress></i></span>
+  </button>
+</header>
+
+<div class="layout">
+
+  <!-- ============ 左：模块导航 ============ -->
+  <nav class="card nav">
+    <p class="panel-label">学习路径</p>
+    <div class="nav-list" id="navList"></div>
+  </nav>
+
+  <!-- ============ 中：模块视图 ============ -->
+  <main style="min-width:0">
+
+    <!-- ===== M0 入门地图 ===== -->
+    <section class="card mod-view" id="view-m0">
+      <div class="mod-head"><span class="kicker">导览</span>
+        <h2>入门地图：会动的几何</h2>
+        <p>一个点、一条线、一个面动起来，会留下什么痕迹？跟着 5 步看清这一讲的路线。</p></div>
+      <div class="stage-wrap"><canvas class="stage" id="cv-m0"></canvas></div>
+      <div class="controls">
+        <button class="btn" id="m0-prev">上一步</button>
+        <button class="btn primary" id="m0-next">下一步</button>
+        <span class="num" id="m0-step">1 / 5</span>
+      </div>
+    </section>
+
+    <!-- ===== M1 点动成线 ===== -->
+    <section class="card mod-view" id="view-m1">
+      <div class="mod-head"><span class="kicker">点动成线</span>
+        <h2>点动成线：从一段弧到复合轨迹</h2>
+        <p>一个动点经过的路径就是它的「轨迹」。先看单点绕中心，再看会翻滚、会绕圈的图形，点画出的轨迹。</p></div>
+      <div class="controls">
+        <div class="seg" id="m1-mode">
+          <button data-m1mode="base" class="on">单点绕中心</button>
+          <button data-m1mode="rectRoll">长方形翻滚·角A</button>
+          <button data-m1mode="triRoll">三角形翻滚·角A</button>
+          <button data-m1mode="circleTri">圆W绕三角·圆心</button>
+          <button data-m1mode="semicircle">半圆翻滚·圆心</button>
+        </div>
+      </div>
+      <div class="predict" id="pred-m1">
+        <span class="eyebrow">先预测</span>
+        <p>把角度从 0 拉到 360°，点 A 的轨迹会是——</p>
+        <div class="option-list" id="pred-m1-list"></div>
+        <div class="feedback" id="pred-m1-fb">选一个猜想，再动手验证。</div>
+      </div>
+      <div class="stage-wrap"><canvas class="stage" id="cv-m1"></canvas></div>
+      <div class="controls" id="m1-base-ctrl">
+        <div class="slider-row"><label>半径 r</label><input type="range" id="m1-r" min="3" max="10" step="1" value="6"><span class="val" id="m1-rv">6</span></div>
+        <div class="slider-row"><label>旋转角</label><input type="range" id="m1-deg" min="0" max="360" step="5" value="120"><span class="val" id="m1-degv">120°</span></div>
+        <label class="switch-row"><input type="checkbox" id="m1-trail" checked>显示轨迹</label>
+      </div>
+      <div class="controls" id="m1-preset-ctrl" style="display:none">
+        <button class="btn primary" id="m1-play">播放</button>
+        <button class="btn ghost" id="m1-reset">重置</button>
+        <span class="lock-tip" id="m1-preset-tip"></span>
+      </div>
+      <div class="formula-live"><div class="fl-head"><span class="fl-tag">实时 · 弧长公式</span></div>
+        <div class="fl-eq" id="m1-formula">弧长 = (角÷360) × 2πr</div></div>
+      <div class="reveal-box" data-module="m1"><span class="placeholder">先拖角度观察，准备好后点「显示结论」。</span>
+        <div class="content"><b>点动成线。</b>一个点绕定点旋转，轨迹是<b>圆（或圆弧）</b>；转满 360° 就是整圆。
+          <div class="formula">弧长 = (n÷360) × 2πr　　整圆周长 = 2πr</div>
+          半径越大、转角越大，轨迹越长——长度只由 <b>r</b> 和转角 <b>n</b> 决定。</div>
+        <button class="btn" data-reveal-toggle>显示结论</button></div>
+    </section>
+
+    <!-- ===== M2 线动成面 ===== -->
+    <section class="card mod-view" id="view-m2">
+      <div class="mod-head"><span class="kicker">线动成面</span>
+        <h2>线动成面：线 / 圆扫过的面积</h2>
+        <p>一条线、一个圆动起来会扫出一片面积。看三角形的边、绕方滚动的圆、栓羊的绳分别扫出多少。</p></div>
+      <div class="controls">
+        <div class="seg" id="m2-mode">
+          <button data-m2mode="triangle90" class="on">三角形转90°·边扫</button>
+          <button data-m2mode="circleSquare">圆绕正方形·扫面</button>
+          <button data-m2mode="goat">栓羊·正五边形</button>
+        </div>
+      </div>
+      <div class="stage-wrap"><canvas class="stage" id="cv-m2"></canvas></div>
+      <div class="controls" id="m2-ctrl">
+        <div class="seg" id="m2-sqside" style="display:none">
+          <button data-sqside="outside" class="on">圆在方外</button>
+          <button data-sqside="inside">圆在方内</button>
+        </div>
+        <div class="slider-row" id="m2-rope-row" style="display:none"><label>绳长 L</label><input type="range" id="m2-rope" min="2" max="9" step="1" value="7"><span class="val" id="m2-ropev">7</span></div>
+        <button class="btn primary" id="m2-play">播放</button>
+        <button class="btn ghost" id="m2-reset">重置</button>
+        <span class="lock-tip" id="m2-tip"></span>
+      </div>
+      <div class="formula-live"><div class="fl-head"><span class="fl-tag">实时 · 扫过面积（π取3.14）</span></div>
+        <div class="fl-eq" id="m2-formula">—</div></div>
+      <div class="reveal-box" data-module="m2"><span class="placeholder">先播放看面积怎么扫出来，再点「显示结论」。</span>
+        <div class="content"><b>线动成面。</b>
+          <div class="formula">三角形绕 C 转 90°：AB 边扫过 = 圆环扇形 = ¼π(R²−r²)<br>圆绕正方形：扫过 = 边带 + 拐角（外 8sr+4πr²｜内 s²−(s−2r)²−(4r²−πr²)）<br>栓羊：主扇形 + 绳绕过每个角后剩余绳长的小扇形相加</div>
+          关键都是：找到动点能到达的<b>最远/最近边界</b>，面积 = 一串扇形/圆环之和。</div>
+        <button class="btn" data-reveal-toggle>显示结论</button></div>
+    </section>
+
+    <!-- ===== M3 面动成体 ===== -->
+    <section class="card mod-view" id="view-m3">
+      <div class="mod-head"><span class="kicker">面动成体</span>
+        <h2>平面图形绕轴转一周，长成立体</h2>
+        <p>把一个平面图形绕直线 l 转 360°，它会扫出一个立体。先连一连，再亲手转、算体积。</p></div>
+      <div class="match-wrap" id="m3-match"></div>
+      <div class="controls">
+        <div class="seg" id="m3-shape">
+          <button data-shape="rectangle" class="on">矩形→圆柱</button>
+          <button data-shape="triangle">直角三角→圆锥</button>
+          <button data-shape="trapezoid">梯形→圆台</button>
+          <button data-shape="semicircle">半圆→球</button>
+          <button data-shape="composite">复合(预习5)</button>
+        </div>
+        <div class="slider-row"><label>旋转</label><input type="range" id="m3-spin" min="0" max="360" step="5" value="0"><span class="val" id="m3-spinv">0°</span></div>
+        <button class="btn primary" id="m3-play">自动旋转</button>
+      </div>
+      <div class="stage-wrap"><canvas class="stage" id="cv-m3"></canvas></div>
+      <div class="formula-live"><div class="fl-head"><span class="fl-tag">实时 · 体积（π取3.14）</span></div>
+        <div class="fl-eq" id="m3-formula">—</div></div>
+      <div class="reveal-box" data-module="m3"><span class="placeholder">转动每个图形看它长成什么，再点「显示结论」。</span>
+        <div class="content"><b>面动成体。</b>矩形→圆柱、直角三角形→圆锥、直角梯形→圆台、半圆→球。
+          <div class="formula">圆柱 V=πr²h　圆锥 V=⅓πr²h　复合体 = 圆柱 + 圆锥</div>
+          预习5：矩形(r5·h10)转出圆柱 + 上方三角转出圆锥 = 3.14×5²×10 + ⅓×3.14×5²×6 = 785+157 = <b>942 cm³</b>。</div>
+        <button class="btn" data-reveal-toggle>显示结论</button></div>
+    </section>
+
+    <!-- ===== M6 硬币旋转悖论 ===== -->
+    <section class="card mod-view" id="view-m6">
+      <div class="mod-head"><span class="kicker">硬币旋转悖论 ★</span>
+        <h2>绕一圈，硬币自转几圈？</h2>
+        <p>一枚硬币贴着另一形状外侧滚一圈回到原位。它自己转了几圈？多数人会猜错。</p></div>
+      <div class="predict" id="pred-m6">
+        <span class="eyebrow">先预测</span>
+        <p>两枚<b>一样大</b>的硬币，一枚绕另一枚外侧滚一圈，动的那枚自转了——</p>
+        <div class="option-list" id="pred-m6-list"></div>
+        <div class="feedback" id="pred-m6-fb">选一个猜想，再亲手滚一圈数数。</div>
+      </div>
+      <div class="controls">
+        <div class="seg" id="m6-mode">
+          <button data-mode="coin1" class="on">绕等大圆</button>
+          <button data-mode="coin3">绕大圆(n=3)</button>
+          <button data-mode="inside">圆内侧滚</button>
+          <button data-mode="triangle">绕三角形</button>
+          <button data-mode="square">绕正方形</button>
+        </div>
+        <button class="btn primary" id="m6-play">滚一圈</button>
+        <button class="btn ghost" id="m6-reset">重置</button>
+      </div>
+      <div class="stage-wrap"><canvas class="stage" id="cv-m6"></canvas></div>
+      <div class="formula-live"><div class="fl-head"><span class="fl-tag">实时 · 自转计数</span></div>
+        <div class="fl-eq" id="m6-formula">自转圈数 = 公转贡献 + 滚动贡献</div></div>
+      <div class="reveal-box" data-module="m6"><span class="placeholder">先预测再滚一圈，盯住硬币上的红点数自转，再点「显示结论」。</span>
+        <div class="content"><b>多出来的「+1」来自公转。</b>沿路滚动让硬币转「路程 ÷ 自身周长」圈，而<b>绕着中心走一圈本身又额外贡献 1 圈</b>。
+          <div class="formula">外侧绕一周：n + 1 圈　　内侧：n − 1 圈　（n = 两者周长之比）</div>
+          等大两圆 n=1 → 外滚自转 <b>2 圈</b>；绕多边形：圆心路程 = 周长 + 2πr，自转 = 周长÷自身周长 + 1。</div>
+        <button class="btn" data-reveal-toggle>显示结论</button></div>
+    </section>
+
+    <!-- ===== M5 滑轮问题 ===== -->
+    <section class="card mod-view" id="view-mpul">
+      <div class="mod-head"><span class="kicker">滑轮问题 ⚙️</span>
+        <h2>定滑轮 vs 动滑轮：绳子要拉多长？</h2>
+        <p>轮子转，绳子动。定滑轮只改方向，动滑轮能省力——代价是绳子要拉更长。亲手提一提。</p></div>
+      <div class="predict" id="pred-mpul">
+        <span class="eyebrow">先预测</span>
+        <p>用<b>动滑轮</b>把重物提高 1 米，你要拉动多长的绳子？</p>
+        <div class="option-list" id="pred-mpul-list"></div>
+        <div class="feedback" id="pred-mpul-fb">选一个猜想，再亲手拉一拉。</div>
+      </div>
+      <div class="controls">
+        <div class="seg" id="mpul-type">
+          <button data-pul="fixed" class="on">定滑轮 (1段)</button>
+          <button data-pul="movable">动滑轮 (2段)</button>
+          <button data-pul="block4">滑轮组 (4段)</button>
+        </div>
+        <button class="btn primary" id="mpul-lift">拉绳提升</button>
+        <button class="btn ghost" id="mpul-reset">放回</button>
+      </div>
+      <div class="stage-wrap"><canvas class="stage" id="cv-mpul"></canvas></div>
+      <div class="formula-live"><div class="fl-head"><span class="fl-tag">实时 · 绳长与省力</span></div>
+        <div class="fl-eq" id="mpul-formula">—</div></div>
+      <div class="reveal-box" data-module="mpul"><span class="placeholder">先拉一拉，比较「拉的绳长」和「物体升高」，再点「显示结论」。</span>
+        <div class="content"><b>承重几段绳，就省几倍力、拉几倍绳。</b>
+          <div class="formula">拉动绳长 = 承重段数 n × 提升高度 h　　拉力 = 重力 ÷ n</div>
+          定滑轮 n=1（只改方向，不省力，拉 1 倍绳）；动滑轮 n=2（省一半力，拉 2 倍绳）；滑轮组 n 段（省 n 倍力，拉 n 倍绳）。功不会凭空省：省了力就多拉绳。</div>
+        <button class="btn" data-reveal-toggle>显示结论</button></div>
+    </section>
+
+    <!-- ===== M7 总结闯关 ===== -->
+    <section class="card mod-view" id="view-m7">
+      <div class="mod-head"><span class="kicker">总结闯关</span>
+        <h2>知识地图 + 闯关自检</h2>
+        <p>每张卡连回一个实验。完成 6 道小测，看看你的「轨迹段位」。</p></div>
+      <div class="cards-wall" id="m7-cards"></div>
+      <h3 style="margin:6px 0 10px;font-size:15px">闯关小测</h3>
+      <div id="m7-quiz"></div>
+      <div class="rank-box" id="m7-rank"><div>你的轨迹段位</div><div class="rank" id="m7-rankText">—</div><div class="num" id="m7-score" style="color:var(--muted);font-size:13px"></div></div>
+    </section>
+
+    <!-- ===== 底部探究提示 ===== -->
+    <div class="prompt-bar card">
+      <div class="stage-tabs" id="stageTabs">
+        <button class="on obs">观察</button><button>验证</button><button>证明</button>
+      </div>
+      <div id="promptText"></div>
+    </div>
+
+  </main>
+
+  <!-- ============ 右：数据面板 ============ -->
+  <aside class="card data-panel">
+    <p class="panel-label">数据面板</p>
+    <div id="metrics"></div>
+    <div id="metricNote"></div>
+  </aside>
+
+</div>
+
+<!-- 成就弹窗 -->
+<div class="ach-modal" id="achModal"><div class="inner">
+  <h3>🏆 成就墙</h3>
+  <div id="achList"></div>
+  <div style="display:flex;gap:10px;margin-top:14px">
+    <button class="btn primary" id="achClose" style="flex:1">继续探索</button>
+    <button class="btn ghost" id="achReset">重置进度</button>
+  </div>
+</div></div>
+<script>
+/* ===== src/achievements.js ===== */
+/*
+ * achievements.js —— 交互课件「成就/激励系统」代码底座
+ * ---------------------------------------------------------------
+ * 来源：从成品 lights-out.html / polyomino-tiling.html 的成就系统提炼。
+ * 特性：零依赖、原生 JS、可直接 file:// 打开、可整段内联进单 HTML。
+ * 用法与设计说明见：references/patterns-library.md →「成就系统底座」。
+ *
+ * 设计要点（务必照做）：
+ *  - 成就奖励「发现 / 掌握」里程碑，不奖励「点击次数」。
+ *  - 声明式成就表 + check(state) 谓词；状态变更后调用 ach.check(state) 即可。
+ *  - localStorage 持久化（带版本号 key），刷新后进度保留。
+ *  - 解锁即 toast；可选奖杯弹窗 + 进度条。
+ * ---------------------------------------------------------------
+ */
+(function (global) {
+  'use strict';
+
+  /**
+   * @param {Object}   options
+   * @param {Array}    options.defs            成就定义：{ id, icon, name, desc, check?(state)=>bool }
+   * @param {string}   options.storageKey      localStorage key，建议带版本号，如 'lights-out-ach-v1'
+   * @param {number}  [options.toastDuration]  toast 停留毫秒，默认 4200
+   * @param {Function}[options.onUnlock]       每解锁一项的回调 (def) => void（可选，用于撒花/音效）
+   */
+  function createAchievements(options) {
+    options = options || {};
+    var defs = options.defs || [];
+    var storageKey = options.storageKey || 'courseware-achievements-v1';
+    var toastDuration = options.toastDuration || 4200;
+    var onUnlock = typeof options.onUnlock === 'function' ? options.onUnlock : null;
+
+    var unlocked = new Set();
+
+    function findDef(id) {
+      for (var i = 0; i < defs.length; i++) { if (defs[i].id === id) return defs[i]; }
+      return null;
+    }
+    function load() {
+      try {
+        var raw = global.localStorage.getItem(storageKey);
+        if (raw) JSON.parse(raw).forEach(function (id) { unlocked.add(id); });
+      } catch (e) { /* 隐私模式 / file:// 受限时静默降级 */ }
+    }
+    function save() {
+      try { global.localStorage.setItem(storageKey, JSON.stringify(Array.from(unlocked))); }
+      catch (e) { /* 静默降级：本次会话仍可用，只是不持久 */ }
+    }
+
+    // ---- toast（懒创建容器，无需在 HTML 里预置） ----
+    function toastStack() {
+      var el = document.getElementById('achToastStack');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'achToastStack';
+        el.className = 'ach-toast-stack';
+        document.body.appendChild(el);
+      }
+      return el;
+    }
+    function showToast(def) {
+      var el = document.createElement('div');
+      el.className = 'ach-toast';
+      el.innerHTML =
+        '<div class="ach-toast-title"><span>🏆</span>解锁成就</div>' +
+        '<div class="ach-toast-name">' + (def.icon || '') + ' ' + def.name + '</div>' +
+        '<div class="ach-toast-desc">' + (def.desc || '') + '</div>';
+      toastStack().appendChild(el);
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, toastDuration);
+    }
+
+    // ---- 进度反馈（按 data 属性自动挂载，无则跳过） ----
+    function updateProgress() {
+      var got = count(), tot = Math.max(1, total());
+      var bar = document.querySelector('[data-ach-progress]');
+      if (bar) bar.style.width = Math.round(got / tot * 100) + '%';
+      var c = document.querySelector('[data-ach-count]'); if (c) c.textContent = count();
+      var t = document.querySelector('[data-ach-total]'); if (t) t.textContent = total();
+    }
+
+    function fire(def) {
+      save();
+      showToast(def);
+      updateProgress();
+      if (onUnlock) onUnlock(def);
+    }
+
+    // 命令式解锁：用于「做了某动作就解锁」的离散事件
+    function unlock(id) {
+      if (unlocked.has(id)) return false;
+      var def = findDef(id);
+      if (!def) return false;
+      unlocked.add(id);
+      fire(def);
+      return true;
+    }
+
+    // 声明式解锁：传入当前 state，自动解锁所有 check(state) 为真者
+    function check(state) {
+      var fresh = [];
+      for (var i = 0; i < defs.length; i++) {
+        var def = defs[i];
+        if (def.check && !unlocked.has(def.id) && def.check(state)) {
+          unlocked.add(def.id);
+          fresh.push(def);
+        }
+      }
+      if (fresh.length) { fresh.forEach(fire); }
+      return fresh;
+    }
+
+    function has(id) { return unlocked.has(id); }
+    function count() { return defs.filter(function (d) { return unlocked.has(d.id); }).length; }
+    function total() { return defs.length; }
+    function reset() { unlocked.clear(); save(); updateProgress(); }
+
+    // 可选：把成就清单渲染进某个容器（用于奖杯弹窗）
+    function renderList(container) {
+      if (!container) return;
+      container.innerHTML = '';
+      defs.forEach(function (def) {
+        var got = unlocked.has(def.id);
+        var row = document.createElement('div');
+        row.className = 'ach-row' + (got ? ' is-unlocked' : '');
+        row.innerHTML =
+          '<div class="ach-icon">' + (got ? (def.icon || '🏆') : '🔒') + '</div>' +
+          '<div class="ach-meta"><div class="ach-name">' + def.name + '</div>' +
+          '<div class="ach-desc">' + (def.desc || '') + '</div></div>' +
+          '<div class="ach-status">' + (got ? '✓ 已解锁' : '未解锁') + '</div>';
+        container.appendChild(row);
+      });
+      updateProgress();
+    }
+
+    load();
+    updateProgress();
+
+    return {
+      check: check,        // 声明式：状态变更后调用 ach.check(state)
+      unlock: unlock,      // 命令式：离散事件触发 ach.unlock(id)
+      has: has,
+      count: count,
+      total: total,
+      reset: reset,
+      renderList: renderList
+    };
+  }
+
+  global.createAchievements = createAchievements;
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { createAchievements: createAchievements }; }
+})(typeof window !== 'undefined' ? window : this);
+
+
+/* ===== src/rotation-engine.js ===== */
+/*
+ * rotation-engine.js —— 《旋转与轨迹》课件数学内核（UMD，浏览器/Node 双用）
+ * ---------------------------------------------------------------
+ * 设计原则：纯函数、整段可单测；几何判定与渲染分离（渲染只在 app.js）。
+ * 角度单位统一用「度」(deg)；所有面积/长度/体积函数都接收可选 pi 参数，
+ * 默认 Math.PI，但课件按讲义口径可传 3.14 / 3 让读数与讲义答案一致。
+ *
+ * 覆盖六个模块的核心公式：
+ *   M1 点动成线 —— arcLength（弧长）
+ *   M2 线动成面 —— segmentSweep / annulusSectorArea（圆环扇形）
+ *   M3 面动成体 —— revolveCoeff / revolveSolid（旋转体体积 = 系数 × π）
+ *   M4 拴马吃草 —— grazingArea（墙角主扇形 + 拐角续扫叠加）
+ *   M5 翻滚轨迹 —— rollPolygonVertexPath（无滑动翻滚，顶点弧串）
+ *   M6 硬币悖论 —— coinRotations / rollAroundCircle / rollAroundPolygon（±1）
+ * ---------------------------------------------------------------
+ */
+(function (global) {
+  'use strict';
+
+  var PI = Math.PI;
+  function pick(pi) { return (typeof pi === 'number' && pi > 0) ? pi : PI; }
+  function toRad(deg) { return deg * PI / 180; }
+  function toDeg(rad) { return rad * 180 / PI; }
+  function dist(a, b) { var dx = a[0] - b[0], dy = a[1] - b[1]; return Math.hypot(dx, dy); }
+
+  /* ============ M1 点动成线：弧长 ============ */
+  // 点绕中心旋转 deg° 划出的弧长 = (deg/360)·2πr
+  function arcLength(r, deg, pi) { return (deg / 360) * 2 * pick(pi) * r; }
+  function circleCircumference(r, pi) { return 2 * pick(pi) * r; }
+
+  /* ============ M2 线动成面：圆环扇形 ============ */
+  // 圆环扇形面积（最远 R、最近 r、扫过 deg°）= (deg/360)·π·(R²−r²)
+  function annulusSectorArea(R, r, deg, pi) {
+    return (deg / 360) * pick(pi) * (R * R - r * r);
+  }
+  // 线段 p1p2 绕 center 旋转 deg° 扫过的区域：返回最近半径 rNear、最远半径 rFar、面积。
+  // rFar = 两端点到心的较大者；rNear = 若垂足落在线段内则取垂距，否则取较近端点距。
+  function segmentSweep(center, p1, p2, deg, pi) {
+    var d1 = dist(center, p1), d2 = dist(center, p2);
+    var rFar = Math.max(d1, d2);
+    // 垂足参数 t（投影到 p1->p2）
+    var vx = p2[0] - p1[0], vy = p2[1] - p1[1];
+    var len2 = vx * vx + vy * vy;
+    var rNear;
+    if (len2 < 1e-9) {
+      rNear = d1;
+    } else {
+      var t = ((center[0] - p1[0]) * vx + (center[1] - p1[1]) * vy) / len2;
+      if (t > 0 && t < 1) {
+        var fx = p1[0] + t * vx, fy = p1[1] + t * vy;
+        rNear = Math.hypot(center[0] - fx, center[1] - fy);
+      } else {
+        rNear = Math.min(d1, d2);
+      }
+    }
+    return { rNear: rNear, rFar: rFar, area: annulusSectorArea(rFar, rNear, deg, pi) };
+  }
+
+  /* ============ M3 面动成体：旋转体体积 ============ */
+  // 体积 = π × 系数。boundary = [{y, r}, ...]（沿轴 y 升序，r=该高度处旋转半径）。
+  // 用「圆台/圆锥叠加」公式：V/π = Σ (1/3)(r1²+r1·r2+r2²)(y2−y1)。
+  function revolveCoeff(boundary) {
+    var c = 0;
+    for (var i = 0; i < boundary.length - 1; i++) {
+      var a = boundary[i], b = boundary[i + 1];
+      var dy = b.y - a.y;
+      c += (1 / 3) * (a.r * a.r + a.r * b.r + b.r * b.r) * dy;
+    }
+    return c;
+  }
+  function revolveVolume(boundary, pi) { return pick(pi) * revolveCoeff(boundary); }
+
+  // 采样半圆右边界（直径在轴上）：半径 R，圆心高度 R，从 y=0 到 y=2R。
+  function sphereBoundary(R, steps) {
+    steps = steps || 48;
+    var pts = [];
+    for (var i = 0; i <= steps; i++) {
+      var y = (2 * R) * i / steps;
+      var rr = Math.sqrt(Math.max(0, R * R - (y - R) * (y - R)));
+      pts.push({ y: y, r: rr });
+    }
+    return pts;
+  }
+
+  // 命名平面图形绕轴旋转一周 → 立体。返回 {type, coeff, boundary, formula}
+  // coeff = 体积/π；课件读数 = coeff × (讲义 π)。
+  function revolveSolid(name, p) {
+    p = p || {};
+    var b, type, formula;
+    if (name === 'rectangle') {            // 矩形 → 圆柱：r=宽, h=高
+      b = [{ y: 0, r: p.r }, { y: p.h, r: p.r }];
+      type = 'cylinder'; formula = 'V = πr²h';
+    } else if (name === 'triangle') {      // 直角三角形 → 圆锥：r=底, h=高
+      b = [{ y: 0, r: p.r }, { y: p.h, r: 0 }];
+      type = 'cone'; formula = 'V = ⅓πr²h';
+    } else if (name === 'trapezoid') {     // 直角梯形 → 圆台：下底 R, 上底 r, 高 h
+      b = [{ y: 0, r: p.R }, { y: p.h, r: p.rTop }];
+      type = 'frustum'; formula = 'V = ⅓πh(R²+R·r+r²)';
+    } else if (name === 'semicircle') {    // 半圆 → 球：半径 R
+      b = sphereBoundary(p.R, p.steps);
+      type = 'sphere'; formula = 'V = 4⁄3·πR³';
+    } else if (name === 'composite') {     // 复合：矩形(下)+三角(上) → 圆柱+圆锥（预习5）
+      b = [{ y: 0, r: p.r }, { y: p.hCyl, r: p.r }, { y: p.hCyl + p.hCone, r: 0 }];
+      type = 'cylinder+cone'; formula = 'V = πr²h₁ + ⅓πr²h₂';
+    } else {
+      throw new Error('unknown solid: ' + name);
+    }
+    return { type: type, coeff: revolveCoeff(b), boundary: b, formula: formula };
+  }
+
+  /* ============ M4 拴马吃草：墙角扫过面积 ============ */
+  // L=绳长；mainAngleDeg=主扇形角度（拴点处张开角）；
+  // branches=[[{side,angleDeg},...], ...]：每条 branch 是从拴点出发的一个独立缠绕方向，
+  // 沿途累计 used += side，剩余绳长 rem = L − used，在该墙角扫出一个 angleDeg 小扇形
+  // （rem≤0 则该方向结束）。两邻边是两条独立 branch，各自从满绳 L 起算。
+  // 返回 {area, lobes:[{r, angleDeg}]}（lobes[0] 为主扇形）。
+  function grazingArea(cfg, pi) {
+    var L = cfg.L;
+    var lobes = [{ r: L, angleDeg: cfg.mainAngleDeg }];
+    (cfg.branches || []).forEach(function (branch) {
+      var used = 0;
+      for (var i = 0; i < branch.length; i++) {
+        used += branch[i].side;
+        var rem = L - used;
+        if (rem > 1e-9) lobes.push({ r: rem, angleDeg: branch[i].angleDeg });
+        else break;
+      }
+    });
+    var area = 0;
+    lobes.forEach(function (lb) { area += (lb.angleDeg / 360) * pick(pi) * lb.r * lb.r; });
+    return { area: area, lobes: lobes };
+  }
+
+  /* ============ 多边形辅助 ============ */
+  function polygonPerimeter(poly) {
+    var p = 0;
+    for (var i = 0; i < poly.length; i++) p += dist(poly[i], poly[(i + 1) % poly.length]);
+    return p;
+  }
+  // 各顶点内角（度），顺序与 poly 一致。
+  function polygonInteriorAngles(poly) {
+    var n = poly.length, out = [];
+    for (var i = 0; i < n; i++) {
+      var prev = poly[(i - 1 + n) % n], cur = poly[i], nxt = poly[(i + 1) % n];
+      var a = [prev[0] - cur[0], prev[1] - cur[1]];
+      var b = [nxt[0] - cur[0], nxt[1] - cur[1]];
+      var dot = a[0] * b[0] + a[1] * b[1];
+      var cross = Math.abs(a[0] * b[1] - a[1] * b[0]);
+      out.push(toDeg(Math.atan2(cross, dot)));
+    }
+    return out;
+  }
+
+  /* ============ M5 翻滚轨迹：顶点弧串 ============ */
+  // 凸多边形沿地面无滑动翻滚一整周（每个顶点依次作支点）；追踪 vIdx 顶点。
+  // 每个支点：旋转角 = 外角 = 180−内角；追踪点半径 = |追踪点−支点|；弧长 = (角/360)·2πr。
+  // 返回 {steps:[{pivot, radius, angleDeg, arc}], total}。
+  function rollPolygonVertexPath(poly, vIdx, pi) {
+    var angles = polygonInteriorAngles(poly);
+    var steps = [], total = 0;
+    for (var i = 0; i < poly.length; i++) {
+      var ext = 180 - angles[i];
+      var radius = (i === vIdx) ? 0 : dist(poly[vIdx], poly[i]);
+      var arc = (i === vIdx) ? 0 : arcLength(radius, ext, pi);
+      steps.push({ pivot: i, radius: radius, angleDeg: ext, arc: arc });
+      total += arc;
+    }
+    return { steps: steps, total: total };
+  }
+
+  /* ============ M6 硬币旋转悖论 ============ */
+  // 圆周长比 n = 定圆周长 / 动圆周长（= 半径比）；外滚自转 n+1 圈，内滚 n−1 圈。
+  function coinRotations(n, side) { return side === 'inside' ? n - 1 : n + 1; }
+  // 动圆(半径 rCoin)绕定圆(半径 Rfix)滚一周。
+  function rollAroundCircle(Rfix, rCoin, side, pi) {
+    var n = Rfix / rCoin;                       // 周长比 = 半径比
+    var rotations = coinRotations(n, side);
+    var centerR = side === 'inside' ? (Rfix - rCoin) : (Rfix + rCoin);
+    var centerPath = 2 * pick(pi) * centerR;    // 圆心轨迹周长
+    return { n: n, rotations: rotations, centerR: centerR, centerPath: centerPath };
+  }
+  // 动圆绕凸多边形外侧滚一周：圆心路程 = 周长 + 2πr；自转 = 周长/(2πr) + 1。
+  function rollAroundPolygon(perimeter, rCoin, pi) {
+    var circ = 2 * pick(pi) * rCoin;
+    return {
+      centerPath: perimeter + circ,
+      rotations: perimeter / circ + 1
+    };
+  }
+
+  /* ============ 半圆翻滚：圆心轨迹（题8） ============ */
+  // 半圆（半径 r）在直线上无滑动翻滚一次：圆心 = 直径中点。
+  // 三段：①绕一个直径端点转 90°（圆心走 ¼ 圆周 = ½πr 的弧）→ ②沿弧面滚 180°（圆心走直线 = πr）→ ③绕另一端点转 90°（½πr 弧）。
+  // 总长 = ½πr + πr + ½πr = 2πr。
+  function semicircleRollPath(r, pi) {
+    var P = pick(pi);
+    var arc = (P * r) / 2;     // ¼ 圆周 = (1/4)·2πr = ½πr
+    var line = P * r;          // 沿弧滚 180°，圆心走直线 πr
+    return { phases: [{ type: 'arc', len: arc }, { type: 'line', len: line }, { type: 'arc', len: arc }], total: arc + line + arc };
+  }
+
+  /* ============ 圆绕正方形内/外滚一周：扫过面积（线动成面） ============ */
+  // 半径 r 的圆贴着边长 s 的正方形滚一圈，圆覆盖（扫过）的面积。
+  //  outside：边带 4·(s·2r) + 四角合成一个整圆 π(2r)² ⇒ 8sr + 4πr²。
+  //  inside ：正方形内壁带 = s² − 内部未扫正方形(s−2r)² − 四角各留 (r²−¼πr²) ⇒ s²−(s−2r)²−(4r²−πr²)。
+  function circleSweptAroundSquare(s, r, side, pi) {
+    var P = pick(pi);
+    if (side === 'inside') {
+      var inner = (s - 2 * r) > 0 ? (s - 2 * r) * (s - 2 * r) : 0;
+      return s * s - inner - (4 * r * r - P * r * r);
+    }
+    return 8 * s * r + 4 * P * r * r;
+  }
+
+  /* ============ 滑轮：绳长规律 ============ */
+  // strands = 承重段数（定滑轮 1、动滑轮 2、滑轮组 n）。
+  // 提升重物高度 h，需要拉动绳长 = strands·h；省力比（拉力/重力）= 1/strands。
+  function pulleyPull(strands, h) {
+    return { pull: strands * h, forceRatio: 1 / strands, strands: strands };
+  }
+
+  var API = {
+    toRad: toRad, toDeg: toDeg, dist: dist,
+    arcLength: arcLength, circleCircumference: circleCircumference,
+    annulusSectorArea: annulusSectorArea, segmentSweep: segmentSweep,
+    revolveCoeff: revolveCoeff, revolveVolume: revolveVolume,
+    sphereBoundary: sphereBoundary, revolveSolid: revolveSolid,
+    grazingArea: grazingArea,
+    polygonPerimeter: polygonPerimeter, polygonInteriorAngles: polygonInteriorAngles,
+    rollPolygonVertexPath: rollPolygonVertexPath,
+    coinRotations: coinRotations, rollAroundCircle: rollAroundCircle, rollAroundPolygon: rollAroundPolygon,
+    semicircleRollPath: semicircleRollPath, circleSweptAroundSquare: circleSweptAroundSquare, pulleyPull: pulleyPull
+  };
+
+  global.RotationEngine = API;
+  if (typeof module !== 'undefined' && module.exports) { module.exports = API; }
+})(typeof window !== 'undefined' ? window : this);
+
+
+/* ===== src/app.js ===== */
+/* app.js —— 《旋转与轨迹》交互课件主程序（8 模块）。所有数值读数来自 rotation-engine.js。 */
+(function () {
+  'use strict';
+  var E = window.RotationEngine;
+  var PI = Math.PI, TAU = 2 * PI, PID = 3.14; // 课件读数口径：π取3.14（与讲义一致）
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var TAG = '🌀';
+
+  /* ================= 成就系统 ================= */
+  var state = {
+    pointLine: false, arcFull: false, semicircle: false,
+    lineRing: false, circleSquare: false, goat: false,
+    madeSolid: false, matchAll: false, comp942: false,
+    coinTwo: false, coinGeneral: false, pulleyMove: false,
+    quizPass: false, unlockedCount: 0
+  };
+  var booting = true;
+  var ach = window.createAchievements({
+    storageKey: 'rotation-trajectory-ach-v2',
+    defs: [
+      { id: 'point_line', icon: '👆', name: '点动成线', desc: '让一个点 / 角 / 圆心动起来，画出一条轨迹', check: function (s) { return s.pointLine; } },
+      { id: 'arc_full', icon: '⭕', name: '弧长神算', desc: '把点 A 转满 360°，看到轨迹是一整圆', check: function (s) { return s.arcFull; } },
+      { id: 'semicircle', icon: '◗', name: '半圆探秘', desc: '看半圆翻滚一圈，圆心走过 2πr（题8）', check: function (s) { return s.semicircle; } },
+      { id: 'line_ring', icon: '💍', name: '边扫圆环', desc: '让三角形绕 C 转 90°，AB 边扫出圆环（题16）', check: function (s) { return s.lineRing; } },
+      { id: 'circle_square', icon: '⬜', name: '绕方扫面', desc: '让圆绕正方形内 / 外滚一圈，看清扫过的面积', check: function (s) { return s.circleSquare; } },
+      { id: 'goat', icon: '🐐', name: '栓羊绕角', desc: '正五边形栓羊：绳绕过角后剩余绳长继续扫', check: function (s) { return s.goat; } },
+      { id: 'made_solid', icon: '🥫', name: '升维造体', desc: '把一个平面图形转 360° 长成立体', check: function (s) { return s.madeSolid; } },
+      { id: 'match_all', icon: '🔗', name: '形影相配', desc: '完成「平面图形 → 立体」全部连线', check: function (s) { return s.matchAll; } },
+      { id: 'comp942', icon: '🧮', name: '复合体大师', desc: '算出预习5复合体体积 942 cm³', check: function (s) { return s.comp942; } },
+      { id: 'coin_two', icon: '🪙', name: '等径两圈', desc: '亲手验证：等大两圆外滚一圈自转 2 圈', check: function (s) { return s.coinTwo; } },
+      { id: 'coin_general', icon: '➕', name: '看穿 +1', desc: '验证外滚 n+1 / 内滚 n−1 的通用规律', check: function (s) { return s.coinGeneral; } },
+      { id: 'pulley_move', icon: '⚙️', name: '动滑轮', desc: '用动滑轮提物，发现「省一半力、拉两倍绳」', check: function (s) { return s.pulleyMove; } },
+      { id: 'grad', icon: '🎓', name: '学成出师', desc: '闯关小测答对至少 5 题', check: function (s) { return s.quizPass; } },
+      { id: 'master', icon: '👑', name: '轨迹大师', desc: '解锁其余任意 10 项成就', check: function (s) { return s.unlockedCount >= 10; } }
+    ],
+    onUnlock: function () { state.unlockedCount = ach.count(); ach.check(state); refreshNav(); }
+  });
+  function record(field) { if (booting) return; if (state[field]) return; state[field] = true; ach.check(state); refreshNav(); }
+  ach.renderList($('#achList'));
+  $('#achOpen').addEventListener('click', function () { $('#achModal').classList.add('open'); });
+  $('#achClose').addEventListener('click', function () { $('#achModal').classList.remove('open'); });
+  $('#achModal').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
+  $('#achReset').addEventListener('click', function () { if (confirm('确定重置全部成就进度？')) ach.reset(); });
+
+  /* ================= 画布工具 ================= */
+  function makeStage(canvas, aspect) {
+    var ctx = canvas.getContext('2d');
+    var st = {
+      canvas: canvas, ctx: ctx, w: 0, h: 0,
+      fit: function () {
+        var r = canvas.getBoundingClientRect();
+        if (r.width < 10) return false;
+        var dpr = Math.min(2, window.devicePixelRatio || 1);
+        var hCss = Math.round(r.width * aspect);
+        st.w = r.width; st.h = hCss;
+        canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(hCss * dpr);
+        canvas.style.height = hCss + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return true;
+      }
+    };
+    return st;
+  }
+  function clear(st) { st.ctx.clearRect(0, 0, st.w, st.h); }
+  function dot(ctx, x, y, r, color) { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fillStyle = color; ctx.fill(); }
+  function lbl(ctx, txt, x, y, o) {
+    o = o || {}; ctx.fillStyle = o.color || '#66777d';
+    ctx.font = (o.bold ? '700 ' : '') + (o.size || 12) + 'px system-ui,sans-serif';
+    ctx.textAlign = o.align || 'left'; ctx.textBaseline = o.baseline || 'alphabetic';
+    ctx.fillText(txt, x, y); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
+  function sector(ctx, cx, cy, r, a0, a1, fill, stroke) {
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, a0, a1); ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke(); }
+  }
+  function ringSector(ctx, cx, cy, R, r, a0, a1, fill, stroke) {
+    ctx.beginPath(); ctx.arc(cx, cy, R, a0, a1); ctx.arc(cx, cy, r, a1, a0, true); ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke(); }
+  }
+  var CSS = getComputedStyle(document.documentElement);
+  function cv(name) { return CSS.getPropertyValue(name).trim() || '#3b82f6'; }
+
+  /* ================= 预测门禁（is-locked，不用裸 disabled） ================= */
+  function makePredict(cfg) {
+    var chosen = -1, revealed = false;
+    var box = $('#' + cfg.box), listEl = $('#' + cfg.list), fbEl = $('#' + cfg.fb);
+    cfg.options.forEach(function (opt, i) {
+      var b = document.createElement('button');
+      b.textContent = opt.label;
+      b.addEventListener('click', function () {
+        if (revealed) return; chosen = i;
+        $$('button', listEl).forEach(function (x) { x.classList.remove('sel'); });
+        b.classList.add('sel');
+        if (fbEl) fbEl.textContent = '已记下你的猜想，去操作验证吧！';
+        if (cfg.onChoose) cfg.onChoose(i);
+      });
+      listEl.appendChild(b);
+    });
+    function guard() {
+      if (chosen >= 0) return true;
+      box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash');
+      box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (fbEl) fbEl.textContent = '🔒 先选一个猜想，再动手实验。';
+      return false;
+    }
+    function reveal() {
+      if (revealed) return; revealed = true;
+      $$('button', listEl).forEach(function (x, i) {
+        if (cfg.options[i].correct) x.classList.add('right');
+        else if (i === chosen) x.classList.add('wrong');
+      });
+      var right = cfg.options[chosen] && cfg.options[chosen].correct;
+      if (fbEl) fbEl.innerHTML = (right ? '✅ 猜对了！' : '🤔 和实验结果对比一下——') + (cfg.explain || '');
+      if (cfg.onReveal) cfg.onReveal(right);
+    }
+    return { guard: guard, reveal: reveal, get chosen() { return chosen; }, get revealed() { return revealed; } };
+  }
+
+  /* ================= 隐藏结论开关 ================= */
+  $$('[data-reveal-toggle]').forEach(function (btn) {
+    var box = btn.closest('.reveal-box');
+    btn.addEventListener('click', function () {
+      var open = box.classList.toggle('open');
+      btn.textContent = open ? '隐藏结论' : '显示结论';
+      if (open && box.dataset.module === 'm3' && modules.m3) modules.m3.onReveal();
+    });
+  });
+
+  /* ================= 右栏数据面板 ================= */
+  var metricsEl = $('#metrics'), metricNote = $('#metricNote'), metricMap = {};
+  function buildMetrics(schema, note) {
+    metricsEl.innerHTML = ''; metricMap = {};
+    schema.forEach(function (m) {
+      var row = document.createElement('div'); row.className = 'm-row';
+      row.innerHTML = '<dt>' + m.label + '</dt><dd class="metric-val" id="met-' + m.key + '">—</dd>';
+      metricsEl.appendChild(row); metricMap[m.key] = $('#met-' + m.key, row);
+    });
+    metricNote.innerHTML = note || '';
+  }
+  function setMetric(key, val, isHtml) { var el = metricMap[key]; if (!el) return; if (isHtml) el.innerHTML = val; else el.textContent = val; }
+
+  /* ================= 底部提示 ================= */
+  var PROMPTS = {
+    m0: ['看一看：点、线、面动起来分别留下什么？', '点「下一步」走完 5 步，记住这一讲的路线。', '用一句话说：图形动起来，痕迹由什么决定？'],
+    m1: ['切换情景，先猜动点会画出什么轨迹。', '点「播放」看翻滚 / 绕滚，动点画出复合轨迹。', '每段弧半径 = 动点到当时支点的距离——为什么？'],
+    m2: ['切换三种情景，先想「谁在扫、扫出多大」。', '点「播放」看面积一点点被扫出来。', '把扫过的面积拆成扇形 / 圆环之和——每段半径多少？'],
+    m3: ['先连一连：每个平面图形转出哪个立体？', '拖「旋转」让平面图形扫 360° 长成立体。', '复合体 = 圆柱 + 圆锥，体积怎么相加？'],
+    m6: ['先预测：等大两圆外滚一圈自转几圈？', '亲手滚一圈，盯住红点数自转次数。', '多出的 +1 来自「绕中心走了一圈」。'],
+    mpul: ['先猜：动滑轮提 1 米要拉多长绳？', '点「拉绳提升」，比较拉的绳长与升高。', '承重几段绳，就省几倍力、拉几倍绳——为什么？'],
+    m7: ['浏览概念卡，回忆每张卡来自哪个实验。', '完成 6 道小测，检验你的判断。', '挑战满分，拿下「轨迹大师」。']
+  };
+  var stageIdx = 0, currentId = 'm0';
+  function setPrompt() {
+    var arr = PROMPTS[currentId] || ['', '', ''];
+    $('#promptText').textContent = arr[stageIdx] || '';
+    $$('#stageTabs button').forEach(function (b, i) { b.className = (i === stageIdx) ? ('on ' + (i === 0 ? 'obs' : i === 1 ? 'ver' : '')) : ''; });
+  }
+  $$('#stageTabs button').forEach(function (b, i) { b.addEventListener('click', function () { stageIdx = i; setPrompt(); }); });
+
+  /* ================= 模块路由 ================= */
+  var MODS = [
+    { id: 'm0', short: '0', name: '入门地图', doneIf: function () { return modules.m0 && modules.m0.finished; } },
+    { id: 'm1', short: '1', name: '点动成线', doneIf: function () { return ach.has('arc_full'); } },
+    { id: 'm2', short: '2', name: '线动成面', doneIf: function () { return ach.has('line_ring'); } },
+    { id: 'm3', short: '3', name: '面动成体', doneIf: function () { return ach.has('match_all'); } },
+    { id: 'm6', short: '4', name: '硬币悖论 ★', doneIf: function () { return ach.has('coin_two'); } },
+    { id: 'mpul', short: '5', name: '滑轮问题', doneIf: function () { return ach.has('pulley_move'); } },
+    { id: 'm7', short: '6', name: '总结闯关', doneIf: function () { return ach.has('grad'); } }
+  ];
+  var modules = {}, navList = $('#navList');
+  MODS.forEach(function (m) {
+    var b = document.createElement('button'); b.className = 'nav-item'; b.id = 'nav-' + m.id;
+    b.innerHTML = '<span class="idx">' + m.short + '</span><span>' + m.name + '</span>';
+    b.addEventListener('click', function () { activate(m.id); });
+    navList.appendChild(b);
+  });
+  function refreshNav() {
+    MODS.forEach(function (m) {
+      var b = $('#nav-' + m.id);
+      b.classList.toggle('active', m.id === currentId);
+      b.classList.toggle('done', !!m.doneIf());
+    });
+  }
+  function activate(id) {
+    currentId = id;
+    $$('.mod-view').forEach(function (v) { v.classList.remove('active'); });
+    $('#view-' + id).classList.add('active');
+    stageIdx = 0; setPrompt(); refreshNav();
+    var mod = modules[id];
+    if (mod) {
+      if (mod.metrics) buildMetrics(mod.metrics, mod.note);
+      if (mod.enter) mod.enter();
+      if (mod.resize) { mod.resize(); requestAnimationFrame(function () { mod.resize(); }); }
+    } else buildMetrics([], '');
+  }
+  window.addEventListener('resize', function () { var mod = modules[currentId]; if (mod && mod.resize) mod.resize(); });
+
+  /* ================================================================
+   *  M0 入门地图
+   * ============================================================== */
+  modules.m0 = (function () {
+    var st = makeStage($('#cv-m0'), .52);
+    var step = 0, N = 5, finished = false;
+    var CAP = [
+      '① 一个点 / 圆心 —— 动起来，会留下「轨迹」',
+      '② 点动成线：翻滚的角 / 滚动的圆心画出轨迹',
+      '③ 线动成面：边、圆、绳扫过一片面积',
+      '④ 面动成体：平面图形绕轴转 → 长成立体',
+      '⑤ 奇观 & 应用：硬币旋转 +1 · 滑轮绳长规律'
+    ];
+    function draw() {
+      if (!st.w) return; var ctx = st.ctx; clear(st);
+      var cx = st.w * 0.5, cy = st.h * 0.48, R = Math.min(st.w, st.h) * 0.3;
+      var ac = cv('--accent'), tr = cv('--trail');
+      if (step === 0) {
+        dot(ctx, cx, cy, 7, ac); lbl(ctx, 'A', cx + 12, cy - 8, { bold: true, size: 15, color: ac });
+        lbl(ctx, '点：最朴素的「运动员」', cx, cy + R + 6, { align: 'center', size: 13 });
+      } else if (step === 1) {
+        ctx.beginPath(); ctx.arc(cx, cy, R, -PI * 0.5, PI * 0.7); ctx.strokeStyle = tr; ctx.lineWidth = 3; ctx.stroke();
+        dot(ctx, cx, cy, 4, '#94a3b8');
+        var a = PI * 0.7, px = cx + R * Math.cos(a), py = cy + R * Math.sin(a);
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1.5; ctx.stroke();
+        dot(ctx, px, py, 7, ac); dot(ctx, cx + R * Math.cos(-PI * .5), cy + R * Math.sin(-PI * .5), 6, '#94a3b8');
+        lbl(ctx, 'O', cx - 14, cy + 4, { bold: true }); lbl(ctx, '弧 = 点的轨迹', cx, cy + R + 22, { align: 'center', size: 13, color: tr, bold: true });
+      } else if (step === 2) {
+        ringSector(ctx, cx, cy, R, R * 0.45, -PI * 0.5, PI * 0.45, cv('--sweep'), ac);
+        var a2 = PI * 0.45;
+        ctx.beginPath(); ctx.moveTo(cx + R * 0.45 * Math.cos(a2), cy + R * 0.45 * Math.sin(a2)); ctx.lineTo(cx + R * Math.cos(a2), cy + R * Math.sin(a2));
+        ctx.strokeStyle = ac; ctx.lineWidth = 4; ctx.stroke();
+        dot(ctx, cx, cy, 4, '#94a3b8'); lbl(ctx, '圆环 = 线段的足迹', cx, cy + R + 22, { align: 'center', size: 13, color: ac, bold: true });
+      } else if (step === 3) {
+        var ax = cx, top = cy - R, bot = cy + R, rr = R * 0.6;
+        ctx.fillStyle = 'rgba(59,130,246,.12)'; ctx.strokeStyle = ac; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(ax, top, rr, rr * 0.3, 0, 0, TAU); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ax - rr, top); ctx.lineTo(ax - rr, bot); ctx.moveTo(ax + rr, top); ctx.lineTo(ax + rr, bot); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(ax, bot, rr, rr * 0.3, 0, 0, PI); ctx.stroke();
+        ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(ax, top - 18); ctx.lineTo(ax, bot + 14); ctx.strokeStyle = '#94a3b8'; ctx.stroke(); ctx.setLineDash([]);
+        lbl(ctx, '矩形绕轴 l 转 → 圆柱', cx, bot + 30, { align: 'center', size: 13, color: ac, bold: true });
+      } else {
+        // two coins + rolling square hint
+        var bx = cx - R * 0.7, by = cy;
+        dot(ctx, bx, by, R * 0.4, '#e2e8f0'); ctx.strokeStyle = '#94a3b8'; ctx.beginPath(); ctx.arc(bx, by, R * 0.4, 0, TAU); ctx.stroke();
+        var cx2 = bx + R * 0.8; dot(ctx, cx2, by, R * 0.4, cv('--accent-soft')); ctx.strokeStyle = ac; ctx.beginPath(); ctx.arc(cx2, by, R * 0.4, 0, TAU); ctx.stroke();
+        dot(ctx, cx2, by - R * 0.4, 4, tr);
+        lbl(ctx, '绕一圈 → 自转 2 圈?!', cx, cy + R + 6, { align: 'center', size: 13, color: tr, bold: true });
+      }
+      lbl(ctx, CAP[step], st.w * 0.5, 22, { align: 'center', size: 13.5, bold: true, color: '#152529' });
+    }
+    function setStep(s) { step = Math.max(0, Math.min(N - 1, s)); $('#m0-step').textContent = (step + 1) + ' / ' + N; if (step === N - 1) { finished = true; refreshNav(); } draw(); }
+    $('#m0-next').addEventListener('click', function () { setStep(step + 1); });
+    $('#m0-prev').addEventListener('click', function () { setStep(step - 1); });
+    return { metrics: [], note: '', enter: function () { setStep(step); }, resize: function () { if (st.fit()) draw(); }, get finished() { return finished; } };
+  })();
+
+  /* ================================================================
+   *  M1 点动成线
+   * ============================================================== */
+  modules.m1 = (function () {
+    var st = makeStage($('#cv-m1'), .56);
+    var mode = 'base';
+    /* ---------- base：单点绕中心 ---------- */
+    var r = 6, deg = 120, showTrail = true, dragged = false;
+    var pred = makePredict({
+      box: 'pred-m1', list: 'pred-m1-list', fb: 'pred-m1-fb',
+      options: [{ label: '一条直线段' }, { label: '一段圆弧 / 圆', correct: true }, { label: '一个三角形' }, { label: '一条螺旋线' }],
+      explain: '点到中心的距离不变，所以轨迹是以中心为圆心的圆（弧）。',
+      onReveal: function () { box().classList.add('open'); }
+    });
+    function box() { return $('.reveal-box[data-module="m1"]'); }
+    function geo() { var s = Math.min(st.w * 0.42, st.h * 0.42) / 10; return { cx: st.w * 0.42, cy: st.h * 0.52, s: s }; }
+    function drawBase() {
+      if (!st.w) return; var ctx = st.ctx; clear(st);
+      var g = geo(), ac = cv('--accent'), tr = cv('--trail');
+      dot(ctx, g.cx, g.cy, 5, '#94a3b8'); lbl(ctx, 'O', g.cx - 16, g.cy + 5, { bold: true, color: '#475569' });
+      var rad = r * g.s, a = -PI / 2, a1 = -PI / 2 + (deg / 360) * TAU;
+      ctx.beginPath(); ctx.arc(g.cx, g.cy, rad, 0, TAU); ctx.strokeStyle = '#e2e8f0'; ctx.setLineDash([4, 5]); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
+      if (showTrail) { ctx.beginPath(); ctx.arc(g.cx, g.cy, rad, a, a1); ctx.strokeStyle = tr; ctx.lineWidth = 4; ctx.stroke(); }
+      var sx = g.cx + rad * Math.cos(a), sy = g.cy + rad * Math.sin(a);
+      var px = g.cx + rad * Math.cos(a1), py = g.cy + rad * Math.sin(a1);
+      dot(ctx, sx, sy, 5, '#cbd5e1');
+      ctx.beginPath(); ctx.moveTo(g.cx, g.cy); ctx.lineTo(px, py); ctx.strokeStyle = ac; ctx.lineWidth = 2; ctx.stroke();
+      lbl(ctx, 'r=' + r, (g.cx + px) / 2 + 6, (g.cy + py) / 2, { color: ac, bold: true });
+      dot(ctx, px, py, 7, ac); lbl(ctx, 'A', px + 10, py - 6, { bold: true, size: 15, color: ac });
+      ctx.beginPath(); ctx.arc(g.cx, g.cy, 22, a, a1); ctx.strokeStyle = cv('--warning'); ctx.lineWidth = 2; ctx.stroke();
+      lbl(ctx, deg + '°', g.cx + 26, g.cy - 6, { color: cv('--warning'), bold: true });
+    }
+    function updateBase() {
+      buildMetrics([{ key: 'shape', label: '轨迹形状' }, { key: 'r', label: '半径 r' }, { key: 'deg', label: '旋转角' }, { key: 'len', label: '弧长 (π取3.14)' }], '弧长只由半径 r 与转角决定。');
+      var len = E.arcLength(r, deg, PID);
+      $('#m1-formula').innerHTML = '弧长 = (<b>' + deg + '</b>÷360) × 2 × 3.14 × <b>' + r + '</b> = <span class="hi">' + len.toFixed(2) + '</span>' + (deg === 360 ? '（整圆周长）' : '');
+      setMetric('shape', deg >= 360 ? '<span class="chip chip-blue">整圆</span>' : '<span class="chip chip-amber">圆弧</span>', true);
+      setMetric('r', r); setMetric('deg', deg + '°'); setMetric('len', len.toFixed(2));
+      if (dragged) record('pointLine');
+      if (deg === 360) { record('pointLine'); record('arcFull'); }
+      drawBase();
+    }
+    $('#m1-r').addEventListener('input', function () { r = +this.value; $('#m1-rv').textContent = r; dragged = true; updateBase(); });
+    $('#m1-deg').addEventListener('input', function () { deg = +this.value; $('#m1-degv').textContent = deg + '°'; dragged = true; if (!pred.revealed) pred.reveal(); updateBase(); });
+    $('#m1-trail').addEventListener('change', function () { showTrail = this.checked; drawBase(); });
+
+    /* ---------- 预设：翻滚 / 绕滚 轨迹（点动成线·复合） ---------- */
+    var anim = null, scale = 24, groundY = 0, startX = 0, poly = null, trackIdx = 0, trail = [], fullTrail = [], pivotsDone = 0, totalTips = 0, prog = 0, circ = null;
+    var PRESETS = {
+      rectRoll: { pts: [[0, 0], [4, 0], [4, 3], [0, 3]], track: 0, label: '长方形 4×3 翻滚', tip: '点「播放」让长方形绕角翻滚 4 次，看左下角 A 画轨迹' },
+      triRoll: { pts: [[0, 0], [3.4, 0], [1.1, 2.4]], track: 0, label: '三角形翻滚', tip: '点「播放」让三角形绕角翻滚 3 次，看左下角 A 画轨迹' }
+    };
+    function cancelAnim() { if (anim) { clearInterval(anim); anim = null; } }
+    function poInterior(p, i) { var n = p.length, pr = p[(i - 1 + n) % n], cu = p[i], nx = p[(i + 1) % n]; var a = [pr[0] - cu[0], pr[1] - cu[1]], b = [nx[0] - cu[0], nx[1] - cu[1]]; return Math.atan2(Math.abs(a[0] * b[1] - a[1] * b[0]), a[0] * b[0] + a[1] * b[1]); }
+    function lowestPivot(p) { var gy = Math.max.apply(null, p.map(function (q) { return q[1]; })); var c = p.map(function (q, i) { return { i: i, q: q }; }).filter(function (o) { return Math.abs(o.q[1] - gy) < 0.6; }); c.sort(function (a, b) { return b.q[0] - a.q[0]; }); return c[0].i; }
+    function snapG(p) { var gy = Math.max.apply(null, p.map(function (q) { return q[1]; })); var dy = groundY - gy; return p.map(function (q) { return [q[0], q[1] + dy]; }); }
+    function rollMetrics() {
+      var def = PRESETS[mode];
+      var eng = E.rollPolygonVertexPath(def.pts, def.track, PID);
+      var arcs = eng.steps.filter(function (s) { return s.arc > 0; }).length;
+      buildMetrics([{ key: 'shape', label: '图形' }, { key: 'tips', label: '翻滚次数' }, { key: 'arcs', label: '弧段数' }, { key: 'len', label: '点A路程' }], '点 A 翻滚轨迹 = 一串圆弧（半径 = A 到落地角距离）。');
+      setMetric('shape', '<span class="chip chip-blue">' + def.label + '</span>', true);
+      setMetric('tips', pivotsDone + ' / ' + totalTips);
+      setMetric('arcs', arcs + ' 段');
+      setMetric('len', eng.total.toFixed(2) + '（≈' + (eng.total / PID).toFixed(2) + 'π）');
+    }
+    // 同步模拟整段翻滚，预先算出点 A 的完整轨迹（虚线引导 + 可同步自测，不依赖动画 tick）
+    function simulateFullTrail() {
+      var def = PRESETS[mode], SAMP = 14;
+      var cur = def.pts.map(function (p) { return [startX + p[0] * scale, groundY - p[1] * scale]; });
+      var ft = [cur[trackIdx].slice()], done = 0;
+      while (done < def.pts.length) {
+        var pi = lowestPivot(cur), pivot = cur[pi].slice(), ext = PI - poInterior(cur, pi);
+        if (ext >= 0.01) {
+          var base = cur.map(function (p) { return p.slice(); });
+          for (var j = 1; j <= SAMP; j++) {
+            var ang = ext * j / SAMP, c = Math.cos(ang), s = Math.sin(ang), q = base[trackIdx];
+            var dx = q[0] - pivot[0], dy = q[1] - pivot[1];
+            ft.push([pivot[0] + dx * c - dy * s, pivot[1] + dx * s + dy * c]);
+          }
+          var c2 = Math.cos(ext), s2 = Math.sin(ext);
+          cur = snapG(base.map(function (p) { var dx = p[0] - pivot[0], dy = p[1] - pivot[1]; return [pivot[0] + dx * c2 - dy * s2, pivot[1] + dx * s2 + dy * c2]; }));
+        }
+        done++;
+      }
+      return ft;
+    }
+    function resetRoll() {
+      cancelAnim(); var def = PRESETS[mode];
+      groundY = st.h - 30; startX = st.w * 0.14;
+      poly = def.pts.map(function (p) { return [startX + p[0] * scale, groundY - p[1] * scale]; });
+      trackIdx = def.track; trail = [poly[trackIdx].slice()]; pivotsDone = 0; totalTips = def.pts.length;
+      fullTrail = simulateFullTrail();
+      rollMetrics(); drawRoll();
+    }
+    function rollStep(cb) {
+      var pi = lowestPivot(poly), pivot = poly[pi].slice(), ext = PI - poInterior(poly, pi);
+      if (ext < 0.01) { pivotsDone++; if (cb) cb(); return; }
+      var base = poly.map(function (p) { return p.slice(); }), t0 = performance.now(), dur = 460;
+      anim = setInterval(function () {
+        var k = Math.min(1, (performance.now() - t0) / dur), ang = ext * k, c = Math.cos(ang), s = Math.sin(ang);
+        poly = base.map(function (p) { var dx = p[0] - pivot[0], dy = p[1] - pivot[1]; return [pivot[0] + dx * c - dy * s, pivot[1] + dx * s + dy * c]; });
+        trail.push(poly[trackIdx].slice()); drawRoll();
+        if (k >= 1) { cancelAnim(); poly = snapG(poly); pivotsDone++; record('pointLine'); rollMetrics(); if (cb) cb(); }
+      }, 16);
+    }
+    function playRoll() {
+      if (anim) { cancelAnim(); $('#m1-play').textContent = '播放'; return; }
+      if (pivotsDone >= totalTips) resetRoll();
+      $('#m1-play').textContent = '暂停';
+      (function next() { if (pivotsDone >= totalTips) { $('#m1-play').textContent = '重新播放'; return; } rollStep(next); })();
+    }
+    function drawRoll() {
+      if (!st.w || !poly) return; var ctx = st.ctx; clear(st);
+      ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(st.w, groundY); ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2; ctx.stroke();
+      // 完整轨迹虚线引导（同步预算）
+      if (fullTrail.length > 1) { ctx.setLineDash([4, 5]); ctx.beginPath(); ctx.moveTo(fullTrail[0][0], fullTrail[0][1]); for (var k = 1; k < fullTrail.length; k++) ctx.lineTo(fullTrail[k][0], fullTrail[k][1]); ctx.strokeStyle = '#f4b4b4'; ctx.lineWidth = 1.6; ctx.stroke(); ctx.setLineDash([]); }
+      if (trail.length > 1) { ctx.beginPath(); ctx.moveTo(trail[0][0], trail[0][1]); for (var i = 1; i < trail.length; i++) ctx.lineTo(trail[i][0], trail[i][1]); ctx.strokeStyle = cv('--trail'); ctx.lineWidth = 3; ctx.stroke(); }
+      ctx.beginPath(); poly.forEach(function (p, i) { if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]); }); ctx.closePath();
+      ctx.fillStyle = 'rgba(59,130,246,.14)'; ctx.fill(); ctx.strokeStyle = cv('--accent'); ctx.lineWidth = 2; ctx.stroke();
+      poly.forEach(function (p, i) { dot(ctx, p[0], p[1], i === trackIdx ? 6 : 3.5, i === trackIdx ? cv('--trail') : '#94a3b8'); });
+      lbl(ctx, 'A', poly[trackIdx][0] + 8, poly[trackIdx][1] - 8, { bold: true, size: 14, color: cv('--trail') });
+      lbl(ctx, PRESETS[mode].label + '：点 A 的轨迹 = 一串圆弧', st.w * 0.5, 18, { align: 'center', bold: true, size: 13, color: '#152529' });
+    }
+
+    /* ---------- 预设：圆绕三角形，圆心轨迹 ---------- */
+    function setupCircle() {
+      cancelAnim(); prog = 0;
+      var C = { x: st.w * 0.5, y: st.h * 0.54 }, R = Math.min(st.w, st.h) * 0.24, rc = 20;
+      // 底边在前：动画从底边中点出发，圆清晰地贴在三角形「外侧」
+      var verts = [[C.x - R * 0.8660254, C.y + R * 0.5], [C.x + R * 0.8660254, C.y + R * 0.5], [C.x, C.y - R]];
+      var cen = [(verts[0][0] + verts[1][0] + verts[2][0]) / 3, (verts[0][1] + verts[1][1] + verts[2][1]) / 3];
+      var n = verts.length, off = [], prims = [], total = 0, perim = 0;
+      for (var i = 0; i < n; i++) {
+        var A = verts[i], B = verts[(i + 1) % n], dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy); perim += L;
+        var nx = dy / L, ny = -dx / L, mid = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2];
+        if (nx * (mid[0] - cen[0]) + ny * (mid[1] - cen[1]) < 0) { nx = -nx; ny = -ny; } // 取「朝外」单位法线
+        off.push([nx * rc, ny * rc]);
+      }
+      for (var j = 0; j < n; j++) {
+        var A2 = verts[j], B2 = verts[(j + 1) % n], o = off[j];
+        var sa = [A2[0] + o[0], A2[1] + o[1]], sb = [B2[0] + o[0], B2[1] + o[1]], sl = Math.hypot(sb[0] - sa[0], sb[1] - sa[1]);
+        prims.push({ t: 'seg', a: sa, b: sb, s0: total, len: sl }); total += sl;
+        var o2 = off[(j + 1) % n], V = verts[(j + 1) % n], a0 = Math.atan2(o[1], o[0]), a1 = Math.atan2(o2[1], o2[0]);
+        var ext = a1 - a0; while (ext <= -PI) ext += TAU; while (ext > PI) ext -= TAU;
+        prims.push({ t: 'arc', c: V, rad: rc, a0: a0, a1: a0 + ext, s0: total, len: Math.abs(ext) * rc }); total += Math.abs(ext) * rc;
+      }
+      circ = { verts: verts, rc: rc, prims: prims, total: total, perim: perim, s0: prims[0].len / 2, centerTrail: [] };
+      circMetrics(); drawCircle();
+    }
+    function circS() { return (circ.s0 + prog * circ.total) % circ.total; }
+    // 圆心到三角形边界的最近点 = 外切接触点
+    function nearestOnPoly(verts, p) {
+      var best = null, bd = Infinity;
+      for (var i = 0; i < verts.length; i++) {
+        var A = verts[i], B = verts[(i + 1) % verts.length], vx = B[0] - A[0], vy = B[1] - A[1], L2 = vx * vx + vy * vy;
+        var t = L2 ? Math.max(0, Math.min(1, ((p[0] - A[0]) * vx + (p[1] - A[1]) * vy) / L2)) : 0;
+        var qx = A[0] + t * vx, qy = A[1] + t * vy, d = Math.hypot(p[0] - qx, p[1] - qy);
+        if (d < bd) { bd = d; best = [qx, qy]; }
+      }
+      return best;
+    }
+    function circPoint(s) {
+      for (var i = 0; i < circ.prims.length; i++) {
+        var p = circ.prims[i];
+        if (s <= p.s0 + p.len || i === circ.prims.length - 1) {
+          var ls = s - p.s0;
+          if (p.t === 'seg') { var t = ls / p.len; return [p.a[0] + (p.b[0] - p.a[0]) * t, p.a[1] + (p.b[1] - p.a[1]) * t]; }
+          var aa = p.a0 + (p.a1 - p.a0) * (ls / p.len); return [p.c[0] + p.rad * Math.cos(aa), p.c[1] + p.rad * Math.sin(aa)];
+        }
+      }
+      return circ.prims[0].a;
+    }
+    function circMetrics() {
+      buildMetrics([{ key: 'shape', label: '图形' }, { key: 'rc', label: '圆半径' }, { key: 'traj', label: '圆心轨迹' }, { key: 'path', label: '圆心路程' }], '圆心路程 = 三角形周长 + 一个整圆（2πr）。');
+      setMetric('shape', '<span class="chip chip-blue">圆绕三角形</span>', true);
+      setMetric('rc', circ.rc + ' px');
+      setMetric('traj', '3 直线 + 3 圆弧');
+      setMetric('path', '周长 + 2πr');
+    }
+    function playCircle() {
+      if (anim) { cancelAnim(); $('#m1-play').textContent = '播放'; return; }
+      if (prog >= 1) setupCircle();
+      $('#m1-play').textContent = '暂停'; var dur = 5200, t0 = performance.now() - prog * dur;
+      anim = setInterval(function () {
+        prog = Math.min(1, (performance.now() - t0) / dur); circ.centerTrail.push(circPoint(circS())); drawCircle();
+        if (prog >= 1) { cancelAnim(); record('pointLine'); $('#m1-play').textContent = '重新播放'; }
+      }, 16);
+    }
+    function drawCircle() {
+      if (!st.w || !circ) return; var ctx = st.ctx; clear(st);
+      ctx.beginPath(); circ.verts.forEach(function (p, i) { if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]); }); ctx.closePath();
+      ctx.fillStyle = '#e2e8f0'; ctx.fill(); ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2; ctx.stroke();
+      // 圆心轨迹（圆角三角形）虚线引导
+      ctx.setLineDash([4, 5]); ctx.strokeStyle = '#f4b4b4'; ctx.lineWidth = 1.4; ctx.beginPath();
+      for (var s = 0; s <= circ.total; s += circ.total / 240) { var q = circPoint(s); if (s === 0) ctx.moveTo(q[0], q[1]); else ctx.lineTo(q[0], q[1]); }
+      ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+      if (circ.centerTrail.length > 1) { ctx.beginPath(); ctx.moveTo(circ.centerTrail[0][0], circ.centerTrail[0][1]); for (var i = 1; i < circ.centerTrail.length; i++) ctx.lineTo(circ.centerTrail[i][0], circ.centerTrail[i][1]); ctx.strokeStyle = cv('--trail'); ctx.lineWidth = 3; ctx.stroke(); }
+      var c = circPoint(circS());
+      // 外切接触点 + 半径（显式表明「圆外切在三角形外」）
+      var ct = nearestOnPoly(circ.verts, c);
+      ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.lineTo(ct[0], ct[1]); ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.beginPath(); ctx.arc(c[0], c[1], circ.rc, 0, TAU); ctx.fillStyle = 'rgba(59,130,246,.16)'; ctx.fill(); ctx.strokeStyle = cv('--accent'); ctx.lineWidth = 2; ctx.stroke();
+      dot(ctx, ct[0], ct[1], 3.5, '#0f766e'); // 接触点
+      dot(ctx, c[0], c[1], 4, cv('--trail')); lbl(ctx, '圆心', c[0] + circ.rc + 3, c[1], { size: 11, color: cv('--trail'), bold: true });
+      lbl(ctx, '圆外切沿三角形外侧滚一圈：圆心轨迹 = 圆角三角形', st.w * 0.5, 18, { align: 'center', bold: true, size: 12.5, color: '#152529' });
+    }
+
+    /* ---------- 预设：半圆翻滚，圆心轨迹（题8） ---------- */
+    var semi = null;
+    function rotV(x, y, a) { var c = Math.cos(a), s = Math.sin(a); return [x * c - y * s, x * s + y * c]; }
+    function setupSemicircle() {
+      cancelAnim(); prog = 0;
+      var rU = 2, R = rU * scale;            // 半径 2 个单位（对齐题8）
+      groundY = st.h - 36; startX = st.w * 0.12;
+      var Ox = startX + R, total = 2 * PI * R;
+      var s1 = PI * R / 2, s2 = s1 + PI * R;  // 相位边界（弧 / 直线 / 弧）
+      semi = { R: R, rU: rU, Ox: Ox, total: total, s1: s1, s2: s2, trail: [], full: [] };
+      // 同步预算完整圆心轨迹（虚线引导）
+      for (var p = 0; p <= 1.0001; p += 1 / 120) semi.full.push(semiCenter(Math.min(1, p)));
+      semiMetrics(); drawSemi();
+    }
+    function semiCenter(prog2) { // 返回圆心 [x,y]（不含旋转）
+      var R = semi.R, s = prog2 * semi.total, Ox = semi.Ox, B = Ox + R, gY = groundY;
+      if (s <= semi.s1) { var a = (s / semi.s1) * (PI / 2), v = rotV(-R, 0, a); return [B + v[0], gY + v[1]]; }
+      if (s <= semi.s2) { var t = (s - semi.s1) / (PI * R); return [Ox + R + t * PI * R, gY - R]; }
+      var t2 = (s - semi.s2) / semi.s1, a2 = t2 * (PI / 2), P3x = Ox + R + PI * R, v2 = rotV(0, -R, a2); return [P3x + v2[0], gY + v2[1]];
+    }
+    function semiRot(prog2) {
+      var s = prog2 * semi.total;
+      if (s <= semi.s1) return (s / semi.s1) * (PI / 2);
+      if (s <= semi.s2) return PI / 2 + ((s - semi.s1) / (PI * semi.R)) * PI;
+      return 3 * PI / 2 + ((s - semi.s2) / semi.s1) * (PI / 2);
+    }
+    function semiMetrics() {
+      buildMetrics([{ key: 'shape', label: '图形' }, { key: 'rc', label: '半径 r' }, { key: 'traj', label: '圆心轨迹' }, { key: 'path', label: '圆心路程' }], '圆心路程 = 2πr（弧+直线+弧 = ½πr+πr+½πr）。');
+      setMetric('shape', '<span class="chip chip-blue">半圆翻滚</span>', true);
+      setMetric('rc', semi.rU);
+      setMetric('traj', '弧+直线+弧');
+      setMetric('path', (2 * 3.14 * semi.rU).toFixed(2) + '（=2πr）');
+    }
+    function playSemi() {
+      if (anim) { cancelAnim(); $('#m1-play').textContent = '播放'; return; }
+      if (prog >= 1) { setupSemicircle(); }
+      $('#m1-play').textContent = '暂停'; var dur = 5200, t0 = performance.now() - prog * dur;
+      anim = setInterval(function () {
+        prog = Math.min(1, (performance.now() - t0) / dur); semi.trail.push(semiCenter(prog)); drawSemi();
+        if (prog >= 1) { cancelAnim(); record('pointLine'); record('semicircle'); $('#m1-play').textContent = '重新播放'; }
+      }, 16);
+    }
+    function drawSemi() {
+      if (!st.w || !semi) return; var ctx = st.ctx; clear(st);
+      ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(st.w, groundY); ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2; ctx.stroke();
+      // 圆心轨迹虚线引导（弧+直线+弧）
+      ctx.setLineDash([4, 5]); ctx.strokeStyle = '#f4b4b4'; ctx.lineWidth = 1.5; ctx.beginPath();
+      semi.full.forEach(function (q, i) { if (i === 0) ctx.moveTo(q[0], q[1]); else ctx.lineTo(q[0], q[1]); }); ctx.stroke(); ctx.setLineDash([]);
+      if (semi.trail.length > 1) { ctx.beginPath(); ctx.moveTo(semi.trail[0][0], semi.trail[0][1]); for (var i = 1; i < semi.trail.length; i++) ctx.lineTo(semi.trail[i][0], semi.trail[i][1]); ctx.strokeStyle = cv('--trail'); ctx.lineWidth = 3; ctx.stroke(); }
+      var O = semiCenter(prog), ROT = semiRot(prog);
+      ctx.save(); ctx.translate(O[0], O[1]); ctx.rotate(ROT);
+      ctx.beginPath(); ctx.arc(0, 0, semi.R, PI, TAU); ctx.closePath();
+      ctx.fillStyle = 'rgba(59,130,246,.16)'; ctx.fill(); ctx.strokeStyle = cv('--accent'); ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-semi.R, 0); ctx.lineTo(semi.R, 0); ctx.strokeStyle = cv('--accent-dark'); ctx.lineWidth = 2; ctx.stroke();
+      ctx.restore();
+      dot(ctx, O[0], O[1], 4, cv('--trail')); lbl(ctx, '圆心', O[0] + 8, O[1] - 8, { size: 11, color: cv('--trail'), bold: true });
+      lbl(ctx, '半圆翻滚一圈：圆心路程 = 2πr（弧½πr + 直线πr + 弧½πr）', st.w * 0.5, 18, { align: 'center', bold: true, size: 12.5, color: '#152529' });
+    }
+
+    /* ---------- 模式切换 ---------- */
+    function setMode(m) {
+      cancelAnim(); mode = m;
+      $$('#m1-mode button').forEach(function (b) { b.classList.toggle('on', b.dataset.m1mode === m); });
+      var isBase = m === 'base';
+      $('#pred-m1').style.display = isBase ? '' : 'none';
+      $('#m1-base-ctrl').style.display = isBase ? '' : 'none';
+      $('#m1-preset-ctrl').style.display = isBase ? 'none' : '';
+      $('#m1-play').textContent = '播放';
+      if (isBase) { updateBase(); return; }
+      if (m === 'circleTri') {
+        $('#m1-preset-tip').textContent = '点「播放」看圆心画出圆角三角形';
+        $('#m1-formula').innerHTML = '圆心轨迹 = <b>3 条直线段</b>（平行于三边）+ <b>3 段圆弧</b>（拐角处，半径 = 圆半径）';
+        setupCircle();
+      } else if (m === 'semicircle') {
+        $('#m1-preset-tip').textContent = '点「播放」看半圆翻滚，圆心走 2πr';
+        $('#m1-formula').innerHTML = '圆心路程 = <b>½πr</b>（绕端点）+ <b>πr</b>（沿弧滚=直线）+ <b>½πr</b>（绕端点）= <b>2πr</b>';
+        setupSemicircle();
+      } else {
+        $('#m1-preset-tip').textContent = PRESETS[m].tip;
+        $('#m1-formula').innerHTML = '点 A 翻滚轨迹 = 一串圆弧，每段半径 = A 到当时<b>落地角</b>的距离（自己落地时半径 0、不动）';
+        resetRoll();
+      }
+    }
+    function presetPlay() { if (mode === 'circleTri') playCircle(); else if (mode === 'semicircle') playSemi(); else playRoll(); }
+    function presetReset() { if (mode === 'circleTri') setupCircle(); else if (mode === 'semicircle') setupSemicircle(); else resetRoll(); $('#m1-play').textContent = '播放'; }
+    $$('#m1-mode button').forEach(function (b) { b.addEventListener('click', function () { setMode(b.dataset.m1mode); }); });
+    $('#m1-play').addEventListener('click', presetPlay);
+    $('#m1-reset').addEventListener('click', presetReset);
+
+    return {
+      metrics: [], note: '',
+      enter: function () { setMode(mode); },
+      resize: function () { if (st.fit()) { if (mode === 'base') updateBase(); else if (mode === 'circleTri') setupCircle(); else if (mode === 'semicircle') setupSemicircle(); else resetRoll(); } }
+    };
+  })();
+
+  /* ================================================================
+   *  M2 线动成面
+   * ============================================================== */
+  modules.m2 = (function () {
+    var st = makeStage($('#cv-m2'), .58);
+    var mode = 'triangle90', anim = null, prog = 0, sqSide = 'outside', rope = 7;
+    function cancelAnim() { if (anim) { clearInterval(anim); anim = null; } }
+    function revealBox() { $('.reveal-box[data-module="m2"]').classList.add('open'); }
+    function play() {
+      if (anim) { cancelAnim(); $('#m2-play').textContent = '播放'; return; }
+      if (prog >= 1) prog = 0;
+      $('#m2-play').textContent = '暂停'; var dur = mode === 'goat' ? 5200 : 4200, t0 = performance.now() - prog * dur;
+      anim = setInterval(function () {
+        prog = Math.min(1, (performance.now() - t0) / dur); draw();
+        if (prog >= 1) {
+          cancelAnim(); $('#m2-play').textContent = '重新播放';
+          if (mode === 'triangle90') { record('lineRing'); revealBox(); }
+          else if (mode === 'circleSquare') record('circleSquare');
+          else record('goat');
+        }
+      }, 16);
+    }
+
+    /* ---------- 情景1：三角形绕 C 转 90°，AB 边扫圆环（题16） ---------- */
+    function triGeo() {
+      var s = Math.min(st.w * 0.4, st.h * 0.78) / 6;
+      var C = [st.w * 0.6, st.h * 0.7];
+      return { s: s, C: C, A0: [C[0] - 4 * s, C[1]], B0: [C[0] - 4 * s, C[1] - 3 * s] };
+    }
+    function drawTri() {
+      var ctx = st.ctx; clear(st); var g = triGeo(), C = g.C, s = g.s, ac = cv('--accent');
+      var phi = (prog * 90) * PI / 180; // 顺时针旋转角
+      function rot(P) { var dx = P[0] - C[0], dy = P[1] - C[1], c = Math.cos(phi), si = Math.sin(phi); return [C[0] + dx * c - dy * si, C[1] + dx * si + dy * c]; }
+      var R = 5 * s, rN = 4 * s;
+      var angA = Math.atan2(g.A0[1] - C[1], g.A0[0] - C[0]); // A 起始角
+      // 扫过的圆环扇形（4→5），随 phi 增长
+      ringSector(ctx, C[0], C[1], R, rN, angA, angA + phi, cv('--sweep'), ac);
+      // 起始三角形（淡）
+      function tri(A, B, col, w) { ctx.beginPath(); ctx.moveTo(C[0], C[1]); ctx.lineTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.closePath(); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.stroke(); }
+      tri(g.A0, g.B0, '#cbd5e1', 1.5);
+      var A = rot(g.A0), B = rot(g.B0);
+      ctx.beginPath(); ctx.moveTo(C[0], C[1]); ctx.lineTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.closePath();
+      ctx.fillStyle = 'rgba(59,130,246,.12)'; ctx.fill(); tri(A, B, ac, 2);
+      // AB 边加粗（正在扫）
+      ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.strokeStyle = cv('--trail'); ctx.lineWidth = 4; ctx.stroke();
+      dot(ctx, C[0], C[1], 5, '#475569'); lbl(ctx, 'C', C[0] + 8, C[1] + 14, { bold: true, color: '#475569' });
+      dot(ctx, A[0], A[1], 5, cv('--good')); dot(ctx, B[0], B[1], 6, cv('--bad'));
+      lbl(ctx, 'A(近4)', A[0] - 6, A[1] + 16, { color: cv('--good'), size: 11, bold: true });
+      lbl(ctx, 'B(远5)', B[0] - 6, B[1] - 8, { color: cv('--bad'), size: 11, bold: true });
+      lbl(ctx, '三角形绕 C 转 90°：AB 边扫出圆环扇形', st.w * 0.5, 18, { align: 'center', bold: true, size: 12.5, color: '#152529' });
+    }
+    function triMetrics() {
+      buildMetrics([{ key: 'deg', label: '已转' }, { key: 'rn', label: '最近 CA' }, { key: 'rf', label: '最远 CB' }, { key: 'area', label: 'AB扫过面积' }], 'AB 边扫过 = 圆环扇形 ¼π(CB²−CA²)。');
+      var area = E.annulusSectorArea(5, 4, prog * 90, PID);
+      setMetric('deg', Math.round(prog * 90) + '°'); setMetric('rn', '4'); setMetric('rf', '5'); setMetric('area', area.toFixed(3));
+      $('#m2-formula').innerHTML = '面积 = (<b>' + Math.round(prog * 90) + '</b>÷360)×3.14×(5²−4²) = <span class="hi">' + area.toFixed(3) + '</span>' + (prog >= 1 ? '（=¼π·9）' : '');
+    }
+
+    /* ---------- 情景2：圆绕正方形内/外滚一周，扫过面积 ---------- */
+    var sqU = 6, rU = 1;
+    function buildSquarePath() {
+      var sc = Math.min(st.w * 0.74, st.h * 0.82) / (sqU + (sqSide === 'outside' ? 2.6 * rU : 0));
+      var s = sqU * sc, r = rU * sc, cx = st.w * 0.5, cy = st.h * 0.52, h = s / 2;
+      var sq = [[cx - h, cy - h], [cx + h, cy - h], [cx + h, cy + h], [cx - h, cy + h]];
+      var pts = [];
+      if (sqSide === 'outside') {
+        var off = [[0, -r], [r, 0], [0, r], [-r, 0]]; // 上右下左 各边外法线
+        var corners = [[cx + h, cy - h, -PI / 2, 0], [cx + h, cy + h, 0, PI / 2], [cx - h, cy + h, PI / 2, PI], [cx - h, cy - h, PI, 3 * PI / 2]];
+        for (var i = 0; i < 4; i++) {
+          var A = sq[i], B = sq[(i + 1) % 4], o = off[i], n = 14;
+          for (var t = 0; t <= n; t++) pts.push([A[0] + o[0] + (B[0] - A[0]) * t / n, A[1] + o[1] + (B[1] - A[1]) * t / n]);
+          var c = corners[i]; for (var a = 0; a <= 10; a++) { var aa = c[2] + (c[3] - c[2]) * a / 10; pts.push([c[0] + r * Math.cos(aa), c[1] + r * Math.sin(aa)]); }
+        }
+      } else {
+        var ih = h - r; var inner = [[cx - ih, cy - ih], [cx + ih, cy - ih], [cx + ih, cy + ih], [cx - ih, cy + ih]];
+        for (var j = 0; j < 4; j++) { var A2 = inner[j], B2 = inner[(j + 1) % 4], n2 = 24; for (var t2 = 0; t2 <= n2; t2++) pts.push([A2[0] + (B2[0] - A2[0]) * t2 / n2, A2[1] + (B2[1] - A2[1]) * t2 / n2]); }
+      }
+      return { sq: sq, r: r, s: s, pts: pts };
+    }
+    var sqCache = null;
+    function drawSquare() {
+      var ctx = st.ctx; clear(st); if (!sqCache) sqCache = buildSquarePath();
+      var sp = sqCache, ac = cv('--accent');
+      // 扫过区域：沿路径盖印圆盘（到 prog 处）
+      var k = Math.max(1, Math.floor(prog * sp.pts.length));
+      ctx.fillStyle = 'rgba(59,130,246,.18)';
+      for (var i = 0; i < k; i++) { ctx.beginPath(); ctx.arc(sp.pts[i][0], sp.pts[i][1], sp.r, 0, TAU); ctx.fill(); }
+      // 正方形
+      ctx.beginPath(); sp.sq.forEach(function (p, i) { i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }); ctx.closePath();
+      ctx.fillStyle = sqSide === 'inside' ? '#fff' : '#e2e8f0'; ctx.fill(); ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2; ctx.stroke();
+      if (sqSide === 'inside') { ctx.save(); ctx.beginPath(); sp.sq.forEach(function (p, i) { i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }); ctx.closePath(); ctx.clip(); ctx.fillStyle = 'rgba(59,130,246,.18)'; for (var m = 0; m < k; m++) { ctx.beginPath(); ctx.arc(sp.pts[m][0], sp.pts[m][1], sp.r, 0, TAU); ctx.fill(); } ctx.restore(); ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2; ctx.beginPath(); sp.sq.forEach(function (p, i) { i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }); ctx.closePath(); ctx.stroke(); }
+      // 当前圆
+      var c = sp.pts[Math.min(sp.pts.length - 1, k)];
+      ctx.beginPath(); ctx.arc(c[0], c[1], sp.r, 0, TAU); ctx.strokeStyle = ac; ctx.lineWidth = 2; ctx.stroke(); dot(ctx, c[0], c[1], 3, ac);
+      lbl(ctx, '圆在正方形' + (sqSide === 'outside' ? '外' : '内') + '绕一周，蓝色 = 扫过面积', st.w * 0.5, 18, { align: 'center', bold: true, size: 12.5, color: '#152529' });
+    }
+    function squareMetrics() {
+      buildMetrics([{ key: 'side', label: '位置' }, { key: 's', label: '正方形边 s' }, { key: 'r', label: '圆半径 r' }, { key: 'area', label: '扫过面积' }], sqSide === 'outside' ? '外侧：边带 8sr + 四角合一个整圆 4πr²。' : '内侧：s²−内部(s−2r)²−四角(4r²−πr²)。');
+      var area = E.circleSweptAroundSquare(sqU, rU, sqSide, PID);
+      setMetric('side', '<span class="chip chip-amber">' + (sqSide === 'outside' ? '圆在方外' : '圆在方内') + '</span>', true);
+      setMetric('s', sqU); setMetric('r', rU); setMetric('area', area.toFixed(2));
+      $('#m2-formula').innerHTML = sqSide === 'outside'
+        ? '外：8sr + 4πr² = 8·' + sqU + '·' + rU + ' + 4·3.14·' + rU + '² = <span class="hi">' + area.toFixed(2) + '</span>'
+        : '内：s²−(s−2r)²−(4r²−πr²) = <span class="hi">' + area.toFixed(2) + '</span>';
+    }
+
+    /* ---------- 情景3：栓羊·正五边形（边3，绳7），动态扫面 ---------- */
+    var goatData = null;
+    function buildGoat() {
+      var sideU = 3; var sc = Math.min(st.w, st.h) * 0.052; // 像素/单位
+      var Rp = (sideU / (2 * Math.sin(PI / 5))) * sc; // 外接半径(px)
+      var Pc = [st.w * 0.5, st.h * 0.42];
+      var V = [];
+      for (var i = 0; i < 5; i++) { var a = PI / 2 + i * (2 * PI / 5); V.push([Pc[0] + Rp * Math.cos(a), Pc[1] + Rp * Math.sin(a)]); } // V0 在底部
+      // 计算 grazing lobes（主扇 + 两方向各绕角续扫）
+      var L = rope * sc, sidePx = sideU * sc;
+      var lobes = [];
+      var V0 = V[0], V1 = V[1], V4 = V[4]; // 相邻顶点
+      var aTo1 = Math.atan2(V1[1] - V0[1], V1[0] - V0[0]); // 边 V0→V1 方向
+      var aTo4 = Math.atan2(V4[1] - V0[1], V4[0] - V0[0]); // 边 V0→V4 方向
+      // 主扇：从 aTo1 绕外侧(避开五边形)到 aTo4，跨 252°
+      lobes.push({ c: V0, r: L, a0: aTo1, a1: aTo1 + (252 * PI / 180), rad: rope });
+      // 方向1：沿 V0→V1→V2 续扫
+      var dirs = [[1, 2, 3], [4, 3, 2]]; // 顶点链
+      dirs.forEach(function (chain, di) {
+        var rem = rope, ai = chain[0];
+        for (var k = 0; k < chain.length - 0 && rem - sideU > 0; k++) {
+          rem -= sideU; var Vi = V[chain[k]], Vp = (k === 0) ? V0 : V[chain[k - 1]], Vn = V[chain[k + 1]] || V[chain[k]];
+          var ain = Math.atan2(Vi[1] - Vp[1], Vi[0] - Vp[0]);   // 进入方向（续扫起始）
+          var sgn = di === 0 ? 1 : -1;
+          lobes.push({ c: Vi, r: rem * sc, a0: ain, a1: ain + sgn * (72 * PI / 180), rad: rem });
+          if (chain.length - 1 <= k) break;
+        }
+      });
+      goatData = { V: V, V0: V0, Pc: Pc, lobes: lobes, sc: sc, L: L };
+    }
+    function drawGoat() {
+      var ctx = st.ctx; clear(st); if (!goatData) buildGoat(); var gd = goatData, ac = cv('--accent');
+      // 已揭示比例：按 lobe 数均分 prog
+      var nLobe = gd.lobes.length, shown = prog * nLobe;
+      gd.lobes.forEach(function (lb, i) {
+        var frac = Math.max(0, Math.min(1, shown - i)); if (frac <= 0) return;
+        var a1 = lb.a0 + (lb.a1 - lb.a0) * frac;
+        sector(ctx, lb.c[0], lb.c[1], lb.r, Math.min(lb.a0, a1), Math.max(lb.a0, a1), cv('--sweep2'), null);
+      });
+      // 五边形
+      ctx.beginPath(); gd.V.forEach(function (p, i) { i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }); ctx.closePath();
+      ctx.fillStyle = '#e2e8f0'; ctx.fill(); ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2; ctx.stroke();
+      lbl(ctx, '🏠 正五边形 边3', gd.Pc[0], gd.Pc[1] + 4, { align: 'center', color: '#475569', bold: true, size: 11.5 });
+      // 当前绳（主扇结束位置或最后揭示 lobe）
+      var li = Math.min(nLobe - 1, Math.floor(shown)), lb2 = gd.lobes[li], fr = Math.max(0, Math.min(1, shown - li));
+      var ang = lb2.a0 + (lb2.a1 - lb2.a0) * fr;
+      ctx.beginPath(); ctx.moveTo(lb2.c[0], lb2.c[1]); ctx.lineTo(lb2.c[0] + lb2.r * Math.cos(ang), lb2.c[1] + lb2.r * Math.sin(ang)); ctx.strokeStyle = cv('--trail'); ctx.lineWidth = 2; ctx.stroke();
+      dot(ctx, gd.V0[0], gd.V0[1], 5, cv('--warning')); lbl(ctx, '🐐 栓点', gd.V0[0] + 8, gd.V0[1] + 14, { size: 11, color: cv('--warning'), bold: true });
+      lbl(ctx, '栓羊·正五边形：绳长 7，绕过角后剩余绳长继续扫小扇形', st.w * 0.5, 18, { align: 'center', bold: true, size: 12, color: '#152529' });
+    }
+    function goatCfg() {
+      return { L: rope, mainAngleDeg: 252, branches: [[{ side: 3, angleDeg: 72 }, { side: 3, angleDeg: 72 }], [{ side: 3, angleDeg: 72 }, { side: 3, angleDeg: 72 }]] };
+    }
+    function goatMetrics() {
+      buildMetrics([{ key: 'rope', label: '绳长 L' }, { key: 'main', label: '主扇' }, { key: 'lobes', label: '扇形段数' }, { key: 'area', label: '可吃面积' }], '主扇 252° + 每绕过一个角，剩余绳长扫 72° 小扇形。');
+      var res = E.grazingArea(goatCfg(), PID);
+      setMetric('rope', rope); setMetric('main', '252°'); setMetric('lobes', res.lobes.length + ' 段'); setMetric('area', res.area.toFixed(2));
+      $('#m2-formula').innerHTML = '面积 = (252÷360)·3.14·7² + 2×[(72÷360)·3.14·(4²+1²)] = <span class="hi">' + res.area.toFixed(2) + '</span>';
+    }
+
+    /* ---------- 总绘制 / 模式切换 ---------- */
+    function draw() {
+      if (!st.w) return;
+      if (mode === 'triangle90') { drawTri(); triMetrics(); }
+      else if (mode === 'circleSquare') { drawSquare(); squareMetrics(); }
+      else { drawGoat(); goatMetrics(); }
+    }
+    function setupMode() {
+      cancelAnim(); prog = 0; $('#m2-play').textContent = '播放'; sqCache = null; goatData = null;
+      $('#m2-sqside').style.display = mode === 'circleSquare' ? '' : 'none';
+      $('#m2-rope-row').style.display = mode === 'goat' ? '' : 'none';
+      $('#m2-tip').textContent = mode === 'triangle90' ? '点「播放」看 AB 边转 90° 扫出圆环'
+        : mode === 'circleSquare' ? '点「播放」看圆绕正方形滚一圈扫面' : '点「播放」看绳子绕五边形扫一圈';
+      draw();
+    }
+    $$('#m2-mode button').forEach(function (b) { b.addEventListener('click', function () { mode = b.dataset.m2mode; $$('#m2-mode button').forEach(function (x) { x.classList.toggle('on', x === b); }); setupMode(); }); });
+    $$('#m2-sqside button').forEach(function (b) { b.addEventListener('click', function () { sqSide = b.dataset.sqside; $$('#m2-sqside button').forEach(function (x) { x.classList.toggle('on', x === b); }); cancelAnim(); prog = 0; sqCache = null; $('#m2-play').textContent = '播放'; draw(); }); });
+    $('#m2-rope').addEventListener('input', function () { rope = +this.value; $('#m2-ropev').textContent = rope; cancelAnim(); prog = 0; goatData = null; $('#m2-play').textContent = '播放'; draw(); });
+    $('#m2-play').addEventListener('click', play);
+    $('#m2-reset').addEventListener('click', function () { cancelAnim(); prog = 0; $('#m2-play').textContent = '播放'; sqCache = null; goatData = null; draw(); });
+    return {
+      metrics: [], note: '',
+      enter: function () { setupMode(); },
+      resize: function () { if (st.fit()) { sqCache = null; goatData = null; draw(); } }
+    };
+  })();
+
+  /* ================================================================
+   *  M3 面动成体
+   * ============================================================== */
+  modules.m3 = (function () {
+    var st = makeStage($('#cv-m3'), .5);
+    var shape = 'rectangle', spin = 0, playing = false, raf = 0;
+    var P = {
+      rectangle: { r: 5, h: 10 }, triangle: { r: 5, h: 6 }, trapezoid: { R: 5, rTop: 2.5, h: 8 },
+      semicircle: { R: 4, steps: 40 }, composite: { r: 5, hCyl: 10, hCone: 6 }
+    };
+    var SHAPE_NAME = { rectangle: '圆柱', triangle: '圆锥', trapezoid: '圆台', semicircle: '球', composite: '圆柱+圆锥' };
+    // ---- 连一连 ----
+    var PAIRS = [
+      { k: 'rectangle', left: '▭ 矩形', right: '🥫 圆柱' },
+      { k: 'triangle', left: '◺ 直角三角形', right: '🍦 圆锥' },
+      { k: 'trapezoid', left: '⏢ 直角梯形', right: '🪣 圆台' },
+      { k: 'semicircle', left: '◗ 半圆', right: '🔵 球' }
+    ];
+    var matched = {}, selLeft = null;
+    function buildMatch() {
+      var wrap = $('#m3-match'); wrap.innerHTML = '';
+      var lc = document.createElement('div'); lc.className = 'match-col';
+      var rc = document.createElement('div'); rc.className = 'match-col';
+      var rights = PAIRS.slice().sort(function () { return Math.random() - .5; });
+      PAIRS.forEach(function (p) {
+        var b = document.createElement('button'); b.className = 'match-item'; b.dataset.k = p.k; b.dataset.side = 'L';
+        b.innerHTML = '<span class="big">' + p.left.split(' ')[0] + '</span>' + p.left.split(' ')[1];
+        b.addEventListener('click', function () { onLeft(p.k, b); }); lc.appendChild(b);
+      });
+      rights.forEach(function (p) {
+        var b = document.createElement('button'); b.className = 'match-item'; b.dataset.k = p.k; b.dataset.side = 'R';
+        b.innerHTML = '<span class="big">' + p.right.split(' ')[0] + '</span>' + p.right.split(' ')[1];
+        b.addEventListener('click', function () { onRight(p.k, b); }); rc.appendChild(b);
+      });
+      wrap.appendChild(lc); wrap.appendChild(rc);
+    }
+    function onLeft(k, b) { if (matched[k]) return; $$('.match-item[data-side="L"]').forEach(function (x) { x.classList.remove('sel'); }); b.classList.add('sel'); selLeft = k; }
+    function onRight(k, b) {
+      if (matched[k]) return; if (!selLeft) { b.classList.add('sel'); setTimeout(function () { b.classList.remove('sel'); }, 300); return; }
+      if (selLeft === k) {
+        matched[k] = true;
+        $$('.match-item[data-k="' + k + '"]').forEach(function (x) { x.classList.remove('sel'); x.classList.add('matched'); });
+        selLeft = null; setShape(k);
+        if (Object.keys(matched).length === PAIRS.length) record('matchAll');
+      } else {
+        b.classList.add('wrong'); var l = $('.match-item[data-side="L"].sel'); if (l) l.classList.add('wrong');
+        setTimeout(function () { $$('.match-item.wrong').forEach(function (x) { x.classList.remove('wrong', 'sel'); }); selLeft = null; }, 420);
+      }
+    }
+    // ---- 渲染立体 ----
+    function draw() {
+      if (!st.w) return; var ctx = st.ctx; clear(st);
+      var sol = E.revolveSolid(shape, P[shape]); var b = sol.boundary;
+      var maxR = 0, maxY = 0; b.forEach(function (p) { maxR = Math.max(maxR, p.r); maxY = Math.max(maxY, p.y); });
+      var s = Math.min((st.w * 0.5) / (maxR * 2 + 2), (st.h * 0.78) / (maxY + 2));
+      var ax = st.w * 0.5, baseY = st.h * 0.9, ac = cv('--accent');
+      // axis l
+      ctx.setLineDash([6, 5]); ctx.beginPath(); ctx.moveTo(ax, baseY - maxY * s - 20); ctx.lineTo(ax, baseY + 14); ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
+      lbl(ctx, 'l', ax + 6, baseY - maxY * s - 14, { color: '#94a3b8', bold: true });
+      var prog = spin / 360; // 0..1
+      // solid silhouette filled to progress (3D look): right + mirrored left
+      ctx.globalAlpha = 0.25 + 0.55 * prog;
+      ctx.fillStyle = 'rgba(59,130,246,.20)'; ctx.strokeStyle = ac; ctx.lineWidth = 2;
+      ctx.beginPath();
+      b.forEach(function (p, i) { var x = ax + p.r * s, y = baseY - p.y * s; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+      for (var i = b.length - 1; i >= 0; i--) { ctx.lineTo(ax - b[i].r * s, baseY - b[i].y * s); }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // cross-section ellipses (3D hint)
+      ctx.globalAlpha = 0.5 * prog;
+      [0.0, 0.5, 1.0].forEach(function (f) {
+        var yy = baseY - (maxY * f) * s; var rr = radiusAt(b, maxY * f) * s;
+        if (rr > 1) { ctx.beginPath(); ctx.ellipse(ax, yy, rr, rr * 0.22, 0, 0, TAU); ctx.strokeStyle = '#93c5fd'; ctx.lineWidth = 1; ctx.stroke(); }
+      });
+      ctx.globalAlpha = 1;
+      // rotating flat profile (foreshortened by cos) — the "面" sweeping
+      var k = Math.abs(Math.cos(spin * PI / 180));
+      ctx.fillStyle = 'rgba(37,99,235,.35)'; ctx.strokeStyle = cv('--accent-dark'); ctx.lineWidth = 2;
+      ctx.beginPath();
+      b.forEach(function (p, i) { var x = ax + p.r * s * k, y = baseY - p.y * s; if (i === 0) ctx.moveTo(ax, baseY - b[0].y * s); ctx.lineTo(x, y); });
+      ctx.lineTo(ax, baseY - b[b.length - 1].y * s); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // top ellipse cap
+      var topR = radiusAt(b, maxY) * s;
+      if (topR > 1) { ctx.beginPath(); ctx.ellipse(ax, baseY - maxY * s, topR, topR * 0.22, 0, 0, TAU); ctx.strokeStyle = ac; ctx.lineWidth = 1.6; ctx.stroke(); }
+      lbl(ctx, '平面图形 → ' + SHAPE_NAME[shape], ax, 20, { align: 'center', bold: true, size: 13.5, color: cv('--accent-dark') });
+      lbl(ctx, spin >= 360 ? '转满一周，立体成型 ✓' : '继续旋转…(' + spin + '°)', ax, baseY + 12, { align: 'center', size: 12, color: '#66777d' });
+    }
+    function radiusAt(b, y) {
+      for (var i = 0; i < b.length - 1; i++) { if (y >= b[i].y && y <= b[i + 1].y) { var t = (y - b[i].y) / (b[i + 1].y - b[i].y || 1); return b[i].r + t * (b[i + 1].r - b[i].r); } }
+      return b[b.length - 1].r;
+    }
+    function vol() {
+      var sol = E.revolveSolid(shape, P[shape]); var v = sol.coeff * PID;
+      return { sol: sol, v: v };
+    }
+    function update() {
+      var o = vol();
+      $('#m3-formula').innerHTML = '<b>' + SHAPE_NAME[shape] + '</b>：' + o.sol.formula + ' ，体积 ≈ <span class="hi">' + o.v.toFixed(0) + '</span> 体积单位';
+      setMetric('shape', '<span class="chip chip-blue">' + SHAPE_NAME[shape] + '</span>', true);
+      setMetric('spin', spin + '°'); setMetric('vol', o.v.toFixed(0));
+      setMetric('match', Object.keys(matched).length + ' / ' + PAIRS.length);
+      if (spin >= 360) record('madeSolid');
+      if (shape === 'composite' && spin >= 360) record('comp942');
+      draw();
+    }
+    function setShape(k) {
+      shape = k; spin = 0; $('#m3-spin').value = 0; $('#m3-spinv').textContent = '0°';
+      $$('#m3-shape button').forEach(function (b) { b.classList.toggle('on', b.dataset.shape === k); });
+      stop(); update();
+    }
+    function stop() { playing = false; if (raf) clearInterval(raf); raf = 0; $('#m3-play').textContent = '自动旋转'; }
+    function play() {
+      if (playing) { stop(); return; }
+      if (spin >= 360) spin = 0;
+      playing = true; $('#m3-play').textContent = '暂停';
+      var dur = 3000, t0 = performance.now() - (spin / 360) * dur;
+      raf = setInterval(function () { // setInterval + 墙钟进度
+        spin = Math.min(360, Math.round((performance.now() - t0) / dur * 360));
+        $('#m3-spin').value = spin; $('#m3-spinv').textContent = spin + '°'; update();
+        if (spin >= 360) stop();
+      }, 16);
+    }
+    $$('#m3-shape button').forEach(function (b) { b.addEventListener('click', function () { setShape(b.dataset.shape); }); });
+    $('#m3-spin').addEventListener('input', function () { stop(); spin = +this.value; $('#m3-spinv').textContent = spin + '°'; update(); });
+    $('#m3-play').addEventListener('click', play);
+    return {
+      metrics: [{ key: 'shape', label: '立体' }, { key: 'spin', label: '已旋转' }, { key: 'vol', label: '体积(π3.14)' }, { key: 'match', label: '连一连' }],
+      note: '旋转体 = 平面图形绕轴扫一圈的轨迹。',
+      enter: function () { if (!$('#m3-match').children.length) buildMatch(); update(); },
+      onReveal: function () { if (shape === 'composite' && spin >= 360) record('comp942'); },
+      resize: function () { if (st.fit()) update(); }
+    };
+  })();
+
+  /* ================================================================
+   *  M5 滑轮问题（定滑轮 / 动滑轮 / 滑轮组）
+   * ============================================================== */
+  modules.mpul = (function () {
+    var st = makeStage($('#cv-mpul'), .62);
+    var type = 'fixed', prog = 0, anim = null, H = 2;
+    var STR = { fixed: 1, movable: 2, block4: 4 };
+    var NAME = { fixed: '定滑轮', movable: '动滑轮', block4: '滑轮组' };
+    var pred = makePredict({
+      box: 'pred-mpul', list: 'pred-mpul-list', fb: 'pred-mpul-fb',
+      options: [{ label: '1 倍（一样长）' }, { label: '2 倍', correct: true }, { label: '½ 倍' }, { label: '4 倍' }],
+      explain: '动滑轮有 2 段绳承重，提高 1 米要拉 2 米绳——省一半力，但多拉一倍绳。',
+      onReveal: function () { $('.reveal-box[data-module="mpul"]').classList.add('open'); }
+    });
+    function cancelAnim() { if (anim) { clearInterval(anim); anim = null; } }
+    function metrics() {
+      var n = STR[type], info = E.pulleyPull(n, H);
+      buildMetrics([{ key: 'type', label: '滑轮' }, { key: 'n', label: '承重段数' }, { key: 'lift', label: '已提升' }, { key: 'pull', label: '已拉绳' }], '拉力 = 重力 ÷ 段数；拉绳 = 段数 × 提升高度。');
+      setMetric('type', '<span class="chip chip-blue">' + NAME[type] + '</span>', true);
+      setMetric('n', n + ' 段');
+      setMetric('lift', (prog * H).toFixed(1));
+      setMetric('pull', (prog * info.pull).toFixed(1) + '（=' + n + '×' + (prog * H).toFixed(1) + '）');
+      $('#mpul-formula').innerHTML = '承重 <b>' + n + '</b> 段 → 省力 <b>' + n + '</b> 倍（拉力 = 重力÷' + n + '）；拉绳 = <b>' + n + '</b> × 提升 = <span class="hi">' + (n * H) + '</span>（提满 ' + H + '）';
+    }
+    function wheel(ctx, x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2.5; ctx.stroke(); dot(ctx, x, y, 2.5, '#64748b'); }
+    function arrowV(ctx, x, y0, y1, col, txt) {
+      ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
+      var dir = y1 > y0 ? 1 : -1; ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x - 4, y1 - dir * 7); ctx.lineTo(x + 4, y1 - dir * 7); ctx.closePath(); ctx.fill();
+      lbl(ctx, txt, x + 7, (y0 + y1) / 2, { color: col, size: 11.5, bold: true });
+    }
+    function draw() {
+      if (!st.w) return; var ctx = st.ctx; clear(st); var n = STR[type], ac = cv('--accent'), rope = '#0f766e';
+      var ceilY = st.h * 0.14, baseY = st.h * 0.80, sc = (baseY - ceilY - 70) / (H * 2);
+      var rise = prog * H * sc, cx = st.w * 0.5;
+      // 天花板
+      ctx.fillStyle = '#cbd5e1'; ctx.fillRect(st.w * 0.18, ceilY - 9, st.w * 0.64, 9);
+      for (var hx = st.w * 0.2; hx < st.w * 0.8; hx += 14) { ctx.beginPath(); ctx.moveTo(hx, ceilY - 9); ctx.lineTo(hx - 7, ceilY); ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1; ctx.stroke(); }
+      var loadW = 66, loadH = 42, loadTopRest = baseY, loadTop = loadTopRest - rise;
+      var lx = cx - loadW / 2;
+      if (type === 'fixed') {
+        // 定滑轮：天花板上一个定轮，左绳拉、右绳吊重物
+        var wx = cx, wy = ceilY + 16, wr = 16;
+        var leftX = wx - wr, rightX = wx + wr;
+        ctx.strokeStyle = rope; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(rightX, wy); ctx.lineTo(rightX, loadTop); ctx.stroke(); // 吊重物段
+        var handY = ceilY + 60 + rise; // 拉端随提升下移（1:1）
+        ctx.beginPath(); ctx.moveTo(leftX, wy); ctx.lineTo(leftX, handY); ctx.stroke();
+        ctx.beginPath(); ctx.arc(wx, wy, wr, PI, TAU); ctx.stroke(); // 绕轮顶
+        wheel(ctx, wx, wy, wr);
+        lbl(ctx, '✋', leftX - 6, handY + 16, { size: 16 });
+        ctx.fillStyle = ac; ctx.fillRect(lx, loadTop, loadW, loadH);
+        arrowV(ctx, rightX + 22, loadTopRest, loadTop, cv('--bad'), '升 ' + (prog * H).toFixed(1));
+        arrowV(ctx, leftX - 26, ceilY + 60, handY, cv('--accent-dark'), '拉 ' + (prog * H).toFixed(1));
+      } else {
+        // 动滑轮 / 滑轮组：n 段绳承重（动轮挂在重物上）
+        var movY = loadTop - 18, movWheels = n / 2; // 每个动轮 2 段
+        // 顶部定轮（把绳引到拉端）
+        var topWx = cx + (n > 2 ? 70 : 48), topWy = ceilY + 16, topWr = 13;
+        // n 段竖直承重绳
+        var span = Math.min(loadW + (n > 2 ? 40 : 8), st.w * 0.4), x0 = cx - span / 2;
+        ctx.strokeStyle = rope; ctx.lineWidth = 3;
+        for (var i = 0; i < n; i++) {
+          var sx = x0 + span * (n === 1 ? 0.5 : i / (n - 1));
+          var topY = (i === n - 1) ? topWy : ceilY + 16; // 最后一段经顶轮去拉端
+          ctx.beginPath(); ctx.moveTo(sx, movY); ctx.lineTo(sx, topY); ctx.stroke();
+          if (i < n - 1) wheel(ctx, sx, i % 2 === 0 ? movY : ceilY + 16, 9);
+        }
+        // 顶轮 + 拉端
+        wheel(ctx, topWx, topWy, topWr);
+        var handY2 = ceilY + 70 + rise * n; // 拉端下移 n×rise
+        ctx.strokeStyle = rope; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(topWx + topWr, topWy); ctx.lineTo(topWx + topWr, handY2); ctx.stroke();
+        lbl(ctx, '✋', topWx + topWr - 6, handY2 + 16, { size: 16 });
+        // 动轮横杆 + 重物
+        ctx.strokeStyle = '#64748b'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x0 - 4, movY); ctx.lineTo(x0 + span + 4, movY); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, movY); ctx.lineTo(cx, loadTop); ctx.stroke();
+        ctx.fillStyle = ac; ctx.fillRect(lx, loadTop, loadW, loadH);
+        arrowV(ctx, cx + loadW / 2 + 20, loadTopRest, loadTop, cv('--bad'), '升 ' + (prog * H).toFixed(1));
+        arrowV(ctx, topWx + topWr + 22, ceilY + 70, handY2, cv('--accent-dark'), '拉 ' + (prog * H * n).toFixed(1));
+        lbl(ctx, n + ' 段绳承重', cx, movY - 10, { align: 'center', size: 11.5, color: '#475569', bold: true });
+      }
+      lbl(ctx, '重物 W', cx, loadTop + loadH / 2 + 4, { align: 'center', size: 12, color: '#fff', bold: true });
+      lbl(ctx, NAME[type] + '：' + n + ' 段绳承重 → 省 ' + n + ' 倍力、拉 ' + n + ' 倍绳', st.w * 0.5, st.h - 8, { align: 'center', bold: true, size: 12.5, color: '#152529' });
+    }
+    function play() {
+      if (anim) { cancelAnim(); $('#mpul-lift').textContent = '拉绳提升'; return; }
+      if (type === 'movable' && !pred.guard()) return;
+      if (prog >= 1) prog = 0;
+      $('#mpul-lift').textContent = '暂停'; var dur = 3600, t0 = performance.now() - prog * dur;
+      anim = setInterval(function () {
+        prog = Math.min(1, (performance.now() - t0) / dur); draw(); metrics();
+        if (prog >= 1) { cancelAnim(); $('#mpul-lift').textContent = '已提到顶'; if (type === 'movable') { record('pulleyMove'); if (!pred.revealed) pred.reveal(); } }
+      }, 16);
+    }
+    function setType(t) { type = t; $$('#mpul-type button').forEach(function (b) { b.classList.toggle('on', b.dataset.pul === t); }); cancelAnim(); prog = 0; $('#mpul-lift').textContent = '拉绳提升'; draw(); metrics(); }
+    $$('#mpul-type button').forEach(function (b) { b.addEventListener('click', function () { setType(b.dataset.pul); }); });
+    $('#mpul-lift').addEventListener('click', play);
+    $('#mpul-reset').addEventListener('click', function () { cancelAnim(); prog = 0; $('#mpul-lift').textContent = '拉绳提升'; draw(); metrics(); });
+    return { metrics: [], note: '', enter: function () { draw(); metrics(); }, resize: function () { if (st.fit()) { draw(); metrics(); } } };
+  })();
+
+  /* ================================================================
+   *  M6 硬币旋转悖论
+   * ============================================================== */
+  modules.m6 = (function () {
+    var st = makeStage($('#cv-m6'), .62);
+    var mode = 'coin1', path = null, prog = 0, anim = null, info = null;
+    var pred = makePredict({
+      box: 'pred-m6', list: 'pred-m6-list', fb: 'pred-m6-fb',
+      options: [{ label: '1 圈' }, { label: '2 圈', correct: true }, { label: '½ 圈' }, { label: '随便几圈' }],
+      explain: '沿路滚 1 圈 + 绕中心走一圈又额外 +1 圈 = 2 圈。',
+      onReveal: function () { $('.reveal-box[data-module="m6"]').classList.add('open'); }
+    });
+    // 构造「圆心偏移路径」：圆 → 圆；多边形 → 边 + 拐角弧。spin = sign·s/rCoin。
+    function buildPath() {
+      var rCoin = 22, scale = 1, C = { x: st.w * 0.5, y: st.h * 0.5 };
+      var prims = [], total = 0, fixed = null, rc = rCoin, sign = 1, nLabel = '';
+      function addSeg(a, b) { var len = Math.hypot(b[0] - a[0], b[1] - a[1]); prims.push({ t: 'seg', a: a, b: b, s0: total, len: len }); total += len; }
+      function addArc(c, rad, a0, a1) { var len = Math.abs(a1 - a0) * rad; prims.push({ t: 'arc', c: c, rad: rad, a0: a0, a1: a1, s0: total, len: len }); total += len; }
+      if (mode === 'coin1' || mode === 'coin3' || mode === 'inside') {
+        var nRatio = (mode === 'coin1') ? 1 : 3; // 定圆周长 / 动圆周长
+        var Rfix = rCoin * nRatio;
+        fixed = { type: 'circle', c: C, R: Rfix };
+        var inside = mode === 'inside'; sign = inside ? -1 : 1;
+        var rho = inside ? (Rfix - rCoin) : (Rfix + rCoin);
+        // 单段圆弧整圈
+        prims.push({ t: 'circle', c: C, rho: rho, s0: 0, len: TAU * rho });
+        total = TAU * rho; rc = rCoin; nLabel = 'n = ' + nRatio;
+      } else {
+        var verts, side = TAU * rCoin; // 边长 = 硬币周长 ⇒ 每条边恰好滚 1 圈（讲义例10），自转数干净
+        if (mode === 'triangle') { var R = side / Math.sqrt(3); verts = [[C.x, C.y - R], [C.x - R * 0.8660254, C.y + R * 0.5], [C.x + R * 0.8660254, C.y + R * 0.5]]; }
+        else { var h = side / 2; verts = [[C.x - h, C.y - h], [C.x + h, C.y - h], [C.x + h, C.y + h], [C.x - h, C.y + h]]; }
+        fixed = { type: 'poly', verts: verts };
+        // 外法线方向（多边形按顺时针给出 → 外法线为 (dy,-dx) 方向之一，统一取远离质心）
+        var cen = verts.reduce(function (a, p) { return [a[0] + p[0] / verts.length, a[1] + p[1] / verts.length]; }, [0, 0]);
+        var n = verts.length, off = [];
+        for (var i = 0; i < n; i++) {
+          var A = verts[i], B = verts[(i + 1) % n]; var dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy);
+          var nx = dy / L, ny = -dx / L; var mid = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2];
+          if (nx * (mid[0] - cen[0]) + ny * (mid[1] - cen[1]) < 0) { nx = -nx; ny = -ny; } // 取「朝外」单位法线
+          off.push([nx * rCoin, ny * rCoin]);
+        }
+        // 起点：边0 的偏移起点
+        for (var j = 0; j < n; j++) {
+          var A2 = verts[j], B2 = verts[(j + 1) % n], o = off[j];
+          addSeg([A2[0] + o[0], A2[1] + o[1]], [B2[0] + o[0], B2[1] + o[1]]);
+          // 拐角弧（在顶点 B2 = verts[j+1]）：从本边外法线角 → 下一边外法线角
+          var o2 = off[(j + 1) % n]; var V = verts[(j + 1) % n];
+          var a0 = Math.atan2(o[1], o[0]), a1 = Math.atan2(o2[1], o2[0]);
+          // 取较短的正向（外滚为逆/顺一致）——规范到 (a0, a0+ext)
+          var ext = a1 - a0; while (ext <= -PI) ext += TAU; while (ext > PI) ext -= TAU;
+          addArc(V, rCoin, a0, a0 + ext);
+        }
+        rc = rCoin; sign = 1; nLabel = '周长比';
+      }
+      return { prims: prims, total: total, fixed: fixed, rCoin: rc, sign: sign, nLabel: nLabel };
+    }
+    function pathPoint(p, s) {
+      if (p.prims.length === 1 && p.prims[0].t === 'circle') {
+        var pr = p.prims[0]; var ang = -PI / 2 + s / pr.rho; // 从顶部出发
+        return [pr.c.x + pr.rho * Math.cos(ang), pr.c.y + pr.rho * Math.sin(ang)];
+      }
+      for (var i = 0; i < p.prims.length; i++) {
+        var pm = p.prims[i]; if (s <= pm.s0 + pm.len || i === p.prims.length - 1) {
+          var ls = s - pm.s0;
+          if (pm.t === 'seg') { var t = ls / pm.len; return [pm.a[0] + (pm.b[0] - pm.a[0]) * t, pm.a[1] + (pm.b[1] - pm.a[1]) * t]; }
+          var aa = pm.a0 + (pm.a1 - pm.a0) * (ls / pm.len); return [pm.c[0] + pm.rad * Math.cos(aa), pm.c[1] + pm.rad * Math.sin(aa)];
+        }
+      }
+      return [p.prims[0].a ? p.prims[0].a[0] : 0, 0];
+    }
+    function computeInfo() {
+      if (mode === 'coin1') return E.rollAroundCircle(22, 22, 'outside', PID);
+      if (mode === 'coin3') return E.rollAroundCircle(66, 22, 'outside', PID);
+      if (mode === 'inside') return E.rollAroundCircle(66, 22, 'inside', PID);
+      // polygon
+      var per = 0; var v = path.fixed.verts; for (var i = 0; i < v.length; i++) per += Math.hypot(v[(i + 1) % v.length][0] - v[i][0], v[(i + 1) % v.length][1] - v[i][1]);
+      return E.rollAroundPolygon(per, 22, PID);
+    }
+    function draw() {
+      if (!st.w || !path) return; var ctx = st.ctx; clear(st);
+      var ac = cv('--accent'), tr = cv('--trail');
+      // fixed shape
+      if (path.fixed.type === 'circle') {
+        ctx.beginPath(); ctx.arc(path.fixed.c.x, path.fixed.c.y, path.fixed.R, 0, TAU);
+        ctx.fillStyle = '#e2e8f0'; ctx.fill(); ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2; ctx.stroke();
+        lbl(ctx, mode === 'inside' ? '定圆(内壁)' : '定圆', path.fixed.c.x, path.fixed.c.y + 4, { align: 'center', color: '#475569', bold: true, size: 12 });
+      } else {
+        ctx.beginPath(); path.fixed.verts.forEach(function (p, i) { if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]); }); ctx.closePath();
+        ctx.fillStyle = '#e2e8f0'; ctx.fill(); ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2; ctx.stroke();
+      }
+      // center path (faint)
+      ctx.setLineDash([4, 5]); ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1.3; ctx.beginPath();
+      for (var s = 0; s <= path.total; s += path.total / 160) { var q = pathPoint(path, s); if (s === 0) ctx.moveTo(q[0], q[1]); else ctx.lineTo(q[0], q[1]); }
+      ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+      // moving coin
+      var sNow = prog * path.total; var c = pathPoint(path, sNow);
+      var spin = path.sign * sNow / path.rCoin - PI / 2; // 红点初始朝上
+      ctx.beginPath(); ctx.arc(c[0], c[1], path.rCoin, 0, TAU); ctx.fillStyle = cv('--accent-soft'); ctx.fill(); ctx.strokeStyle = ac; ctx.lineWidth = 2; ctx.stroke();
+      // spoke + red dot
+      var dx = path.rCoin * Math.cos(spin), dy = path.rCoin * Math.sin(spin);
+      ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.lineTo(c[0] + dx, c[1] + dy); ctx.strokeStyle = tr; ctx.lineWidth = 2; ctx.stroke();
+      dot(ctx, c[0] + dx, c[1] + dy, 5, tr); dot(ctx, c[0], c[1], 3, ac);
+      var rotNow = Math.abs(path.sign * sNow / path.rCoin) / TAU;
+      lbl(ctx, '已自转 ' + rotNow.toFixed(2) + ' 圈', st.w * 0.5, 20, { align: 'center', bold: true, size: 14, color: tr });
+    }
+    function setInfo() {
+      info = computeInfo();
+      var rot = info.rotations;
+      $('#m6-formula').innerHTML = (mode === 'inside' ? '内侧：自转 = n − 1' : (mode === 'coin1' || mode === 'coin3') ? '外侧：自转 = n + 1' : '绕多边形：自转 = 边数 + 1（每边长 = 硬币周长，各滚 1 圈；拐角共 +1）')
+        + ' = <span class="hi">' + (Math.round(rot * 100) / 100) + '</span> 圈';
+      setMetric('mode', '<span class="chip chip-blue">' + ({ coin1: '绕等大圆', coin3: '绕大圆n3', inside: '圆内侧', triangle: '绕三角形', square: '绕正方形' })[mode] + '</span>', true);
+      setMetric('n', info.n != null ? info.n.toFixed(2) : '—');
+      setMetric('rot', (Math.round(rot * 100) / 100) + ' 圈');
+      setMetric('cpath', info.centerPath ? info.centerPath.toFixed(1) : '—');
+    }
+    function stop() { if (anim) clearInterval(anim); anim = null; $('#m6-play').textContent = '滚一圈'; }
+    function play() {
+      if (anim) { stop(); return; }
+      if (mode === 'coin1' && !pred.guard()) return;
+      if (prog >= 1) prog = 0;
+      $('#m6-play').textContent = '暂停';
+      var dur = 4200, t0 = performance.now() - prog * dur;
+      anim = setInterval(function () { // setInterval + 墙钟进度
+        prog = Math.min(1, (performance.now() - t0) / dur); draw();
+        if (prog >= 1) {
+          stop();
+          if (mode === 'coin1') { record('coinTwo'); if (!pred.revealed) pred.reveal(); }
+          else record('coinGeneral');
+        }
+      }, 16);
+    }
+    function setMode(k) { mode = k; $$('#m6-mode button').forEach(function (b) { b.classList.toggle('on', b.dataset.mode === k); }); stop(); prog = 0; rebuild(); }
+    function rebuild() { if (!st.w) return; path = buildPath(); setInfo(); draw(); }
+    $$('#m6-mode button').forEach(function (b) { b.addEventListener('click', function () { setMode(b.dataset.mode); }); });
+    $('#m6-play').addEventListener('click', play);
+    $('#m6-reset').addEventListener('click', function () { stop(); prog = 0; draw(); });
+    return {
+      metrics: [{ key: 'mode', label: '场景' }, { key: 'n', label: '周长比 n' }, { key: 'rot', label: '自转圈数' }, { key: 'cpath', label: '圆心路程' }],
+      note: '“+1”来自绕中心公转一圈。', enter: function () { rebuild(); },
+      resize: function () { if (st.fit()) rebuild(); }
+    };
+  })();
+
+  /* ================================================================
+   *  M7 总结闯关
+   * ============================================================== */
+  modules.m7 = (function () {
+    var CARDS = [
+      { tag: '点动成线', h: '翻滚 / 滚动轨迹', p: '长方形翻滚顶点 = 一串弧(6π)；圆绕三角圆心 = 圆角三角形；半圆翻滚圆心 = 2πr。' },
+      { tag: '线动成面', h: '边/圆/绳扫面', p: '三角形转90°，AB边扫圆环 ¼π(5²−4²)=7.065(题16)。' },
+      { tag: '线动成面', h: '圆绕方 & 栓羊', p: '圆绕正方形：外 8sr+4πr²、内 s²−(s−2r)²−(4r²−πr²)；栓羊=主扇+绕角续扫。' },
+      { tag: '面动成体', h: '旋转体', p: '矩→柱、直角三角→锥、梯→台、半圆→球；体积相加（复合体942）。' },
+      { tag: '硬币悖论', h: '自转 +1', p: '绕一圈自转 = 滚动 + 公转「+1」；外 n+1、内 n−1，等径两圆=2圈。' },
+      { tag: '滑轮', h: '绳长规律', p: '承重 n 段 → 省 n 倍力、拉 n 倍绳；定滑轮1:1、动滑轮2:1。' }
+    ];
+    var QUIZ = [
+      { q: '长方形翻滚一周，被盯的角轨迹由几段弧拼成？', opts: ['2 段', '3 段', '4 段'], a: 1, why: '4 个角，被盯角当支点不动，其余 3 个各 1 段。' },
+      { q: '三角形(CA=4,CB=5)绕 C 转 90°，AB 边扫过的面积是？', opts: ['¼π·5²', '¼π(5²−4²)', '¼π·4²'], a: 1, why: '最远 B(5)画外弧、最近 A(4)画内弧 → 圆环扇形 ¼π(25−16)=7.065。' },
+      { q: '半圆(半径 r)在平面翻滚一圈，圆心走过的路程是？', opts: ['πr', '2πr', '½πr'], a: 1, why: '½πr(绕端点)+πr(沿弧滚=直线)+½πr = 2πr（题8）。' },
+      { q: '直角三角形绕一条直角边转一周，得到？', opts: ['圆柱', '圆锥', '球'], a: 1, why: '直角三角形绕直角边 → 圆锥。' },
+      { q: '两枚等大硬币，一枚绕另一枚外侧滚一圈，自转？', opts: ['1 圈', '2 圈', '½ 圈'], a: 1, why: '滚动 1 圈 + 公转 +1 = 2 圈（n+1）。' },
+      { q: '用动滑轮把重物提高 1 米，要拉动多长绳子？', opts: ['1 米', '2 米', '½ 米'], a: 1, why: '动滑轮 2 段绳承重，拉绳 = 2×提升 = 2 米（省一半力）。' }
+    ];
+    var answered = {}, correct = 0, built = false;
+    function build() {
+      var cw = $('#m7-cards'); cw.innerHTML = '';
+      CARDS.forEach(function (c) { var d = document.createElement('div'); d.className = 'concept-card'; d.innerHTML = '<span class="tag">' + c.tag + '</span><h4>' + c.h + '</h4><p>' + c.p + '</p>'; cw.appendChild(d); });
+      var qw = $('#m7-quiz'); qw.innerHTML = '';
+      QUIZ.forEach(function (item, qi) {
+        var d = document.createElement('div'); d.className = 'quiz-item';
+        var opts = item.opts.map(function (o, oi) { return '<button class="btn" data-q="' + qi + '" data-o="' + oi + '">' + o + '</button>'; }).join(' ');
+        d.innerHTML = '<h4>' + (qi + 1) + '. ' + item.q + '</h4><div class="controls" style="margin:0">' + opts + '</div><div class="why">💡 ' + item.why + '</div>';
+        qw.appendChild(d);
+      });
+      $$('#m7-quiz button').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var qi = +b.dataset.q, oi = +b.dataset.o; if (answered[qi] != null) return;
+          answered[qi] = oi; var item = QUIZ[qi]; var box = b.closest('.quiz-item');
+          $$('button', box).forEach(function (x, i) { if (i === item.a) x.classList.add('right'); else if (i === oi) x.classList.add('wrong'); x.disabled = true; });
+          box.classList.add('answered'); if (oi === item.a) correct++;
+          setMetric('done', Object.keys(answered).length + ' / 6'); setMetric('right', correct + ' 题');
+          if (Object.keys(answered).length === QUIZ.length) finish();
+        });
+      });
+      built = true;
+    }
+    function finish() {
+      if (correct >= 5) record('quizPass');
+      var rank = correct >= 6 ? '🏆 轨迹宗师' : correct >= 5 ? '🥇 旋转高手' : correct >= 3 ? '🥈 入门学徒' : '🥉 再练一练';
+      var rb = $('#m7-rank'); rb.classList.add('show'); $('#m7-rankText').textContent = rank; $('#m7-score').textContent = '答对 ' + correct + ' / 6 题';
+    }
+    return {
+      metrics: [{ key: 'done', label: '已答' }, { key: 'right', label: '答对' }],
+      note: '答对 ≥5 题解锁「学成出师」。',
+      enter: function () { if (!built) build(); setMetric('done', Object.keys(answered).length + ' / 6'); setMetric('right', correct + ' 题'); },
+      resize: function () { }
+    };
+  })();
+
+  /* ================= 启动 ================= */
+  booting = false;
+  refreshNav();
+  activate('m0');
+})();
+
+</script>
+</body>
+</html>

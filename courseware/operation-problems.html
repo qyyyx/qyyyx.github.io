@@ -1,0 +1,1930 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:,">
+    <title>操作问题实验室 · 在操作中寻找不变量</title>
+    <style>
+/* src/incentive/achievements.css */
+/*
+ * achievements.css —— 成就系统底座配套样式
+ * 配合 achievements.js 使用；可整段内联进单 HTML。
+ * 颜色沿用数学实验室型变量（品牌蓝 #3b82f6 / 浅色卡片），无变量时有兜底值。
+ */
+
+/* ---- toast 解锁提示（右下角堆叠） ---- */
+.ach-toast-stack {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.ach-toast {
+  min-width: 220px;
+  max-width: 300px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #d7e1e3);
+  border-left: 4px solid var(--accent, #3b82f6);
+  box-shadow: 0 6px 20px rgba(15, 30, 40, 0.12);
+  animation: ach-toast-in 0.25s ease-out;
+}
+.ach-toast-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--accent-dark, #2563eb);
+  font-weight: 600;
+}
+.ach-toast-name {
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #152529);
+}
+.ach-toast-desc {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted, #66777d);
+}
+@keyframes ach-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- 奖杯进度条（在任意位置放 [data-ach-progress] 的轨道即可） ---- */
+.ach-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-strong, #eef4f5);
+  overflow: hidden;
+}
+.ach-progress-track > [data-ach-progress] {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: var(--accent, #3b82f6);
+  transition: width 0.3s ease;
+}
+
+/* ---- 成就清单行（奖杯弹窗内） ---- */
+.ach-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #d7e1e3);
+  background: var(--surface, #ffffff);
+  opacity: 0.55;
+}
+.ach-row.is-unlocked { opacity: 1; border-color: var(--accent-soft, #dbeafe); }
+.ach-row .ach-icon { font-size: 22px; text-align: center; }
+.ach-row .ach-name { font-weight: 600; color: var(--text, #152529); }
+.ach-row .ach-desc { font-size: 12px; color: var(--muted, #66777d); }
+.ach-row .ach-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted, #66777d);
+  white-space: nowrap;
+}
+.ach-row.is-unlocked .ach-status { color: var(--accent-dark, #2563eb); }
+
+/* 触控目标：奖杯入口按钮不小于 40px */
+.ach-trophy-btn {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line, #d7e1e3);
+  background: var(--surface, #ffffff);
+  color: var(--text, #152529);
+  cursor: pointer;
+}
+
+
+/* src/styles.css */
+:root {
+  color-scheme: light;
+  --bg: #f6f8fb;
+  --surface: #ffffff;
+  --surface-strong: #eef4ff;
+  --line: #dbe3ea;
+  --text: #16242b;
+  --muted: #66777d;
+  --accent: #3b82f6;
+  --accent-dark: #2563eb;
+  --accent-soft: #dbeafe;
+  --warning: #c47a1c;
+  --good: #2f9d64;
+  --good-soft: #d9f2e4;
+  --bad: #dc5050;
+  --bad-soft: #fbe2e2;
+  --odd: #6d51d6;
+  --odd-soft: #ece7fb;
+  --even: #1f9aa8;
+  --even-soft: #d9f2f5;
+  --black-cell: #c9d6e8;
+  --white-cell: #fbfdff;
+  --shadow: 0 16px 44px rgba(30, 52, 60, 0.10);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", Arial, sans-serif;
+  overflow-x: hidden;
+}
+button { font: inherit; }
+
+/* ===== 三栏骨架 ===== */
+.lab-shell {
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr) 312px;
+  gap: 18px;
+  width: 100%;
+  min-height: 100vh;
+  padding: 18px;
+}
+.lab-nav, .data-panel { display: flex; flex-direction: column; gap: 16px; }
+.lab-nav { border-right: 1px solid var(--line); padding-right: 18px; }
+
+.brand-block { padding: 6px 2px 12px; }
+.brand-kicker, .section-label, .panel-label, .prompt-label {
+  margin: 0; color: var(--accent-dark); font-size: 12px; font-weight: 700; letter-spacing: .3px;
+}
+.brand-block h1 { margin: 8px 0 0; font-size: 25px; line-height: 1.18; }
+.brand-block .brand-sub { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+.module-list { display: grid; gap: 8px; }
+.module-item {
+  display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center;
+  width: 100%; min-height: 46px; padding: 6px 10px 6px 4px;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--surface);
+  color: var(--text); text-align: left; cursor: pointer; transition: border-color .15s, background .15s;
+}
+.module-item:hover { border-color: var(--accent); }
+.module-item.active { border-color: var(--accent); background: var(--accent-soft); }
+.module-item.done .module-index::after { content: " ✓"; color: var(--good); }
+.module-index { color: var(--accent-dark); font-size: 12px; font-weight: 800; text-align: center; }
+.module-name { font-size: 14px; line-height: 1.2; }
+.module-name small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+
+/* 成就块 */
+.ach-block {
+  margin-top: auto; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+}
+.ach-head { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.ach-head b { color: var(--accent-dark); }
+.ach-block .ach-trophy-btn { width: 100%; margin-top: 10px; justify-content: center; }
+
+/* ===== 中栏工作台 ===== */
+.workbench { display: grid; grid-template-rows: auto auto minmax(360px, 1fr) auto; gap: 14px; min-width: 0; }
+.lab-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; }
+.lab-header h2 { margin: 4px 0 0; font-size: 24px; line-height: 1.15; }
+.status-strip {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--muted); font-size: 13px;
+}
+.status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 4px rgba(47,157,100,.14); }
+
+.control-rack {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  min-height: 48px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+}
+.control-group { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.control-label { font-size: 12px; color: var(--muted); margin-right: 2px; }
+.segmented-control { display: inline-flex; gap: 4px; padding: 3px; background: var(--surface-strong); border-radius: 8px; }
+.segment {
+  min-height: 34px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text);
+  padding: 0 12px; cursor: pointer; font-size: 13px;
+}
+.segment.active { border-color: var(--accent); background: var(--surface); color: var(--accent-dark); font-weight: 700; }
+.tool-button {
+  min-height: 38px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text);
+  padding: 0 14px; cursor: pointer; transition: border-color .15s, background .15s; font-size: 13.5px;
+}
+.tool-button:hover { border-color: var(--accent); background: var(--surface-strong); color: var(--accent-dark); }
+.tool-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tool-button.primary:hover { background: var(--accent-dark); }
+.tool-button:disabled { opacity: .45; cursor: not-allowed; }
+.tool-button.is-locked { border-style: dashed; opacity: .7; color: var(--muted); }
+
+/* 舞台 */
+.stage-wrap {
+  min-height: clamp(340px, 50vh, 560px);
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow);
+  padding: 18px; overflow: auto; display: flex; flex-direction: column;
+}
+#stage { flex: 1; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.stage-hint { font-size: 13px; color: var(--muted); line-height: 1.55; }
+.stage-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+
+/* 底部探究/预测 */
+.prompt-panel { padding: 13px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+#prompt { margin-top: 6px; }
+.predict-q { font-size: 14.5px; line-height: 1.55; margin: 0 0 8px; }
+.predict-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.predict-chip {
+  border: 1px solid var(--line); border-radius: 999px; padding: 7px 15px; background: var(--surface);
+  cursor: pointer; font-size: 13.5px; transition: all .15s;
+}
+.predict-chip:hover { border-color: var(--accent); }
+.predict-chip.chosen { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); font-weight: 700; }
+.predict-chip.correct { border-color: var(--good); background: var(--good-soft); color: #1c7a4a; font-weight: 700; }
+.predict-chip.wrong { border-color: var(--bad); background: var(--bad-soft); color: #a83232; }
+.predict-feedback { margin-top: 9px; font-size: 13.5px; line-height: 1.55; padding: 8px 12px; border-radius: 8px; display: none; }
+.predict-feedback.show { display: block; }
+.predict-feedback.good { background: var(--good-soft); color: #1c7a4a; }
+.predict-feedback.bad { background: var(--bad-soft); color: #a83232; }
+.predict-done-tag { display: inline-block; font-size: 12px; color: var(--good); font-weight: 700; }
+
+/* ===== 右栏数据/不变量监视器 ===== */
+.metric-card { padding: 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+#metrics { display: grid; gap: 9px; margin: 11px 0 0; }
+.metric-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 8px; border-bottom: 1px dashed var(--line); }
+.metric-row:last-child { border-bottom: none; padding-bottom: 0; }
+.metric-row dt, .metric-row .m-key { color: var(--muted); font-size: 13px; }
+.metric-row dd, .metric-row .m-val {
+  margin: 0; font-weight: 700; font-family: "Roboto Mono", Consolas, monospace; font-variant-numeric: tabular-nums; font-size: 15px;
+}
+.metric-row.invariant { background: var(--accent-soft); margin: 0 -6px; padding: 8px 6px; border-radius: 7px; border-bottom: none; }
+.metric-row.invariant .m-key { color: var(--accent-dark); font-weight: 700; }
+.metric-row.invariant .m-val { color: var(--accent-dark); }
+.m-val.flash { animation: m-flash .5s ease; }
+@keyframes m-flash { 0% { background: #fff3bf; } 100% { background: transparent; } }
+.m-val.good { color: var(--good); }
+.m-val.bad { color: var(--bad); }
+
+.conclusion-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.conclusion-body { margin-top: 10px; font-size: 13.5px; line-height: 1.65; }
+.conclusion-body.is-hidden { display: none; }
+.conclusion-body .placeholder { color: var(--muted); font-style: normal; }
+.conclusion-body h4 { margin: 0 0 6px; font-size: 14px; color: var(--accent-dark); }
+.conclusion-body p { margin: 0 0 8px; }
+.conclusion-body .ans { font-weight: 800; color: var(--good); }
+.conclusion-body code { background: var(--surface-strong); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+
+/* ===== M1 棋盘染色 ===== */
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: min(320px, 78vw); }
+.grid3.with-target { width: min(280px, 70vw); }
+.cell {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center; position: relative;
+  border: 2px solid var(--line); border-radius: 10px; font-size: clamp(20px, 5vw, 30px); font-weight: 700;
+  cursor: pointer; user-select: none; transition: transform .12s, box-shadow .12s, border-color .12s;
+}
+.cell.black { background: var(--black-cell); }
+.cell.white { background: var(--white-cell); }
+.cell.sel { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); transform: translateY(-2px); }
+.cell.target-unknown { color: var(--accent-dark); border-style: dashed; border-color: var(--accent); }
+.cell .corner-tag { position: absolute; top: 3px; left: 5px; font-size: 9px; font-weight: 700; color: var(--muted); }
+.grid-pair { display: flex; flex-wrap: wrap; gap: 26px; align-items: center; justify-content: center; }
+.grid-pair .grid-cap { text-align: center; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); justify-content: center; flex-wrap: wrap; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; border: 1px solid var(--line); }
+
+/* ===== M2 数字桶 ===== */
+.bins { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; width: min(520px, 92vw); }
+.bin {
+  border: 2px solid var(--line); border-radius: 12px; padding: 10px 8px 12px; background: var(--surface);
+  display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: all .15s;
+}
+.bin:hover { border-color: var(--accent); }
+.bin.plus-flash { border-color: var(--good); box-shadow: 0 0 0 3px var(--good-soft); }
+.bin.minus-flash { border-color: var(--bad); }
+.bin .bin-digit { font-size: 26px; font-weight: 800; color: var(--accent-dark); }
+.bin .bin-count { font-size: 20px; font-weight: 700; font-family: Consolas, monospace; }
+.bin .bin-count small { font-size: 12px; color: var(--muted); font-weight: 400; }
+.bin .bin-chips { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; min-height: 26px; max-width: 96px; }
+.bin .chip { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); opacity: .8; }
+.bin .bin-res { font-size: 11px; color: var(--muted); }
+.bin .bin-res b { color: var(--odd); }
+.bins-hint { text-align: center; font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+
+/* ===== M3 奇偶卡片 ===== */
+.num-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; min-height: 70px; }
+.num-card {
+  min-width: 56px; height: 70px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  font-size: 30px; font-weight: 800; border: 2px solid var(--line); cursor: pointer; transition: all .14s; position: relative;
+}
+.num-card.odd { background: var(--odd-soft); color: var(--odd); border-color: #c9bdf2; }
+.num-card.even { background: var(--even-soft); color: var(--even); border-color: #b6e3e9; }
+.num-card.sel { box-shadow: 0 0 0 3px var(--accent-soft); border-color: var(--accent); transform: translateY(-3px); }
+.num-card.fresh { animation: pop .3s ease; }
+.num-card.tag-erase::after { content: "擦?"; position: absolute; bottom: -18px; font-size: 11px; color: var(--bad); }
+@keyframes pop { 0% { transform: scale(.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.parity-badge { display: inline-flex; gap: 8px; font-size: 12.5px; color: var(--muted); justify-content: center; }
+.op-preview { text-align: center; font-size: 14px; color: var(--accent-dark); min-height: 22px; }
+
+/* ===== M4 队列 ===== */
+.queue-track { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; overflow-x: auto; padding: 14px 4px; min-height: 78px; width: 100%; }
+.q-card {
+  flex: 0 0 auto; width: 42px; height: 50px; border-radius: 9px; display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 700; background: var(--surface-strong); border: 2px solid var(--line); transition: all .2s;
+}
+.q-card.front { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
+.q-card.back { border-color: var(--warning); background: #fdf2df; color: var(--warning); }
+.q-card.front.back { border-color: var(--good); background: var(--good-soft); }
+.q-card.removing { animation: fadeout .3s ease forwards; }
+@keyframes fadeout { to { opacity: 0; transform: scale(.4); width: 0; margin: 0; padding: 0; } }
+.q-ellipsis { color: var(--muted); font-size: 18px; padding: 0 4px; }
+.queue-fastforward { display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center; }
+.big-readout { font-size: 15px; color: var(--muted); }
+.big-readout b { font-size: 38px; color: var(--accent-dark); font-family: Consolas, monospace; display: block; }
+
+/* ===== M5 洗牌 ===== */
+.deck { display: grid; grid-template-columns: repeat(8, 1fr); gap: 7px; width: min(440px, 92vw); }
+.deck.cols4 { grid-template-columns: repeat(4, 1fr); width: min(240px, 70vw); }
+.pcard {
+  aspect-ratio: 3/4; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; border: 2px solid var(--line); background: var(--surface); transition: all .25s; position: relative;
+}
+.pcard.home { border-color: var(--good); background: var(--good-soft); color: #1c7a4a; }
+.pcard .home-dot { position: absolute; top: 2px; right: 4px; font-size: 9px; color: var(--good); }
+.deck-meta { text-align: center; font-size: 13px; color: var(--muted); }
+.deck-meta b { color: var(--accent-dark); font-size: 16px; }
+.restored-banner { font-size: 16px; font-weight: 800; color: var(--good); text-align: center; min-height: 22px; }
+.cycle-view { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.7; word-break: break-word; }
+.cycle-view code { background: var(--surface-strong); padding: 1px 4px; border-radius: 4px; }
+
+/* ===== M6 总结闯关 ===== */
+.summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.sum-card { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--surface); }
+.sum-card h4 { margin: 0 0 6px; font-size: 14px; color: var(--accent-dark); }
+.sum-card p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+.sum-card .tag { display: inline-block; margin-top: 8px; font-size: 11px; color: var(--good); }
+.quiz { margin-top: 6px; display: grid; gap: 14px; }
+.quiz-item { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--surface); }
+.quiz-q { font-size: 14px; margin: 0 0 10px; font-weight: 600; }
+.quiz-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.rank-result { text-align: center; font-size: 15px; margin-top: 6px; padding: 12px; border-radius: 10px; background: var(--surface-strong); display: none; }
+.rank-result.show { display: block; }
+.rank-result b { font-size: 22px; color: var(--accent-dark); }
+
+/* ===== 成就清单弹窗 ===== */
+.modal-mask { position: fixed; inset: 0; background: rgba(15,30,40,.4); display: none; align-items: center; justify-content: center; z-index: 999; padding: 16px; }
+.modal-mask.show { display: flex; }
+.modal-box { background: var(--surface); border-radius: 14px; padding: 20px; width: min(440px, 94vw); max-height: 84vh; overflow: auto; box-shadow: var(--shadow); }
+.modal-box h3 { margin: 0 0 4px; }
+.modal-box .modal-sub { margin: 0 0 14px; font-size: 12.5px; color: var(--muted); }
+.modal-box .ach-list { display: grid; gap: 8px; }
+.modal-close { float: right; border: none; background: transparent; font-size: 22px; cursor: pointer; color: var(--muted); line-height: 1; }
+
+/* ===== 响应式 ===== */
+@media (max-width: 1099px) {
+  .lab-shell { grid-template-columns: 1fr; }
+  .lab-nav { border-right: 0; border-bottom: 1px solid var(--line); padding-right: 0; padding-bottom: 14px; }
+  .module-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ach-block { margin-top: 0; }
+  .workbench { grid-template-rows: auto auto auto auto; }
+  .data-panel { flex-direction: row; flex-wrap: wrap; }
+  .data-panel .metric-card { flex: 1 1 260px; }
+}
+@media (max-width: 699px) {
+  .lab-shell { gap: 12px; padding: 12px; }
+  .brand-block h1 { font-size: 21px; }
+  .module-list { grid-template-columns: 1fr; }
+  .lab-header h2 { font-size: 20px; }
+  .control-rack { gap: 8px; }
+  .tool-button, .segment { flex: 1 1 auto; }
+  .stage-wrap { padding: 12px; min-height: 300px; }
+  .bins { grid-template-columns: repeat(4, 1fr); gap: 7px; }
+  .bin { padding: 7px 3px 9px; }
+  .deck { grid-template-columns: repeat(8, 1fr); gap: 4px; }
+}
+
+  </style>
+  </head>
+  <body>
+    <main class="lab-shell">
+      <aside class="lab-nav" aria-label="模块导航">
+        <div class="brand-block">
+          <p class="brand-kicker">第十六讲 · 操作问题</p>
+          <h1>在操作中<br>寻找“不变量”</h1>
+          <p class="brand-sub">不管怎么操作，总有一个量悄悄不变——抓住它，就能预判结局。</p>
+        </div>
+        <nav class="module-list" id="moduleList"></nav>
+        <div class="ach-block">
+          <div class="ach-head"><span>🔬 探索成就</span><span><b data-ach-count>0</b> / <b data-ach-total>0</b></span></div>
+          <div class="ach-progress-track"><span data-ach-progress></span></div>
+          <button class="ach-trophy-btn" id="trophyBtn" type="button">🏆 查看成就清单</button>
+        </div>
+      </aside>
+
+      <section class="workbench">
+        <header class="lab-header">
+          <div>
+            <p class="section-label" id="moduleTag">模块 01</p>
+            <h2 id="moduleTitle">棋盘染色侦探</h2>
+          </div>
+          <div class="status-strip"><span class="status-dot"></span><span id="statusText">可操作</span></div>
+        </header>
+
+        <div class="control-rack" id="controlRack" aria-label="探究控制"></div>
+
+        <div class="stage-wrap">
+          <div id="stage" aria-label="交互舞台"></div>
+        </div>
+
+        <footer class="prompt-panel">
+          <p class="prompt-label">🎯 探究 · 先预测再揭晓</p>
+          <div id="prompt"></div>
+        </footer>
+      </section>
+
+      <aside class="data-panel" aria-label="数据面板">
+        <section class="metric-card">
+          <p class="panel-label">🔬 不变量监视器</p>
+          <dl id="metrics"></dl>
+        </section>
+        <section class="metric-card">
+          <div class="conclusion-head">
+            <p class="panel-label">📖 结论</p>
+            <button class="tool-button" id="toggleConclusion" type="button">显示结论</button>
+          </div>
+          <div id="conclusion" class="conclusion-body is-hidden"></div>
+        </section>
+      </aside>
+    </main>
+
+    <div class="modal-mask" id="trophyModal">
+      <div class="modal-box">
+        <button class="modal-close" id="trophyClose" type="button">×</button>
+        <h3>🏆 探索成就</h3>
+        <p class="modal-sub">成就奖励“发现规律 / 算出答案”，不奖励点击次数。</p>
+        <div class="ach-list" id="achList"></div>
+      </div>
+    </div>
+    <script>
+/* src/operation-engine.js */
+/*
+ * operation-engine.js —— 《操作问题实验室》核心引擎（UMD，零依赖）
+ * ---------------------------------------------------------------
+ * 主题：操作问题中的「不变量 / 守恒量」。纯函数 + 明确 in-place 注释，
+ * 浏览器全局 (window.OperationEngine) 与 Node require() 双用，便于单测。
+ *
+ * 五个机制：
+ *   M1 grid*      棋盘黑白染色不变量（铺垫3 / 第11题）
+ *   M2 count*     计数 mod3「三缺一」（铺垫6 / 例题11）
+ *   M3 parity*    并数·奇偶守门员（铺垫7 / 例题13），BFS 精确可达性
+ *   M4 queue*     队列首尾消去/轮转（例题14 / 第27题）
+ *   M5 shuffle*   完美交叉洗牌的置换与阶（拓展选讲3 / 第30题）
+ * ---------------------------------------------------------------
+ */
+(function (global) {
+  'use strict';
+
+  // ============================================================
+  // 通用小工具
+  // ============================================================
+  function mod(n, m) { return ((n % m) + m) % m; }
+  function clone2d(g) { return g.map(function (row) { return row.slice(); }); }
+  function sortedKey(arr) { return arr.slice().sort(function (a, b) { return a - b; }).join(','); }
+
+  // ============================================================
+  // M1 · 棋盘黑白染色不变量（3×3，相邻两格同时 ±1）
+  //   染色：color(r,c) = (r+c) % 2；black=0（四角+中心，5 格），white=1（4 格）
+  //   相邻两格必异色 ⇒ 每次操作令一黑一白同 +δ ⇒ (黑和 − 白和) 不变
+  // ============================================================
+  function gridColor(r, c) { return (r + c) % 2; } // 0=黑, 1=白
+
+  function gridSums(grid) {
+    var black = 0, white = 0;
+    for (var r = 0; r < grid.length; r++) {
+      for (var c = 0; c < grid[r].length; c++) {
+        var v = grid[r][c];
+        if (v === null || v === undefined || isNaN(v)) continue; // 未知格跳过
+        if (gridColor(r, c) === 0) black += v; else white += v;
+      }
+    }
+    return { black: black, white: white, diff: black - white };
+  }
+
+  function gridAdjacent(r1, c1, r2, c2) {
+    return (Math.abs(r1 - r2) + Math.abs(c1 - c2)) === 1;
+  }
+
+  // 一次操作：相邻两格同时 +delta（delta = +1 或 -1），返回新网格（不改原网格）。
+  // 非法（不相邻 / 越界）抛错。
+  function gridApplyOp(grid, r1, c1, r2, c2, delta) {
+    if (!gridAdjacent(r1, c1, r2, c2)) throw new Error('两格必须相邻（共边）');
+    var g = clone2d(grid);
+    g[r1][c1] += delta;
+    g[r2][c2] += delta;
+    return g;
+  }
+
+  // 用不变量求解目标网格中唯一未知格（值为 null）。
+  // 依据：黑和-白和 在操作下不变；目标网格 diff 必须等于初始网格 diff。
+  function gridSolveUnknown(initialGrid, targetGrid) {
+    var initDiff = gridSums(initialGrid).diff;
+    var ur = -1, uc = -1;
+    for (var r = 0; r < targetGrid.length; r++) {
+      for (var c = 0; c < targetGrid[r].length; c++) {
+        var v = targetGrid[r][c];
+        if (v === null || v === undefined || isNaN(v)) { ur = r; uc = c; }
+      }
+    }
+    if (ur < 0) throw new Error('目标网格没有未知格（用 null 标记未知）');
+    var known = gridSums(targetGrid); // 已跳过未知格
+    // 设未知格颜色：black ⇒ diff = (known.black + A) - known.white
+    //               white ⇒ diff = known.black - (known.white + A)
+    var A;
+    if (gridColor(ur, uc) === 0) A = initDiff - (known.black - known.white);
+    else A = (known.black - known.white) - initDiff;
+    return { row: ur, col: uc, value: A, invariantDiff: initDiff };
+  }
+
+  // ============================================================
+  // M2 · 计数 mod3「三缺一」
+  //   counts: [c1,c2,c3,c4]（数字 1/2/3/4 各自的个数）
+  //   一次操作：选「加数位」d（1..4）⇒ 该位 +2，其余三位各 -1（其余三位须 ≥1）
+  //   不变量：-1 与 +2 在 mod3 下都 ≡ -1 ⇒ 四位残差同步 -1；两两差 mod3 恒定；总数每步 -1
+  // ============================================================
+  function countTotal(counts) {
+    return counts.reduce(function (a, b) { return a + b; }, 0);
+  }
+  function countResidues(counts) {
+    return counts.map(function (c) { return mod(c, 3); });
+  }
+  function countCanOp(counts, plusDigit) {
+    // plusDigit: 1..4。其余三位均需 ≥1。
+    for (var i = 0; i < 4; i++) {
+      if (i === (plusDigit - 1)) continue;
+      if (counts[i] < 1) return false;
+    }
+    return true;
+  }
+  function countDistinctNonzero(counts) {
+    return counts.filter(function (c) { return c > 0; }).length;
+  }
+  function countApplyOp(counts, plusDigit) {
+    if (!countCanOp(counts, plusDigit)) throw new Error('其余三个数字必须都还有至少 1 个');
+    var out = counts.slice();
+    for (var i = 0; i < 4; i++) {
+      out[i] += (i === (plusDigit - 1)) ? 2 : -1;
+    }
+    return out;
+  }
+  // 自动挑一个合法的加数位（用于"自动演示"）：
+  //   恰好 3 种非零 ⇒ 加数位必须是那个为 0 的；4 种非零 ⇒ 取当前最多的那位。
+  function countAutoPlus(counts) {
+    var nz = countDistinctNonzero(counts);
+    if (nz < 3) return null; // 卡住
+    if (nz === 3) {
+      for (var i = 0; i < 4; i++) if (counts[i] === 0) return i + 1;
+    }
+    var maxI = 0;
+    for (var j = 1; j < 4; j++) if (counts[j] > counts[maxI]) maxI = j;
+    return maxI + 1;
+  }
+  // 由不变量直接预测终态计数（不必真的逐步模拟）。
+  //   k = startTotal - endTotal 次操作；终残差 r_i = (start_i - k) mod 3。
+  //   在 sum = endTotal 约束下，取每位最小非负代表；若残差和 < endTotal，把多余的 3 的倍数
+  //   尽量补到「残差最大的位」（对讲义两题：残差和恰等于 endTotal，唯一确定）。
+  function countPredictFinal(startCounts, endTotal) {
+    var k = countTotal(startCounts) - endTotal;
+    if (k < 0) throw new Error('endTotal 不能大于初始总数');
+    var res = startCounts.map(function (c) { return mod(c - k, 3); });
+    var base = res.slice();
+    var sum = countTotal(base);
+    var remain = endTotal - sum;
+    if (remain % 3 !== 0) {
+      // 残差和与目标总数模 3 不一致：该 endTotal 不可达，返回 null 终态
+      return { counts: null, residues: res, feasible: false };
+    }
+    var add = remain / 3;
+    // 多余的 3 的倍数补到第 1 位（实现确定；讲义两题 add=0）
+    var counts = base.slice();
+    if (add > 0) counts[0] += add * 3;
+    if (add < 0) return { counts: null, residues: res, feasible: false };
+    return { counts: counts, residues: res, feasible: true };
+  }
+  // 把计数展开成「数字乘积 / 求和」用于答案：counts=[a,b,c,d] 表示 a 个 1, b 个 2 ...
+  function countToMultiset(counts) {
+    var out = [];
+    for (var i = 0; i < 4; i++) for (var n = 0; n < counts[i]; n++) out.push(i + 1);
+    return out;
+  }
+  function product(arr) { return arr.reduce(function (a, b) { return a * b; }, 1); }
+  function sum(arr) { return arr.reduce(function (a, b) { return a + b; }, 0); }
+
+  // ============================================================
+  // M3 · 并数·奇偶守门员
+  //   两种操作模式：
+  //   (a) 'combineKeepOne'（铺垫7，三数）：选 i,j 两数，写 s=(a+b)%10，擦掉 i/j 之一（keep 另一个）。个数不变。
+  //   (b) 'sumAllErase'（例题13，四数）：写 s=(全部和)%10 入列，再擦掉任意一个 ⇒ 个数不变。
+  //   不变量：奇数个数 k 落在某个「奇偶类循环」里。可达性用 BFS 精确判定。
+  // ============================================================
+  function oddCount(board) {
+    return board.filter(function (n) { return mod(n, 2) === 1; }).length;
+  }
+  // (a) combineKeepOne：返回所有「下一步可达」的多重集（去重）
+  function parityNextCombine(board) {
+    var outs = [];
+    var seen = {};
+    for (var i = 0; i < board.length; i++) {
+      for (var j = i + 1; j < board.length; j++) {
+        var s = mod(board[i] + board[j], 10);
+        // keep i（擦 j）或 keep j（擦 i）
+        [[i, j], [j, i]].forEach(function (pair) {
+          var keep = pair[0];
+          var next = board.slice();
+          // 用 s 替换被擦的那个；保留 keep 不变
+          var erase = pair[1];
+          next[erase] = s;
+          var key = sortedKey(next);
+          if (!seen[key]) { seen[key] = true; outs.push(next.slice().sort(function (a, b) { return a - b; })); }
+        });
+      }
+    }
+    return outs;
+  }
+  // 单步（指定 i,j,keepIndex），返回新 board（多重集顺序保持便于动画）
+  function parityApplyCombine(board, i, j, keepIndex) {
+    if (i === j) throw new Error('需选两个不同位置');
+    var s = mod(board[i] + board[j], 10);
+    var erase = (keepIndex === i) ? j : i;
+    var next = board.slice();
+    next[erase] = s;
+    return next;
+  }
+  // (b) sumAllErase：返回所有下一步可达多重集（擦不同位置）
+  function paritySumAll(board) { return mod(sum(board), 10); }
+  function parityNextSumErase(board) {
+    var s = paritySumAll(board);
+    var withS = board.concat([s]);
+    var outs = [];
+    var seen = {};
+    for (var e = 0; e < withS.length; e++) {
+      var next = withS.slice();
+      next.splice(e, 1);
+      var key = sortedKey(next);
+      if (!seen[key]) { seen[key] = true; outs.push(next.slice().sort(function (a, b) { return a - b; })); }
+    }
+    return outs;
+  }
+  function parityApplySumErase(board, eraseIndex) {
+    var s = paritySumAll(board);
+    var withS = board.concat([s]);
+    withS.splice(eraseIndex, 1);
+    return withS;
+  }
+  // BFS 精确可达性：从 start 多重集出发，能否变成 target 多重集（与顺序无关）。
+  // mode: 'combineKeepOne' | 'sumAllErase'。数字范围 0..9，状态空间小。
+  function parityReachable(start, target, mode) {
+    var nextFn = (mode === 'sumAllErase') ? parityNextSumErase : parityNextCombine;
+    var startKey = sortedKey(start), targetKey = sortedKey(target);
+    if (startKey === targetKey) return true;
+    var visited = {};
+    visited[startKey] = true;
+    var queue = [start.slice().sort(function (a, b) { return a - b; })];
+    while (queue.length) {
+      var cur = queue.shift();
+      var nexts = nextFn(cur);
+      for (var n = 0; n < nexts.length; n++) {
+        var key = sortedKey(nexts[n]);
+        if (key === targetKey) return true;
+        if (!visited[key]) { visited[key] = true; queue.push(nexts[n]); }
+      }
+    }
+    return false;
+  }
+  // 从 start 可达的所有「奇数个数 k」集合（揭晓奇偶类循环用）
+  function parityReachableOddCounts(start, mode) {
+    var nextFn = (mode === 'sumAllErase') ? parityNextSumErase : parityNextCombine;
+    var visited = {};
+    var ks = {};
+    var startSorted = start.slice().sort(function (a, b) { return a - b; });
+    visited[sortedKey(startSorted)] = true;
+    ks[oddCount(startSorted)] = true;
+    var queue = [startSorted];
+    while (queue.length) {
+      var cur = queue.shift();
+      var nexts = nextFn(cur);
+      for (var n = 0; n < nexts.length; n++) {
+        var key = sortedKey(nexts[n]);
+        if (!visited[key]) { visited[key] = true; ks[oddCount(nexts[n])] = true; queue.push(nexts[n]); }
+      }
+    }
+    return Object.keys(ks).map(Number).sort(function (a, b) { return a - b; });
+  }
+  // (a) 铺垫7 第(1)问：一次操作后三数之和的最大值
+  function parityMaxSumAfterOneCombine(board) {
+    var best = -Infinity;
+    parityNextCombine(board).forEach(function (b) { best = Math.max(best, sum(b)); });
+    return best;
+  }
+  // (b) 例题13 第(1)问：一次操作后四数之和的最大值
+  function parityMaxSumAfterOneSumErase(board) {
+    var best = -Infinity;
+    parityNextSumErase(board).forEach(function (b) { best = Math.max(best, sum(b)); });
+    return best;
+  }
+
+  // ============================================================
+  // M4 · 排队消消乐（队列首尾）
+  //   队列 front=index0, back=last。
+  //   一步：队首 == 队尾 ⇒ 同时删除两者；否则 ⇒ 队首移到队尾（轮转）。
+  // ============================================================
+  function queueBuildSequence(maxN) {
+    // 1, 2,2, 3,3,3, ..., maxN×maxN
+    var q = [];
+    for (var v = 1; v <= maxN; v++) for (var t = 0; t < v; t++) q.push(v);
+    return q;
+  }
+  // 单步：返回 { queue, action }；action ∈ 'remove' | 'rotate' | 'done'
+  function queueStep(queue) {
+    if (queue.length === 0) return { queue: [], action: 'done' };
+    if (queue.length === 1) {
+      // 队首即队尾：同则删（删空）；这里队首==队尾必为真 ⇒ remove
+      return { queue: [], action: 'remove' };
+    }
+    var q = queue.slice();
+    var front = q[0], back = q[q.length - 1];
+    if (front === back) {
+      q.shift();        // 删队首
+      q.pop();          // 删队尾
+      return { queue: q, action: 'remove' };
+    } else {
+      var f = q.shift();
+      q.push(f);
+      return { queue: q, action: 'rotate' };
+    }
+  }
+  // 跑 steps 步后返回队列状态与队首
+  function queueRun(initialQueue, steps) {
+    var q = initialQueue.slice();
+    var removed = 0, rotated = 0;
+    for (var s = 0; s < steps; s++) {
+      if (q.length === 0) break;
+      var r = queueStep(q);
+      q = r.queue;
+      if (r.action === 'remove') removed++; else if (r.action === 'rotate') rotated++;
+    }
+    return { queue: q, front: q.length ? q[0] : null, removed: removed, rotated: rotated, length: q.length };
+  }
+
+  // ============================================================
+  // M5 · 完美交叉洗牌的置换与阶（in-shuffle）
+  //   deck: 顶→底 数组（index 0 = 顶）。上叠=顶半、下叠=底半。
+  //   交叉：下1,上1,下2,上2,…（下叠每张压在上叠对应张上面）。
+  //   newDeck[2i]=下叠[i]=deck[half+i]；newDeck[2i+1]=上叠[i]=deck[i]
+  // ============================================================
+  function shuffleOnce(deck) {
+    var n = deck.length;
+    if (n % 2 !== 0) throw new Error('牌数需为偶数');
+    var half = n / 2;
+    var out = new Array(n);
+    for (var i = 0; i < half; i++) {
+      out[2 * i] = deck[half + i];   // 下叠
+      out[2 * i + 1] = deck[i];      // 上叠
+    }
+    return out;
+  }
+  // 位置置换：perm[oldIndex] = newIndex（这张牌从 old 位置去到 new 位置）
+  function shufflePermutation(n) {
+    if (n % 2 !== 0) throw new Error('牌数需为偶数');
+    var half = n / 2;
+    var perm = new Array(n);
+    for (var j = 0; j < n; j++) {
+      if (j < half) perm[j] = 2 * j + 1;       // 上叠
+      else perm[j] = 2 * (j - half);           // 下叠
+    }
+    return perm;
+  }
+  // 洗几轮复原（阶）：从 [0..n-1] 反复洗到恢复恒等
+  function shuffleOrder(n) {
+    var ident = [];
+    for (var i = 0; i < n; i++) ident.push(i);
+    var deck = ident.slice();
+    var rounds = 0;
+    do {
+      deck = shuffleOnce(deck);
+      rounds++;
+      if (rounds > 100000) throw new Error('未在合理轮数内复原');
+    } while (!arraysEqual(deck, ident));
+    return rounds;
+  }
+  // 洗 r 轮后的整副牌（初始为 0..n-1 顶→底）
+  function shuffleAfter(n, rounds) {
+    var deck = [];
+    for (var i = 0; i < n; i++) deck.push(i);
+    for (var r = 0; r < rounds; r++) deck = shuffleOnce(deck);
+    return deck;
+  }
+  // 置换的循环分解（基于 perm[old]=new）
+  function shuffleCycles(n) {
+    var perm = shufflePermutation(n);
+    var seen = new Array(n).fill(false);
+    var cycles = [];
+    for (var start = 0; start < n; start++) {
+      if (seen[start]) continue;
+      var cyc = [];
+      var x = start;
+      while (!seen[x]) { seen[x] = true; cyc.push(x); x = perm[x]; }
+      cycles.push(cyc);
+    }
+    return cycles;
+  }
+  function arraysEqual(a, b) {
+    if (a.length !== b.length) return false;
+    for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  }
+
+  // ============================================================
+  // 导出
+  // ============================================================
+  var API = {
+    // 通用
+    mod: mod,
+    // M1
+    gridColor: gridColor, gridSums: gridSums, gridAdjacent: gridAdjacent,
+    gridApplyOp: gridApplyOp, gridSolveUnknown: gridSolveUnknown,
+    // M2
+    countTotal: countTotal, countResidues: countResidues, countCanOp: countCanOp,
+    countDistinctNonzero: countDistinctNonzero, countApplyOp: countApplyOp,
+    countAutoPlus: countAutoPlus, countPredictFinal: countPredictFinal,
+    countToMultiset: countToMultiset, product: product, sum: sum,
+    // M3
+    oddCount: oddCount, parityNextCombine: parityNextCombine, parityApplyCombine: parityApplyCombine,
+    paritySumAll: paritySumAll, parityNextSumErase: parityNextSumErase, parityApplySumErase: parityApplySumErase,
+    parityReachable: parityReachable, parityReachableOddCounts: parityReachableOddCounts,
+    parityMaxSumAfterOneCombine: parityMaxSumAfterOneCombine,
+    parityMaxSumAfterOneSumErase: parityMaxSumAfterOneSumErase,
+    // M4
+    queueBuildSequence: queueBuildSequence, queueStep: queueStep, queueRun: queueRun,
+    // M5
+    shuffleOnce: shuffleOnce, shufflePermutation: shufflePermutation, shuffleOrder: shuffleOrder,
+    shuffleAfter: shuffleAfter, shuffleCycles: shuffleCycles
+  };
+
+  global.OperationEngine = API;
+  if (typeof module !== 'undefined' && module.exports) { module.exports = API; }
+})(typeof window !== 'undefined' ? window : this);
+
+
+/* src/incentive/achievements.js */
+/*
+ * achievements.js —— 交互课件「成就/激励系统」代码底座
+ * ---------------------------------------------------------------
+ * 来源：从成品 lights-out.html / polyomino-tiling.html 的成就系统提炼。
+ * 特性：零依赖、原生 JS、可直接 file:// 打开、可整段内联进单 HTML。
+ * 用法与设计说明见：references/patterns-library.md →「成就系统底座」。
+ *
+ * 设计要点（务必照做）：
+ *  - 成就奖励「发现 / 掌握」里程碑，不奖励「点击次数」。
+ *  - 声明式成就表 + check(state) 谓词；状态变更后调用 ach.check(state) 即可。
+ *  - localStorage 持久化（带版本号 key），刷新后进度保留。
+ *  - 解锁即 toast；可选奖杯弹窗 + 进度条。
+ * ---------------------------------------------------------------
+ */
+(function (global) {
+  'use strict';
+
+  /**
+   * @param {Object}   options
+   * @param {Array}    options.defs            成就定义：{ id, icon, name, desc, check?(state)=>bool }
+   * @param {string}   options.storageKey      localStorage key，建议带版本号，如 'lights-out-ach-v1'
+   * @param {number}  [options.toastDuration]  toast 停留毫秒，默认 4200
+   * @param {Function}[options.onUnlock]       每解锁一项的回调 (def) => void（可选，用于撒花/音效）
+   */
+  function createAchievements(options) {
+    options = options || {};
+    var defs = options.defs || [];
+    var storageKey = options.storageKey || 'courseware-achievements-v1';
+    var toastDuration = options.toastDuration || 4200;
+    var onUnlock = typeof options.onUnlock === 'function' ? options.onUnlock : null;
+
+    var unlocked = new Set();
+
+    function findDef(id) {
+      for (var i = 0; i < defs.length; i++) { if (defs[i].id === id) return defs[i]; }
+      return null;
+    }
+    function load() {
+      try {
+        var raw = global.localStorage.getItem(storageKey);
+        if (raw) JSON.parse(raw).forEach(function (id) { unlocked.add(id); });
+      } catch (e) { /* 隐私模式 / file:// 受限时静默降级 */ }
+    }
+    function save() {
+      try { global.localStorage.setItem(storageKey, JSON.stringify(Array.from(unlocked))); }
+      catch (e) { /* 静默降级：本次会话仍可用，只是不持久 */ }
+    }
+
+    // ---- toast（懒创建容器，无需在 HTML 里预置） ----
+    function toastStack() {
+      var el = document.getElementById('achToastStack');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'achToastStack';
+        el.className = 'ach-toast-stack';
+        document.body.appendChild(el);
+      }
+      return el;
+    }
+    function showToast(def) {
+      var el = document.createElement('div');
+      el.className = 'ach-toast';
+      el.innerHTML =
+        '<div class="ach-toast-title"><span>🏆</span>解锁成就</div>' +
+        '<div class="ach-toast-name">' + (def.icon || '') + ' ' + def.name + '</div>' +
+        '<div class="ach-toast-desc">' + (def.desc || '') + '</div>';
+      toastStack().appendChild(el);
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, toastDuration);
+    }
+
+    // ---- 进度反馈（按 data 属性自动挂载，无则跳过） ----
+    function updateProgress() {
+      var got = count(), tot = Math.max(1, total());
+      var bar = document.querySelector('[data-ach-progress]');
+      if (bar) bar.style.width = Math.round(got / tot * 100) + '%';
+      var c = document.querySelector('[data-ach-count]'); if (c) c.textContent = count();
+      var t = document.querySelector('[data-ach-total]'); if (t) t.textContent = total();
+    }
+
+    function fire(def) {
+      save();
+      showToast(def);
+      updateProgress();
+      if (onUnlock) onUnlock(def);
+    }
+
+    // 命令式解锁：用于「做了某动作就解锁」的离散事件
+    function unlock(id) {
+      if (unlocked.has(id)) return false;
+      var def = findDef(id);
+      if (!def) return false;
+      unlocked.add(id);
+      fire(def);
+      return true;
+    }
+
+    // 声明式解锁：传入当前 state，自动解锁所有 check(state) 为真者
+    function check(state) {
+      var fresh = [];
+      for (var i = 0; i < defs.length; i++) {
+        var def = defs[i];
+        if (def.check && !unlocked.has(def.id) && def.check(state)) {
+          unlocked.add(def.id);
+          fresh.push(def);
+        }
+      }
+      if (fresh.length) { fresh.forEach(fire); }
+      return fresh;
+    }
+
+    function has(id) { return unlocked.has(id); }
+    function count() { return defs.filter(function (d) { return unlocked.has(d.id); }).length; }
+    function total() { return defs.length; }
+    function reset() { unlocked.clear(); save(); updateProgress(); }
+
+    // 可选：把成就清单渲染进某个容器（用于奖杯弹窗）
+    function renderList(container) {
+      if (!container) return;
+      container.innerHTML = '';
+      defs.forEach(function (def) {
+        var got = unlocked.has(def.id);
+        var row = document.createElement('div');
+        row.className = 'ach-row' + (got ? ' is-unlocked' : '');
+        row.innerHTML =
+          '<div class="ach-icon">' + (got ? (def.icon || '🏆') : '🔒') + '</div>' +
+          '<div class="ach-meta"><div class="ach-name">' + def.name + '</div>' +
+          '<div class="ach-desc">' + (def.desc || '') + '</div></div>' +
+          '<div class="ach-status">' + (got ? '✓ 已解锁' : '未解锁') + '</div>';
+        container.appendChild(row);
+      });
+      updateProgress();
+    }
+
+    load();
+    updateProgress();
+
+    return {
+      check: check,        // 声明式：状态变更后调用 ach.check(state)
+      unlock: unlock,      // 命令式：离散事件触发 ach.unlock(id)
+      has: has,
+      count: count,
+      total: total,
+      reset: reset,
+      renderList: renderList
+    };
+  }
+
+  global.createAchievements = createAchievements;
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { createAchievements: createAchievements }; }
+})(typeof window !== 'undefined' ? window : this);
+
+
+/* src/app.js */
+/*
+ * app.js —— 《操作问题实验室》交互层
+ * 依赖：window.OperationEngine（纯逻辑）、window.createAchievements（成就底座）
+ * 六个模块：M1 棋盘染色 / M2 数字三缺一 / M3 奇偶守门员 / M4 排队消消乐 / M5 完美洗牌 / M6 总结闯关
+ */
+(function () {
+  'use strict';
+  var E = window.OperationEngine;
+
+  // ---------- DOM 助手 ----------
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+  function h(tag, attrs, kids) {
+    var el = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      var v = attrs[k];
+      if (v == null) continue;
+      if (k === 'class') el.className = v;
+      else if (k === 'html') el.innerHTML = v;
+      else if (k === 'text') el.textContent = v;
+      else if (k.slice(0, 2) === 'on' && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
+      else el.setAttribute(k, v);
+    }
+    (kids || []).forEach(function (c) {
+      if (c == null) return;
+      el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return el;
+  }
+
+  // ---------- 共享引用 ----------
+  var stage = $('#stage'), controlRack = $('#controlRack'), metricsEl = $('#metrics'),
+      promptEl = $('#prompt'), conclusionEl = $('#conclusion'), toggleConcl = $('#toggleConclusion'),
+      moduleTitleEl = $('#moduleTitle'), moduleTagEl = $('#moduleTag'), statusEl = $('#statusText'),
+      moduleListEl = $('#moduleList');
+
+  function setStatus(t) { statusEl.textContent = t; }
+  function clearStage() { stage.innerHTML = ''; }
+
+  // 不变量监视器
+  function buildMetrics(rows) {
+    metricsEl.innerHTML = '';
+    rows.forEach(function (r) {
+      metricsEl.appendChild(h('div', { class: 'metric-row' + (r.invariant ? ' invariant' : '') }, [
+        h('span', { class: 'm-key', text: r.label }),
+        h('span', { class: 'm-val', id: 'mv-' + r.id, text: r.init != null ? r.init : '—' })
+      ]));
+    });
+  }
+  function setMetric(id, val, opts) {
+    var el = document.getElementById('mv-' + id); if (!el) return;
+    el.textContent = val;
+    el.className = 'm-val' + (opts && opts.cls ? (' ' + opts.cls) : '');
+    if (opts && opts.flash) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+  }
+
+  // 结论（默认折叠）
+  function setConclusion(html) {
+    conclusionEl.innerHTML = html;
+    conclusionEl.classList.add('is-hidden');
+    toggleConcl.textContent = '显示结论';
+  }
+  toggleConcl.addEventListener('click', function () {
+    var hidden = conclusionEl.classList.toggle('is-hidden');
+    toggleConcl.textContent = hidden ? '显示结论' : '隐藏结论';
+  });
+
+  // 预测组件（commit 后揭晓对错；深层“为什么”仍在折叠结论里）
+  function renderPredict(cfg) {
+    promptEl.innerHTML = '';
+    var opts = h('div', { class: 'predict-options' });
+    var fb = h('div', { class: 'predict-feedback' });
+    var resolved = false;
+    cfg.options.forEach(function (o) {
+      var chip = h('button', { class: 'predict-chip', type: 'button' }, [o.label]);
+      chip.addEventListener('click', function () {
+        if (resolved) return; resolved = true;
+        var ok = (o.value === cfg.answer);
+        $$('.predict-chip', opts).forEach(function (c, i) {
+          c.disabled = true; c.classList.add('chosen');
+          if (cfg.options[i].value === cfg.answer) c.classList.add('correct');
+        });
+        chip.classList.remove('chosen');
+        chip.classList.add(ok ? 'correct' : 'wrong');
+        fb.className = 'predict-feedback show ' + (ok ? 'good' : 'bad');
+        fb.innerHTML = (ok ? '✅ 预测正确！' : '❌ 正确答案已标出。') + (cfg.explain ? ('&nbsp;' + cfg.explain) : '');
+        if (cfg.onResolve) cfg.onResolve(ok);
+      });
+      opts.appendChild(chip);
+    });
+    promptEl.appendChild(h('p', { class: 'predict-q', html: cfg.q }));
+    promptEl.appendChild(opts);
+    promptEl.appendChild(fb);
+  }
+
+  // ================= 成就系统 =================
+  var S = {
+    m1_ops: 0, m1_sawInvariant: false, m1_solved: false,
+    m2_ops: 0, m2_sawMod3: false, m2_p6done: false, m2_p11done: false,
+    m3_ops: 0, m3_sawOdd: false, m3_reachChecks: 0, m3_p7checked: false, m3_ex13checked: false,
+    m4_removed: 0, m4_sawPeriod: false, m4_got39: false,
+    m5_rounds: 0, m5_restored: false, m5_reverse: false, m5_exploredN: 0,
+    m6_passed: false
+  };
+  var ACH_DEFS = [
+    { id: 'm1_op', icon: '👆', name: '初次操作', desc: '在棋盘上完成一次相邻格 ±1', check: function (s) { return s.m1_ops >= 1; } },
+    { id: 'm1_inv', icon: '🔬', name: '发现守恒', desc: '多次操作后看见“黑格和−白格和”始终不变', check: function (s) { return s.m1_sawInvariant; } },
+    { id: 'm1_solve', icon: '🎯', name: '染色侦探', desc: '用不变量算出铺垫3 的 A = 5', check: function (s) { return s.m1_solved; } },
+    { id: 'm2_mod3', icon: '🧮', name: '同步的余数', desc: '看见四桶计数 mod 3 同步变化', check: function (s) { return s.m2_sawMod3; } },
+    { id: 'm2_p6', icon: '✖️', name: '三缺一·铺垫6', desc: '攻克 11·22·33·44 → 终态乘积 12', check: function (s) { return s.m2_p6done; } },
+    { id: 'm2_p11', icon: '➕', name: '三缺一·例题11', desc: '攻克 100·200·300·400 → 终态和 9', check: function (s) { return s.m2_p11done; } },
+    { id: 'm3_gate', icon: '🚪', name: '奇偶守门员', desc: '发现奇数的个数被“锁”在某些值上', check: function (s) { return s.m3_sawOdd; } },
+    { id: 'm3_reach', icon: '🔍', name: '可达性裁判', desc: '验证一次“能 / 不能”', check: function (s) { return s.m3_reachChecks >= 1; } },
+    { id: 'm3_both', icon: '⚖️', name: '两题通关', desc: '铺垫7 与 例题13 都验证过', check: function (s) { return s.m3_p7checked && s.m3_ex13checked; } },
+    { id: 'm4_rule', icon: '🔁', name: '首尾规则', desc: '完成一次“首尾相同 → 同时消去”', check: function (s) { return s.m4_removed >= 1; } },
+    { id: 'm4_period', icon: '🌀', name: '周期猎人', desc: '看见 1275 次后只剩奇数 1,3,…,49', check: function (s) { return s.m4_sawPeriod; } },
+    { id: 'm4_39', icon: '🏁', name: '2019 之后', desc: '算出第 2019 次操作后队首 = 39', check: function (s) { return s.m4_got39; } },
+    { id: 'm5_round', icon: '🃏', name: '洗牌一轮', desc: '完成一轮完美交叉洗牌', check: function (s) { return s.m5_rounds >= 1; } },
+    { id: 'm5_restore', icon: '♻️', name: '复原见证', desc: '洗牌回到最初状态', check: function (s) { return s.m5_restored; } },
+    { id: 'm5_reverse', icon: '🔃', name: '半程倒置', desc: '发现 16 张牌第 4 轮恰好整体倒序', check: function (s) { return s.m5_reverse; } },
+    { id: 'm6_pass', icon: '🎓', name: '学成出师', desc: '完成总结闯关小测', check: function (s) { return s.m6_passed; } },
+    { id: 'master', icon: '🏆', name: '不变量大师', desc: '解锁前面所有探索成就' }
+  ];
+  var ach = window.createAchievements({ storageKey: 'op-invariant-ach-v1', defs: ACH_DEFS });
+  var NONMETA = ACH_DEFS.filter(function (d) { return d.id !== 'master'; });
+  function refreshAch() {
+    ach.check(S);
+    if (!ach.has('master') && NONMETA.every(function (d) { return ach.has(d.id); })) ach.unlock('master');
+    updateNavDone();
+  }
+
+  // 成就清单弹窗
+  var trophyModal = $('#trophyModal');
+  $('#trophyBtn').addEventListener('click', function () { ach.renderList($('#achList')); trophyModal.classList.add('show'); });
+  $('#trophyClose').addEventListener('click', function () { trophyModal.classList.remove('show'); });
+  trophyModal.addEventListener('click', function (e) { if (e.target === trophyModal) trophyModal.classList.remove('show'); });
+
+  // ================= 模块注册 =================
+  var MODULES = [
+    { id: 'm1', tag: '模块 01 · 铺垫3', name: '棋盘染色侦探', enter: enterM1, done: function () { return ach.has('m1_solve'); } },
+    { id: 'm2', tag: '模块 02 · 铺垫6 / 例题11', name: '数字三缺一', enter: enterM2, done: function () { return ach.has('m2_p6') && ach.has('m2_p11'); } },
+    { id: 'm3', tag: '模块 03 · 铺垫7 / 例题13', name: '并数 · 奇偶守门员', enter: enterM3, done: function () { return ach.has('m3_both'); } },
+    { id: 'm4', tag: '模块 04 · 例题14', name: '排队消消乐', enter: enterM4, done: function () { return ach.has('m4_39'); } },
+    { id: 'm5', tag: '模块 05 · 拓展选讲3', name: '完美洗牌 · 复原谜', enter: enterM5, done: function () { return ach.has('m5_restore'); } },
+    { id: 'm6', tag: '模块 06 · 总结闯关', name: '不变量收官', enter: enterM6, done: function () { return ach.has('m6_pass'); } }
+  ];
+  var currentCleanup = null, currentIdx = -1;
+
+  MODULES.forEach(function (m, i) {
+    var btn = h('button', { class: 'module-item', type: 'button' }, [
+      h('span', { class: 'module-index', text: String(i + 1).padStart(2, '0') }),
+      h('span', { class: 'module-name', html: m.name + '<small>' + m.tag.split('·')[1].trim() + '</small>' })
+    ]);
+    btn.addEventListener('click', function () { activate(i); });
+    m._btn = btn;
+    moduleListEl.appendChild(btn);
+  });
+  function updateNavDone() {
+    MODULES.forEach(function (m) { m._btn.classList.toggle('done', !!m.done()); });
+  }
+  function activate(i) {
+    if (currentCleanup) { try { currentCleanup(); } catch (e) {} currentCleanup = null; }
+    currentIdx = i;
+    MODULES.forEach(function (m, j) { m._btn.classList.toggle('active', i === j); });
+    var m = MODULES[i];
+    moduleTitleEl.textContent = m.name;
+    moduleTagEl.textContent = m.tag;
+    setStatus('可操作');
+    controlRack.innerHTML = ''; clearStage(); promptEl.innerHTML = ''; metricsEl.innerHTML = '';
+    setConclusion('<p class="placeholder">先动手操作、观察“不变量监视器”，准备好后再点“显示结论”。</p>');
+    currentCleanup = m.enter() || null;
+    updateNavDone();
+  }
+
+  // 控件工具
+  function ctlGroup(labelText, nodes) {
+    return h('div', { class: 'control-group' }, [labelText ? h('span', { class: 'control-label', text: labelText }) : null].concat(nodes));
+  }
+  function segmented(items, activeVal, onPick) {
+    var box = h('div', { class: 'segmented-control' });
+    items.forEach(function (it) {
+      var b = h('button', { class: 'segment' + (it.value === activeVal ? ' active' : ''), type: 'button', text: it.label });
+      b.addEventListener('click', function () {
+        $$('.segment', box).forEach(function (x) { x.classList.remove('active'); });
+        b.classList.add('active'); onPick(it.value);
+      });
+      box.appendChild(b);
+    });
+    return box;
+  }
+  function toolBtn(label, onClick, cls) {
+    return h('button', { class: 'tool-button' + (cls ? ' ' + cls : ''), type: 'button', text: label, onclick: onClick });
+  }
+
+  // ============================================================
+  // M1 · 棋盘染色侦探（铺垫3 / 第11题）
+  // ============================================================
+  function enterM1() {
+    var grid = [[1, 2, 3], [4, 5, 6], [7, 8, 9]];
+    var target = [[null, 6, 6], [6, 6, 6], [6, 6, 6]];
+    var sel = []; // [[r,c],...] 至多两格，且相邻
+
+    buildMetrics([
+      { id: 'black', label: '黑格和（四角+中心）', init: '25' },
+      { id: 'white', label: '白格和（四条边）', init: '20' },
+      { id: 'diff', label: '黑格和 − 白格和', init: '5', invariant: true }
+    ]);
+
+    var workGrid = h('div', { class: 'grid3' });
+    var tgtGrid = h('div', { class: 'grid3' });
+    var opPreview = h('div', { class: 'op-preview', text: '点选两个相邻格（共边），再按 ＋1 / −1。' });
+
+    function colorClass(r, c) { return E.gridColor(r, c) === 0 ? 'black' : 'white'; }
+    function renderWork() {
+      workGrid.innerHTML = '';
+      for (var r = 0; r < 3; r++) for (var c = 0; c < 3; c++) {
+        (function (r, c) {
+          var isSel = sel.some(function (p) { return p[0] === r && p[1] === c; });
+          var cell = h('div', { class: 'cell ' + colorClass(r, c) + (isSel ? ' sel' : ''), text: String(grid[r][c]) }, [
+            h('span', { class: 'corner-tag', text: E.gridColor(r, c) === 0 ? '黑' : '白' })
+          ]);
+          cell.addEventListener('click', function () { pick(r, c); });
+          workGrid.appendChild(cell);
+        })(r, c);
+      }
+    }
+    function renderTarget() {
+      tgtGrid.innerHTML = '';
+      for (var r = 0; r < 3; r++) for (var c = 0; c < 3; c++) {
+        var v = target[r][c];
+        var unknown = (v === null);
+        tgtGrid.appendChild(h('div', { class: 'cell ' + colorClass(r, c) + (unknown ? ' target-unknown' : ''), text: unknown ? 'A' : String(v) }));
+      }
+    }
+    function pick(r, c) {
+      var idx = sel.findIndex(function (p) { return p[0] === r && p[1] === c; });
+      if (idx >= 0) { sel.splice(idx, 1); renderWork(); return; }
+      if (sel.length === 2) sel = [];
+      if (sel.length === 1 && !E.gridAdjacent(sel[0][0], sel[0][1], r, c)) sel = []; // 不相邻则重选
+      sel.push([r, c]);
+      renderWork();
+      if (sel.length === 2) opPreview.innerHTML = '已选中相邻两格，按 <b>＋1</b> 或 <b>−1</b> 同时改变它们。';
+      else opPreview.textContent = '再点一个与它相邻的格子。';
+    }
+    function applyDelta(d) {
+      if (sel.length !== 2) { opPreview.textContent = '请先点选两个相邻格。'; return; }
+      grid = E.gridApplyOp(grid, sel[0][0], sel[0][1], sel[1][0], sel[1][1], d);
+      sel = [];
+      S.m1_ops++;
+      renderWork(); updateM1();
+      opPreview.innerHTML = '注意右栏：<b>黑格和、白格和都变了，但它们的差没变！</b>';
+      if (S.m1_ops >= 2) S.m1_sawInvariant = true;
+      refreshAch();
+    }
+    function updateM1() {
+      var s = E.gridSums(grid);
+      setMetric('black', s.black, { flash: true });
+      setMetric('white', s.white, { flash: true });
+      setMetric('diff', s.diff, { invariant: true });
+    }
+
+    controlRack.appendChild(ctlGroup('操作', [
+      toolBtn('＋1', function () { applyDelta(1); }, 'primary'),
+      toolBtn('−1', function () { applyDelta(-1); })
+    ]));
+    controlRack.appendChild(ctlGroup('', [
+      toolBtn('重置棋盘', function () { grid = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]; sel = []; renderWork(); updateM1(); opPreview.textContent = '已重置。点选两个相邻格再 ±1。'; })
+    ]));
+
+    renderWork(); renderTarget();
+    stage.appendChild(h('div', { class: 'stage-hint', html: '把 3×3 方格按棋盘<b>黑白染色</b>：黑格 = 四角 + 中心（5 格），白格 = 四条边（4 格）。每次操作的两格<b>必然一黑一白</b>——这就是关键。' }));
+    stage.appendChild(h('div', { class: 'stage-center' }, [
+      h('div', { class: 'legend' }, [
+        h('span', {}, [h('i', { style: 'background:var(--black-cell)' }), '黑格 5 个']),
+        h('span', {}, [h('i', { style: 'background:var(--white-cell)' }), '白格 4 个'])
+      ]),
+      h('div', { class: 'grid-pair' }, [
+        h('div', {}, [h('div', { class: 'grid-cap', text: '① 你的实验棋盘（初始 1~9）' }), workGrid]),
+        h('div', {}, [h('div', { class: 'grid-cap', text: '② 讲义目标（求 A）' }), tgtGrid])
+      ]),
+      opPreview
+    ]));
+
+    renderPredict({
+      q: '随便怎么操作，左盘“黑格和 − 白格和”都等于 5。那么右边目标盘里的 <b>A</b> 应该是几？',
+      options: [{ label: 'A=3', value: 3 }, { label: 'A=4', value: 4 }, { label: 'A=5', value: 5 }, { label: 'A=6', value: 6 }],
+      answer: 5,
+      explain: '目标盘黑格和−白格和 = (A+6×4) − (6×4) = A，必须等于不变量 5，所以 A=5。',
+      onResolve: function (ok) {
+        if (ok) {
+          S.m1_solved = true;
+          target[0][0] = 5; renderTarget();
+          setStatus('已破解 A=5');
+        }
+        refreshAch();
+      }
+    });
+
+    setConclusion(
+      '<h4>不变量：黑格和 − 白格和</h4>' +
+      '<p>按棋盘黑白染色，相邻两格<b>必为一黑一白</b>。每次操作给相邻两格同时 ±1，于是黑格和与白格和<b>同增同减</b>，二者的差 <code>黑−白</code> 永远不变。</p>' +
+      '<p>初始 1~9：黑格和 = 1+3+5+7+9 = 25，白格和 = 2+4+6+8 = 20，差 = <b>5</b>。</p>' +
+      '<p>目标盘除 A 外都是 6：差 = (A+24) − 24 = A。所以 <span class="ans">A = 5</span>。</p>'
+    );
+    updateM1();
+    return function () {};
+  }
+
+  // ============================================================
+  // M2 · 数字三缺一（铺垫6 / 例题11）
+  // ============================================================
+  function enterM2() {
+    var scenarios = {
+      p6: { start: [11, 22, 33, 44], endTotal: 3, kind: '乘积', label: '铺垫6', flag: 'm2_p6done',
+            predict: { q: '11个1、22个2、33个3、44个4，操作到只剩 3 个数且无法再操作，这三个数的<b>乘积</b>是？', options: [{ label: '6', value: 6 }, { label: '12', value: 12 }, { label: '18', value: 18 }, { label: '24', value: 24 }], answer: 12, explain: '终态被余数锁定为 {2,2,3}，乘积 2×2×3=12。' } },
+      p11: { start: [100, 200, 300, 400], endTotal: 4, kind: '和', label: '例题11', flag: 'm2_p11done',
+            predict: { q: '100个1、200个2、300个3、400个4，操作到只剩 4 个数，这四个数的<b>和</b>是？', options: [{ label: '6', value: 6 }, { label: '9', value: 9 }, { label: '10', value: 10 }, { label: '12', value: 12 }], answer: 9, explain: '终态被余数锁定为 {1,2,2,4}，和 1+2+2+4=9。' } }
+    };
+    var scn = 'p6';
+    var counts = scenarios[scn].start.slice();
+    var ops = 0, ended = false;
+
+    var binsEl = h('div', { class: 'bins' });
+    var hintEl = h('div', { class: 'bins-hint', text: '点某个数字的桶 = 把它当“补 2 个”的那一种，其余三种各擦掉 1 个。' });
+
+    function buildMetricsM2() {
+      buildMetrics([
+        { id: 'c1', label: '数字 1 的个数', init: counts[0] },
+        { id: 'c2', label: '数字 2 的个数', init: counts[1] },
+        { id: 'c3', label: '数字 3 的个数', init: counts[2] },
+        { id: 'c4', label: '数字 4 的个数', init: counts[3] },
+        { id: 'tot', label: '总数（每步 −1）', init: E.countTotal(counts) },
+        { id: 'res', label: '四桶 mod 3（同步变）', init: E.countResidues(counts).join(' '), invariant: true }
+      ]);
+    }
+    function renderBins() {
+      binsEl.innerHTML = '';
+      counts.forEach(function (cnt, i) {
+        (function (i) {
+          var chips = h('div', { class: 'bin-chips' });
+          var show = Math.min(cnt, 12);
+          for (var k = 0; k < show; k++) chips.appendChild(h('span', { class: 'chip' }));
+          var bin = h('div', { class: 'bin', id: 'bin-' + i }, [
+            h('div', { class: 'bin-digit', text: String(i + 1) }),
+            h('div', { class: 'bin-count', html: cnt + ' <small>个</small>' }),
+            chips,
+            h('div', { class: 'bin-res', html: 'mod3 = <b>' + E.mod(cnt, 3) + '</b>' })
+          ]);
+          bin.addEventListener('click', function () { doOp(i + 1); });
+          binsEl.appendChild(bin);
+        })(i);
+      });
+    }
+    function updateMetricsM2() {
+      for (var i = 0; i < 4; i++) setMetric('c' + (i + 1), counts[i], { flash: true });
+      setMetric('tot', E.countTotal(counts));
+      setMetric('res', E.countResidues(counts).join(' '), { invariant: true, flash: true });
+    }
+    function doOp(plusDigit) {
+      if (ended) return;
+      if (!E.countCanOp(counts, plusDigit)) { hintEl.innerHTML = '<b style="color:var(--bad)">其余三种数字必须都还有至少 1 个，才能各擦掉 1 个。</b>'; return; }
+      counts = E.countApplyOp(counts, plusDigit);
+      ops++; S.m2_ops++;
+      if (S.m2_ops >= 2) S.m2_sawMod3 = true;
+      // 视觉反馈
+      renderBins(); updateMetricsM2();
+      var pb = document.getElementById('bin-' + (plusDigit - 1)); if (pb) pb.classList.add('plus-flash');
+      hintEl.innerHTML = '第 ' + (plusDigit) + ' 种 +2，其余三种各 −1。看右栏：<b>四桶 mod3 一起 −1，两两差不变。</b>';
+      checkEnd();
+      refreshAch();
+    }
+    function checkEnd() {
+      if (E.countTotal(counts) <= scenarios[scn].endTotal && E.countDistinctNonzero(counts) < 3) {
+        ended = true; setStatus('已到终局');
+      }
+    }
+    function jumpToEnd() {
+      var f = E.countPredictFinal(scenarios[scn].start, scenarios[scn].endTotal);
+      counts = f.counts.slice(); ended = true;
+      renderBins(); updateMetricsM2();
+      var ms = E.countToMultiset(counts);
+      var val = scn === 'p6' ? E.product(ms) : E.sum(ms);
+      hintEl.innerHTML = '终局：剩下 <b>' + ms.join(', ') + '</b>，' + scenarios[scn].kind + ' = <b style="color:var(--good)">' + val + '</b>。';
+      S[scenarios[scn].flag] = true;
+      setStatus('已揭晓终局');
+      refreshAch();
+    }
+    function autoSteps(n) {
+      var i = 0;
+      var timer = setInterval(function () {
+        var p = E.countAutoPlus(counts);
+        if (p === null || i >= n) { clearInterval(timer); checkEnd(); return; }
+        doOp(p); i++;
+      }, 320);
+      regTimer(timer);
+    }
+    var timers = [];
+    function regTimer(t) { timers.push(t); }
+
+    function loadScenario(key) {
+      scn = key; counts = scenarios[key].start.slice(); ops = 0; ended = false;
+      buildMetricsM2(); renderBins(); updateMetricsM2();
+      hintEl.textContent = '点某个数字的桶 = 把它当“补 2 个”的那一种，其余三种各擦掉 1 个。';
+      renderPredictM2();
+      setStatus('可操作');
+    }
+    function renderPredictM2() {
+      var p = scenarios[scn].predict;
+      renderPredict({ q: p.q, options: p.options, answer: p.answer, explain: p.explain, onResolve: function (ok) { if (ok) { S[scenarios[scn].flag] = true; } refreshAch(); } });
+    }
+
+    controlRack.appendChild(ctlGroup('场景', [segmented([
+      { label: '铺垫6 (11·22·33·44)', value: 'p6' }, { label: '例题11 (100·200·300·400)', value: 'p11' }
+    ], 'p6', loadScenario)]));
+    controlRack.appendChild(ctlGroup('演示', [
+      toolBtn('自动操作 ×8', function () { autoSteps(8); }),
+      toolBtn('直接跳到终局', jumpToEnd, 'primary'),
+      toolBtn('重置', function () { loadScenario(scn); })
+    ]));
+
+    stage.appendChild(h('div', { class: 'stage-hint', html: '操作：每次擦掉 <b>3 种不同数字各 1 个</b>，再把<b>第 4 种补写 2 个</b>。大数太多别硬数——盯住“mod 3”。' }));
+    stage.appendChild(h('div', { class: 'stage-center' }, [binsEl, hintEl]));
+
+    buildMetricsM2(); renderBins(); updateMetricsM2(); renderPredictM2();
+    setConclusion(
+      '<h4>不变量：四桶计数同步 mod 3</h4>' +
+      '<p>一次操作让三桶各 −1、第四桶 +2。注意 <code>+2 ≡ −1 (mod 3)</code>，所以<b>四个桶的余数一起减 1</b>，任意两桶余数之差（mod 3）永远不变，总数每步 −1。</p>' +
+      '<p><b>铺垫6</b>：(11,22,33,44) 操作到剩 3 个、卡住，被锁定为 {2,2,3} → 乘积 <span class="ans">12</span>。</p>' +
+      '<p><b>例题11</b>：(100,200,300,400) 操作到剩 4 个，被锁定为 {1,2,2,4} → 和 <span class="ans">9</span>。</p>'
+    );
+    return function () { timers.forEach(clearInterval); };
+  }
+
+  // ============================================================
+  // M3 · 并数·奇偶守门员（铺垫7 / 例题13）
+  // ============================================================
+  function enterM3() {
+    var scenarios = {
+      p7: { start: [6, 7, 8], mode: 'combineKeepOne', flag: 'm3_p7checked',
+            predict: { q: '6、7、8 反复“写两数和的个位、擦掉其中一个加数”，能不能变成全是偶数的 <b>2、4、6</b>？', answer: 'no' },
+            targets: [{ ms: [3, 2, 5], reach: true }, { ms: [2, 4, 6], reach: false }] },
+      ex13: { start: [2, 0, 1, 5], mode: 'sumAllErase', flag: 'm3_ex13checked',
+            predict: { q: '2、0、1、5 反复“写四数和的个位、再擦掉一个”，能不能变成四个奇数 <b>1、3、5、7</b>？', answer: 'no' },
+            targets: [{ ms: [5, 6, 7, 8], reach: true }, { ms: [1, 3, 5, 7], reach: false }] }
+    };
+    var scn = 'p7';
+    var board = scenarios[scn].start.slice();
+    var sel = [];          // combine: 选中的两张
+    var phase = 'normal';  // sumErase: 'normal' | 'erase'
+
+    var rowEl = h('div', { class: 'num-row' });
+    var previewEl = h('div', { class: 'op-preview' });
+    var badgeEl = h('div', { class: 'parity-badge' });
+
+    function isOdd(n) { return E.mod(n, 2) === 1; }
+    function render() {
+      rowEl.innerHTML = '';
+      board.forEach(function (n, i) {
+        (function (i) {
+          var seld = sel.indexOf(i) >= 0;
+          var card = h('div', { class: 'num-card ' + (isOdd(n) ? 'odd' : 'even') + (seld ? ' sel' : ''), text: String(n) });
+          card.addEventListener('click', function () { onCard(i); });
+          rowEl.appendChild(card);
+        })(i);
+      });
+      var k = E.oddCount(board);
+      badgeEl.innerHTML = '<span>奇数 <b style="color:var(--odd)">' + k + '</b> 个</span><span>偶数 <b style="color:var(--even)">' + (board.length - k) + '</b> 个</span><span>（' + parityName(k, board.length) + '）</span>';
+      setMetric('seq', board.join('  '));
+      setMetric('odd', k, { invariant: true, flash: true });
+      setMetric('cls', parityName(k, board.length), { invariant: true });
+    }
+    function parityName(k, len) {
+      var even = len - k;
+      return k + '奇' + even + '偶';
+    }
+    function onCard(i) {
+      if (scenarios[scn].mode === 'combineKeepOne') {
+        if (phase === 'awaitErase') {
+          // 第二阶段：点两张被选中的其中一张擦掉它（变成和的个位）
+          if (sel.indexOf(i) < 0) { previewEl.textContent = '请点击高亮的两张牌之一，擦掉它。'; return; }
+          var a = board[sel[0]], b = board[sel[1]];
+          var s = E.mod(a + b, 10);
+          board = E.parityApplyCombine(board, sel[0], sel[1], (i === sel[0] ? sel[1] : sel[0]));
+          // 上面 keepIndex 设为“另一张” → 擦掉被点的 i
+          sel = []; phase = 'normal'; S.m3_ops++;
+          if (S.m3_ops >= 3) S.m3_sawOdd = true;
+          render(); previewEl.innerHTML = '擦掉它、写上 ' + s + '。<b>看右栏：奇数个数怎么也变不成 0。</b>';
+          refreshAch();
+          return;
+        }
+        var idx = sel.indexOf(i);
+        if (idx >= 0) { sel.splice(idx, 1); render(); return; }
+        if (sel.length === 2) sel = [];
+        sel.push(i); render();
+        if (sel.length === 2) {
+          phase = 'awaitErase';
+          var s = E.mod(board[sel[0]] + board[sel[1]], 10);
+          previewEl.innerHTML = board[sel[0]] + ' + ' + board[sel[1]] + ' = ' + (board[sel[0]] + board[sel[1]]) + '，个位 <b>' + s + '</b>。现在<b>点这两张之一擦掉它</b>（另一张保留）。';
+        } else previewEl.textContent = '再选第二张牌。';
+      } else {
+        // sumAllErase：此时 board 已含写上的“和的个位”，擦掉点中的那张即可
+        if (phase === 'erase') {
+          board = board.slice(); board.splice(i, 1);
+          phase = 'normal'; S.m3_ops++;
+          if (S.m3_ops >= 3) S.m3_sawOdd = true;
+          render(); previewEl.innerHTML = '已擦掉一张，剩 4 张。<b>奇数个数始终在 {1,2} 之间。</b>';
+          refreshAch();
+        } else {
+          previewEl.textContent = '先点上方“写和的个位”，再来擦牌。';
+        }
+      }
+    }
+    // sumAllErase 的“写和的个位”：把 s 加入 board，进入 erase 阶段
+    function writeSum() {
+      if (scenarios[scn].mode !== 'sumAllErase' || phase === 'erase') return;
+      var s = E.paritySumAll(board);
+      board = board.concat([s]);
+      phase = 'erase';
+      render();
+      // 标记最后一张为新写入
+      var cards = $$('.num-card', rowEl); if (cards.length) cards[cards.length - 1].classList.add('fresh');
+      previewEl.innerHTML = '四数和 = ' + E.sum(board.slice(0, board.length - 1)) + '，个位 <b>' + s + '</b> 已写上。现在<b>点任意一张擦掉</b>，回到 4 张。';
+    }
+
+    function verifyTarget(t) {
+      var ok = E.parityReachable(scenarios[scn].start, t.ms, scenarios[scn].mode);
+      S.m3_reachChecks++;
+      S[scenarios[scn].flag] = true;
+      previewEl.innerHTML = '验证 {' + t.ms.join(',') + '}：<b style="color:' + (ok ? 'var(--good)' : 'var(--bad)') + '">' +
+        (ok ? '能达到 ✅' : '不能达到 ❌') + '</b>（BFS 穷举所有操作）。';
+      refreshAch();
+    }
+
+    function loadScenario(key) {
+      scn = key; board = scenarios[key].start.slice(); sel = []; phase = 'normal';
+      rebuildControls(); rebuildMetrics(); render();
+      previewEl.textContent = scenarios[key].mode === 'combineKeepOne'
+        ? '点选两张牌 → 写它们和的个位 → 擦掉其中一个加数。'
+        : '点“写和的个位”→ 写上四数和的个位 → 再点一张擦掉。';
+      renderPredictM3();
+      setStatus('可操作');
+    }
+    function rebuildMetrics() {
+      buildMetrics([
+        { id: 'seq', label: '当前数列', init: board.join('  ') },
+        { id: 'odd', label: '奇数个数 k', init: E.oddCount(board), invariant: true },
+        { id: 'cls', label: '奇偶类', init: parityName(E.oddCount(board), board.length), invariant: true }
+      ]);
+    }
+    function rebuildControls() {
+      controlRack.innerHTML = '';
+      controlRack.appendChild(ctlGroup('场景', [segmented([
+        { label: '铺垫7 (6 7 8)', value: 'p7' }, { label: '例题13 (2 0 1 5)', value: 'ex13' }
+      ], scn, loadScenario)]));
+      var g = [];
+      if (scenarios[scn].mode === 'sumAllErase') g.push(toolBtn('写“和的个位”', writeSum, 'primary'));
+      scenarios[scn].targets.forEach(function (t) {
+        g.push(toolBtn('验证能否 → {' + t.ms.join(',') + '}', function () { verifyTarget(t); }));
+      });
+      g.push(toolBtn('重置', function () { loadScenario(scn); }));
+      controlRack.appendChild(ctlGroup('', g));
+    }
+    function renderPredictM3() {
+      var p = scenarios[scn].predict;
+      renderPredict({
+        q: p.q,
+        options: [{ label: '能', value: 'yes' }, { label: '不能', value: 'no' }],
+        answer: p.answer,
+        explain: scn === 'p7'
+          ? '起点是 1 奇 2 偶；每次操作奇数个数只能在 1、2、3 之间变，永远到不了 0（全偶）。'
+          : '起点两奇两偶；奇数个数只能在 1、2 之间循环，永远到不了 4 奇。',
+        onResolve: function (ok) { S[scenarios[scn].flag] = true; S.m3_reachChecks++; refreshAch(); }
+      });
+    }
+
+    rebuildControls();
+    stage.appendChild(h('div', { class: 'stage-hint', html: '数字按<b>奇偶上色</b>（<span style="color:var(--odd)">紫=奇</span> / <span style="color:var(--even)">青=偶</span>）。操作虽然换数字，但<b>“奇数有几个”被牢牢守门</b>。' }));
+    stage.appendChild(h('div', { class: 'stage-center' }, [rowEl, previewEl, badgeEl]));
+    rebuildMetrics(); render();
+    previewEl.textContent = '点选两张牌 → 写它们和的个位 → 擦掉其中一个加数。';
+    renderPredictM3();
+    setConclusion(
+      '<h4>不变量：奇数个数所在的“奇偶类”</h4>' +
+      '<p>和的奇偶性由加数决定，所以操作前后“奇数有几个”只能在固定的几档之间跳。</p>' +
+      '<p><b>铺垫7</b>（三数）：起点 1 奇，奇数个数永远 ≥ 1 → 永远变不出全偶 <code>2,4,6</code>（不能）；<code>3,2,5</code> 可达（能）。</p>' +
+      '<p><b>例题13</b>（四数）：两奇两偶 ↔ 一奇三偶 循环，永远到不了四奇 <code>1,3,5,7</code>（不能）；<code>5,6,7,8</code> 可达（能）。</p>' +
+      '<p>第(1)问：铺垫7 一步后三数和最大 <span class="ans">19</span>；例题13 一步后四数和最大 <span class="ans">16</span>。</p>'
+    );
+    return function () {};
+  }
+
+  // ============================================================
+  // M4 · 排队消消乐（例题14 / 第27题）
+  // ============================================================
+  function enterM4() {
+    var mode = 'demo';            // 'demo'(到6) | 'real'(到50)
+    var maxN = 6;
+    var queue = E.queueBuildSequence(maxN);
+    var ops = 0, playing = null;
+
+    var trackWrap = h('div', { class: 'queue-track' });
+    var readout = h('div', { class: 'big-readout' });
+    var noteEl = h('div', { class: 'op-preview' });
+
+    function buildMetricsM4() {
+      buildMetrics([
+        { id: 'len', label: '队列长度', init: queue.length },
+        { id: 'ops', label: '已操作次数', init: ops },
+        { id: 'front', label: '当前队首', init: queue[0] != null ? queue[0] : '—', invariant: true },
+        { id: 'back', label: '当前队尾', init: queue.length ? queue[queue.length - 1] : '—' },
+        { id: 'removed', label: '已消去对数', init: 0 }
+      ]);
+    }
+    var removedPairs = 0;
+    function render() {
+      trackWrap.innerHTML = '';
+      var win = Math.min(queue.length, 18);
+      for (var i = 0; i < win; i++) {
+        var cls = 'q-card';
+        if (i === 0) cls += ' front';
+        if (i === queue.length - 1) cls += ' back';
+        trackWrap.appendChild(h('div', { class: cls, text: String(queue[i]) }));
+      }
+      if (queue.length > win) {
+        trackWrap.appendChild(h('span', { class: 'q-ellipsis', text: '… +' + (queue.length - win) }));
+        // 末尾队尾也展示
+        trackWrap.appendChild(h('div', { class: 'q-card back', text: String(queue[queue.length - 1]) }));
+      }
+      readout.innerHTML = '队首 <b>' + (queue.length ? queue[0] : '空') + '</b>';
+      setMetric('len', queue.length);
+      setMetric('ops', ops);
+      setMetric('front', queue.length ? queue[0] : '—', { invariant: true, flash: true });
+      setMetric('back', queue.length ? queue[queue.length - 1] : '—');
+      setMetric('removed', removedPairs);
+    }
+    function step() {
+      if (queue.length === 0) { noteEl.textContent = '队列已空。'; return; }
+      var r = E.queueStep(queue);
+      queue = r.queue; ops++;
+      if (r.action === 'remove') { removedPairs++; S.m4_removed++; noteEl.innerHTML = '队首 = 队尾 → <b style="color:var(--bad)">两端同时消去</b>。'; }
+      else noteEl.innerHTML = '队首 ≠ 队尾 → <b>队首轮转到队尾</b>。';
+      render(); refreshAch();
+    }
+    function play() {
+      if (playing) { clearInterval(playing); playing = null; return; }
+      playing = setInterval(function () {
+        if (queue.length <= 1) { clearInterval(playing); playing = null; return; }
+        step();
+      }, mode === 'demo' ? 380 : 120);
+    }
+    function jumpTo(targetOps) {
+      // 从初始重新跑（避免累计误差），用引擎一次算到
+      var full = E.queueBuildSequence(maxN);
+      var res = E.queueRun(full, targetOps);
+      queue = res.queue; ops = targetOps; removedPairs = res.removed;
+      render();
+      noteEl.innerHTML = '已快进到第 ' + targetOps + ' 次操作。队首 = <b>' + (queue.length ? queue[0] : '—') + '</b>。';
+    }
+    function checkPeriod() {
+      if (mode === 'real' && ops >= 1275) {
+        // 确认此刻是 1,3,...,49
+        var run = E.queueRun(E.queueBuildSequence(50), 1275);
+        if (run.queue.length === 25 && run.queue[0] === 1 && run.queue[24] === 49) S.m4_sawPeriod = true;
+        refreshAch();
+      }
+    }
+
+    function loadMode(m) {
+      if (playing) { clearInterval(playing); playing = null; }
+      mode = m; maxN = (m === 'demo') ? 6 : 50;
+      queue = E.queueBuildSequence(maxN); ops = 0; removedPairs = 0;
+      buildMetricsM4(); rebuildControls(); render();
+      noteEl.textContent = (m === 'demo')
+        ? '小规模演示：1,2,2,3,3,3,4,4,4,4,5×5,6×6。点“单步”看规则。'
+        : '讲义原题：1×1 … 50×50 共 1275 张。用“快进”跳到第 2019 次。';
+      setStatus('可操作');
+    }
+    function rebuildControls() {
+      controlRack.innerHTML = '';
+      controlRack.appendChild(ctlGroup('规模', [segmented([
+        { label: '演示 (到 6)', value: 'demo' }, { label: '讲义原题 (到 50)', value: 'real' }
+      ], mode, loadMode)]));
+      var g = [toolBtn('单步', step), toolBtn('自动播放', play), toolBtn('重置', function () { loadMode(mode); })];
+      if (mode === 'real') {
+        g.push(toolBtn('快进到 1275', function () { jumpTo(1275); checkPeriod(); }));
+        g.push(toolBtn('快进到 2019', function () { jumpTo(2019); if (queue.length && queue[0] === 39) { S.m4_got39 = true; refreshAch(); } }, 'primary'));
+      }
+      controlRack.appendChild(ctlGroup('', g));
+    }
+
+    rebuildControls();
+    stage.appendChild(h('div', { class: 'stage-hint', html: '队列里 1 出现 1 次、2 出现 2 次……每步比较<span style="color:var(--accent)">队首</span>与<span style="color:var(--warning)">队尾</span>：<b>相同就一起消掉，不同就把队首挪到队尾</b>。' }));
+    stage.appendChild(h('div', { class: 'stage-center' }, [trackWrap, readout, noteEl]));
+    buildMetricsM4(); render();
+    noteEl.textContent = '小规模演示：先点“单步”看清规则，再切到“讲义原题”快进。';
+
+    renderPredict({
+      q: '讲义原题（1 到 50，共 1275 张），操作 <b>2019 次</b>后，队首是哪个数？',
+      options: [{ label: '37', value: 37 }, { label: '38', value: 38 }, { label: '39', value: 39 }, { label: '40', value: 40 }],
+      answer: 39,
+      explain: '前 1275 次后只剩 1,3,5,…,49（25 个），此后周期 25；(2019−1275)=744=25×29+19，再 19 步队首 = 39。',
+      onResolve: function (ok) { if (ok) S.m4_got39 = true; refreshAch(); }
+    });
+    setConclusion(
+      '<h4>规律：每段“奇留偶消”，之后进入周期</h4>' +
+      '<p>第 n 段是 n 个 n，轮到它时操作 n 次：n 为奇数则<b>留 1 个排到队尾</b>，n 为偶数则<b>整段消光</b>。</p>' +
+      '<p>到第 1275 次（=1+2+…+50）后，队列只剩 <code>1,3,5,…,49</code> 共 25 个奇数，此后<b>周期为 25</b>。</p>' +
+      '<p>(2019 − 1275) = 744 = 25×29 + 19，再走 19 步，队首是第 19 个奇数 → <span class="ans">39</span>。</p>'
+    );
+    return function () { if (playing) clearInterval(playing); };
+  }
+
+  // ============================================================
+  // M5 · 完美洗牌 · 复原谜（拓展选讲3 / 第30题）
+  // ============================================================
+  function enterM5() {
+    var n = 16;
+    var deck = identity(n);   // deck[pos] = 原始编号(0-indexed)
+    var rounds = 0, playing = null;
+    var orderAnswers = { 8: 6, 16: 8, 52: 52 };
+    var predictOpts = { 8: [4, 6, 8, 12], 16: [4, 6, 8, 12], 52: [8, 26, 52, 104] };
+
+    function identity(m) { var a = []; for (var i = 0; i < m; i++) a.push(i); return a; }
+    var deckEl = h('div', { class: 'deck' });
+    var bannerEl = h('div', { class: 'restored-banner' });
+    var metaEl = h('div', { class: 'deck-meta' });
+
+    function buildMetricsM5() {
+      buildMetrics([
+        { id: 'n', label: '牌数 N', init: n },
+        { id: 'rounds', label: '已洗轮数', init: rounds },
+        { id: 'pos1', label: '①号牌当前位置', init: posOf(0) + 1, invariant: true },
+        { id: 'state', label: '是否复原', init: '否' }
+      ]);
+    }
+    function posOf(label) { return deck.indexOf(label); }
+    function render() {
+      deckEl.className = 'deck' + (n <= 8 ? ' cols4' : '');
+      deckEl.innerHTML = '';
+      deck.forEach(function (label, pos) {
+        var home = (label === pos);
+        deckEl.appendChild(h('div', { class: 'pcard' + (home ? ' home' : ''), text: String(label + 1) }, [home ? h('span', { class: 'home-dot', text: '✓' }) : null]));
+      });
+      metaEl.innerHTML = '已洗 <b>' + rounds + '</b> 轮 · 牌面数字 = 这张牌<b>最初</b>的位置';
+      setMetric('n', n); setMetric('rounds', rounds);
+      setMetric('pos1', posOf(0) + 1, { invariant: true, flash: true });
+      var restored = isIdentity();
+      setMetric('state', restored ? '✅ 已复原' : '否', { cls: restored ? 'good' : '' });
+    }
+    function isIdentity() { for (var i = 0; i < n; i++) if (deck[i] !== i) return false; return true; }
+    function isReversed() { for (var i = 0; i < n; i++) if (deck[i] !== (n - 1 - i)) return false; return true; }
+    function shuffle() {
+      deck = E.shuffleOnce(deck); rounds++; S.m5_rounds++;
+      render();
+      if (n === 16 && isReversed()) { S.m5_reverse = true; bannerEl.innerHTML = '🔃 第 ' + rounds + ' 轮：整副牌恰好<b>完全倒序</b>！再洗 4 轮就复原。'; }
+      else if (isIdentity()) {
+        S.m5_restored = true; S.m5_exploredN_set(n);
+        bannerEl.innerHTML = '🎉 复原啦！共洗了 <b>' + rounds + '</b> 轮。';
+        setStatus('已复原');
+      } else bannerEl.textContent = '';
+      refreshAch();
+    }
+    function playLoop() {
+      if (playing) { clearInterval(playing); playing = null; return; }
+      playing = setInterval(function () {
+        shuffle();
+        if (isIdentity()) { clearInterval(playing); playing = null; }
+        if (rounds > 200) { clearInterval(playing); playing = null; }
+      }, 420);
+    }
+    S.m5_exploredN_set = (function () {
+      var seen = {};
+      return function (m) { if (!seen[m]) { seen[m] = true; S.m5_exploredN = Object.keys(seen).length; } };
+    })();
+
+    function loadN(val) {
+      if (playing) { clearInterval(playing); playing = null; }
+      n = val; deck = identity(n); rounds = 0;
+      buildMetricsM5(); render(); bannerEl.textContent = '';
+      renderPredictM5();
+      setStatus('可操作');
+    }
+    function renderPredictM5() {
+      var opts = predictOpts[n].map(function (v) { return { label: v + ' 轮', value: v }; });
+      renderPredict({
+        q: '<b>' + n + '</b> 张牌，反复做这种完美交叉洗牌，洗几轮能回到最初顺序？',
+        options: opts,
+        answer: orderAnswers[n],
+        explain: n === 16 ? '位置置换分成两个 8-循环，所以 8 轮复原；第 4 轮恰好整副倒序。' : '直接模拟到复原即得（' + orderAnswers[n] + ' 轮）。',
+        onResolve: function () { refreshAch(); }
+      });
+    }
+
+    controlRack.appendChild(ctlGroup('牌数', [segmented([
+      { label: '8 张', value: 8 }, { label: '16 张', value: 16 }, { label: '52 张', value: 52 }
+    ], 16, loadN)]));
+    controlRack.appendChild(ctlGroup('', [
+      toolBtn('洗一轮', shuffle, 'primary'),
+      toolBtn('连续洗到复原', playLoop),
+      toolBtn('重置', function () { loadN(n); })
+    ]));
+
+    stage.appendChild(h('div', { class: 'stage-hint', html: '把牌平均分成上下两叠，<b>交叉插入</b>（下叠第1张压上叠第1张……）。牌面数字 = 这张牌<b>最初</b>所在的位置；当所有牌都回到 <span style="color:var(--good)">✓</span> 位即复原。' }));
+    stage.appendChild(h('div', { class: 'stage-center' }, [bannerEl, deckEl, metaEl]));
+    buildMetricsM5(); render(); renderPredictM5();
+    setConclusion(
+      '<h4>不变量：一轮 = 一个置换，其“阶”= 复原轮数</h4>' +
+      '<p>每洗一轮，每张牌按固定规则换到新位置——这是一个<b>置换</b>。反复施加，必然在若干轮后回到原状，所需轮数 = 置换的<b>阶</b>。</p>' +
+      '<p><b>16 张</b>：位置置换正好是<b>两个长度为 8 的循环</b>，阶 = 8。第 4 轮（半程）时整副牌<b>完全倒序</b>，再 4 轮复原 → <span class="ans">8 轮</span>。</p>' +
+      '<p>换牌数 N 会改变阶：8 张→6 轮，52 张→52 轮。你可以亲手试。</p>'
+    );
+    return function () { if (playing) clearInterval(playing); };
+  }
+
+  // ============================================================
+  // M6 · 总结闯关
+  // ============================================================
+  function enterM6() {
+    buildMetrics([
+      { id: 'done', label: '答对题数', init: '0 / 5' },
+      { id: 'rank', label: '当前段位', init: '—', invariant: true }
+    ]);
+    setStatus('挑战中');
+
+    var cards = [
+      { h: '① 染色不变量', p: '相邻格同时 ±1 → 黑格和 − 白格和 不变（铺垫3，A=5）。', t: '棋盘 / 黑白染色' },
+      { h: '② 余数不变量', p: '三缺一操作 → 四桶计数同步 mod 3，差不变（铺垫6 积12 / 例题11 和9）。', t: '余数 / mod' },
+      { h: '③ 奇偶守门', p: '写和的个位、擦一个 → 奇数个数被锁在固定档（铺垫7、例题13）。', t: '奇偶性' },
+      { h: '④ 周期律', p: '队列首尾消/转 → 1275 步后进入周期 25（例题14，队首 39）。', t: '周期 / 队列' },
+      { h: '⑤ 置换的阶', p: '完美洗牌 = 置换，阶 = 复原轮数（拓展选讲3，16 张 8 轮）。', t: '置换 / 阶' }
+    ];
+    var quizzes = [
+      { q: '铺垫3 中，为什么操作不改变“黑格和 − 白格和”？', opts: ['相邻两格一黑一白，同增同减', '黑格永远比白格多', '总和始终为 45'], a: 0 },
+      { q: '“三缺一”操作（三桶 −1、一桶 +2）的关键恒等式是？', opts: ['+2 ≡ −1 (mod 3)', '+2 ≡ +1 (mod 2)', '总数不变'], a: 0 },
+      { q: '6、7、8 反复并数，为什么永远变不出 2、4、6？', opts: ['奇数个数永远 ≥ 1', '和永远是 21', '最大数永远是 8'], a: 0 },
+      { q: '例题14 中，长度为 25 的奇数队列之后，操作的周期是多少？', opts: ['25', '50', '1275'], a: 0 },
+      { q: '16 张牌完美洗牌，几轮复原？第几轮整副倒序？', opts: ['8 轮复原，第 4 轮倒序', '16 轮复原，第 8 轮倒序', '4 轮复原，第 2 轮倒序'], a: 0 }
+    ];
+    var answered = {}, correct = 0;
+    var quizWrap = h('div', { class: 'quiz' });
+    quizzes.forEach(function (item, qi) {
+      var opts = h('div', { class: 'quiz-opts' });
+      item.opts.forEach(function (opt, oi) {
+        var chip = h('button', { class: 'predict-chip', type: 'button', text: opt });
+        chip.addEventListener('click', function () {
+          if (answered[qi]) return; answered[qi] = true;
+          var ok = (oi === item.a);
+          $$('.predict-chip', opts).forEach(function (c, k) { c.disabled = true; if (k === item.a) c.classList.add('correct'); });
+          if (!ok) chip.classList.add('wrong');
+          if (ok) correct++;
+          updateRank();
+        });
+        opts.appendChild(chip);
+      });
+      quizWrap.appendChild(h('div', { class: 'quiz-item' }, [h('p', { class: 'quiz-q', text: (qi + 1) + '. ' + item.q }), opts]));
+    });
+    var rankBox = h('div', { class: 'rank-result' });
+    function updateRank() {
+      var total = quizzes.length, done = Object.keys(answered).length;
+      setMetric('done', correct + ' / ' + total);
+      var rank = correct >= 5 ? '不变量大师' : correct >= 4 ? '操作高手' : correct >= 3 ? '入门探索者' : '再接再厉';
+      setMetric('rank', rank, { invariant: true });
+      if (done === total) {
+        rankBox.className = 'rank-result show';
+        rankBox.innerHTML = '答对 <b>' + correct + ' / ' + total + '</b>，段位：<b>' + rank + '</b>。' + (correct >= 4 ? ' 🎉 你已抓住“操作中的不变量”！' : ' 回到各模块再操作几次试试。');
+        S.m6_passed = true; refreshAch();
+      }
+    }
+
+    stage.appendChild(h('div', { class: 'stage-hint', html: '五种操作，<b>一个共同武器——不变量</b>。先看卡片回顾，再做小测验闯关。' }));
+    var sumCards = h('div', { class: 'summary-cards' });
+    cards.forEach(function (c) { sumCards.appendChild(h('div', { class: 'sum-card' }, [h('h4', { text: c.h }), h('p', { text: c.p }), h('span', { class: 'tag', text: '#' + c.t })])); });
+    stage.appendChild(sumCards);
+    stage.appendChild(quizWrap);
+    stage.appendChild(rankBox);
+
+    promptEl.innerHTML = '<p class="predict-q">逐题作答，集齐 5 题看你的段位。每道题只在抓住“哪个量不变”后才好选。</p>';
+    setConclusion(
+      '<h4>一句话收口</h4>' +
+      '<p>“操作问题”不要硬模拟，要找<b>操作下不变的量</b>：染色差、余数、奇偶、周期、置换的阶。' +
+      '抓住它，就能判断<b>能不能达到</b>、<b>最终是什么</b>——这正是讲义“奇偶性 + 余数性质”的统一升华。</p>'
+    );
+    updateRank();
+    return function () {};
+  }
+
+  // ---------- 启动 ----------
+  activate(0);
+})();
+
+  </script>
+  </body>
+</html>

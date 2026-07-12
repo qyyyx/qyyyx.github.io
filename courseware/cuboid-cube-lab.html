@@ -1312,9 +1312,7 @@ details#m5-general.unlocked summary{color:var(--accent-dark);font-weight:600}
     }
 
     function onDown(e) {
-      // Only left button or touch
       if (e.button !== undefined && e.button !== 0) return;
-      if (e.target !== cv && e.target.tagName !== 'CANVAS') return;
       e.preventDefault();
       var p = getPos(e);
       dragging = true; lastX = p.x; lastY = p.y;
@@ -1329,6 +1327,12 @@ details#m5-general.unlocked summary{color:var(--accent-dark);font-weight:600}
       lastX = p.x; lastY = p.y;
       stage.yaw = (stage.yaw || 0) + dx * ROTATE_SPEED;
       stage.pitch = clamp((stage.pitch || 0) + dy * ROTATE_SPEED, -1.2, 1.2);
+      // 只更新相机角度，不重新 fitPoints
+      if (stage._cam) {
+        stage._cam.yaw = stage.yaw;
+        stage._cam.pitch = stage.pitch;
+        stage._cam.update();
+      }
       if (redraw) redraw();
     }
 
@@ -1344,32 +1348,23 @@ details#m5-general.unlocked summary{color:var(--accent-dark);font-weight:600}
       if (redraw) redraw();
     }
 
-    // Remove old listeners by cloning
-    var newCv = cv.cloneNode(true);
-    cv.parentNode.replaceChild(newCv, cv);
-    // Update stage canvas reference
-    stage.canvas = newCv;
-    // Re-attach
-    newCv.style.cursor = 'grab';
-    newCv.addEventListener('pointerdown', onDown);
-    newCv.addEventListener('pointermove', onMove);
-    newCv.addEventListener('pointerup', onUp);
-    newCv.addEventListener('pointerleave', onUp);
-    newCv.addEventListener('pointercancel', onUp);
-    newCv.addEventListener('wheel', onWheel, { passive: false });
-    // Touch support
-    newCv.addEventListener('touchstart', onDown, { passive: false });
-    newCv.addEventListener('touchmove', onMove, { passive: false });
-    newCv.addEventListener('touchend', onUp);
-    newCv.addEventListener('touchcancel', onUp);
+    cv.style.cursor = 'grab';
+    cv.addEventListener('pointerdown', onDown);
+    cv.addEventListener('pointermove', onMove);
+    cv.addEventListener('pointerup', onUp);
+    cv.addEventListener('pointerleave', onUp);
+    cv.addEventListener('pointercancel', onUp);
+    cv.addEventListener('wheel', onWheel, { passive: false });
+    cv.addEventListener('touchstart', onDown, { passive: false });
+    cv.addEventListener('touchmove', onMove, { passive: false });
+    cv.addEventListener('touchend', onUp);
+    cv.addEventListener('touchcancel', onUp);
 
-    // Store cleanup ref
     stage._rotCleanup = function () {
       dragging = false;
-      newCv.style.cursor = 'default';
+      cv.style.cursor = 'default';
     };
-
-    return newCv;
+    stage.canvas = cv;
   }
 
   /* ========== 导航 ========== */
@@ -1518,17 +1513,30 @@ details#m5-general.unlocked summary{color:var(--accent-dark);font-weight:600}
     return [[0,0,0],[a,0,0],[a,b,0],[0,b,0],[0,0,c],[a,0,c],[a,b,c],[0,b,c]];
   }
 
-  // 画长方体（使用 stage 中的 yaw/pitch/zoom）
+  // 获取或创建相机（首次 fitPoints，旋转时只更新角度不复fit）
   function makeCam(stage, pts, pad) {
     pad = pad || 50;
     var yaw = stage.yaw != null ? stage.yaw : -0.72;
     var pitch = stage.pitch != null ? stage.pitch : 0.55;
-    var cam = I.makeCamera(yaw, pitch);
-    cam.fitPoints(pts, stage.w, stage.h, pad);
     var zoom = stage.zoom || 1;
-    if (zoom !== 1) {
-      cam.scale *= zoom;
+
+    // 生成维度指纹，变化时才重新 fitPoints
+    var fp = pts.map(function (p) { return p.join(','); }).join(';') + '|' + stage.w + 'x' + stage.h;
+
+    if (!stage._cam || stage._camFP !== fp) {
+      var cam = I.makeCamera(yaw, pitch);
+      cam.fitPoints(pts, stage.w, stage.h, pad);
+      // 保存 fit 后的基准 scale，缩放时以此为基数
+      cam._baseScale = cam.scale;
+      stage._cam = cam;
+      stage._camFP = fp;
     }
+
+    var cam = stage._cam;
+    cam.yaw = yaw;
+    cam.pitch = pitch;
+    cam.update();
+    cam.scale = (cam._baseScale || cam.scale) * zoom;
     return cam;
   }
 
@@ -1635,8 +1643,7 @@ details#m5-general.unlocked summary{color:var(--accent-dark);font-weight:600}
         var cv = $('#cv-m0');
         stage = { canvas: cv, ctx: cv.getContext('2d'), w: 0, h: 0, yaw: -0.72, pitch: 0.55, zoom: 1 };
         stage.resize = function () { var s = fitStage(cv); if (s) { stage.w = s.w; stage.h = s.h; stage.ctx = s.ctx; } draw(); };
-        var newCv = initRotate3D(cv, stage, draw);
-        stage.canvas = newCv;
+        initRotate3D(cv, stage, draw);
         on($('#m0-next'), 'click', function () {
           if (step < 4) { step++; if (step === 4) state.completed.m0Done = true; }
           draw(); if (ACH) ACH.check(state.completed); checkRevealUnlock('m0');
@@ -1697,8 +1704,7 @@ details#m5-general.unlocked summary{color:var(--accent-dark);font-weight:600}
         var cv = $('#cv-m1');
         stage = { canvas: cv, ctx: cv.getContext('2d'), w: 0, h: 0, yaw: -0.72, pitch: 0.55, zoom: 1 };
         stage.resize = function () { var s = fitStage(cv); if (s) { stage.w = s.w; stage.h = s.h; stage.ctx = s.ctx; } draw(); };
-        var newCv = initRotate3D(cv, stage, draw);
-        stage.canvas = newCv;
+        initRotate3D(cv, stage, draw);
         on($('#m1-a'), 'input', read);
         on($('#m1-b'), 'input', read);
         bindPredict('m1', 'cube', '✅ 正确！正方体体积最大。', '💡 调调看，让三条棱更接近。');
@@ -1887,8 +1893,7 @@ details#m5-general.unlocked summary{color:var(--accent-dark);font-weight:600}
         var cv = $('#cv-m2');
         stage = { canvas: cv, ctx: cv.getContext('2d'), w: 0, h: 0, yaw: -0.55, pitch: 0.48, zoom: 1 };
         stage.resize = function () { var s = fitStage(cv); if (s) { stage.w = s.w; stage.h = s.h; stage.ctx = s.ctx; } draw(); };
-        var newCv = initRotate3D(cv, stage, draw);
-        stage.canvas = newCv;
+        initRotate3D(cv, stage, draw);
         $$('#m2-pos button').forEach(function (b) { on(b, 'click', function () { selectPos(b.dataset.pos); }); });
         $$('#m2-orient button').forEach(function (b) {
           on(b, 'click', function () {
@@ -1991,8 +1996,7 @@ details#m5-general.unlocked summary{color:var(--accent-dark);font-weight:600}
         var cv = $('#cv-m3');
         stage = { canvas: cv, ctx: cv.getContext('2d'), w: 0, h: 0, yaw: -0.55, pitch: 0.5, zoom: 1 };
         stage.resize = function () { var s = fitStage(cv); if (s) { stage.w = s.w; stage.h = s.h; stage.ctx = s.ctx; } draw(); };
-        var newCv = initRotate3D(cv, stage, draw);
-        stage.canvas = newCv;
+        initRotate3D(cv, stage, draw);
         $$('#m3-mode button').forEach(function (b) {
           on(b, 'click', function () {
             mode = b.dataset.mode; animK = 0; stopAnim();
@@ -2294,8 +2298,7 @@ details#m5-general.unlocked summary{color:var(--accent-dark);font-weight:600}
         var cv = $('#cv-m5');
         stage = { canvas: cv, ctx: cv.getContext('2d'), w: 0, h: 0, yaw: -0.5, pitch: 0.52, zoom: 1 };
         stage.resize = function () { var s = fitStage(cv); if (s) { stage.w = s.w; stage.h = s.h; stage.ctx = s.ctx; } draw(); };
-        var newCv = initRotate3D(cv, stage, draw);
-        stage.canvas = newCv;
+        initRotate3D(cv, stage, draw);
         $$('#m5-route button').forEach(function (b) { on(b, 'click', function () { selectRoute(b.dataset.route); }); });
         on($('#m5-play'), 'click', function () {
           routesDone[route] = true;
@@ -2469,8 +2472,7 @@ details#m5-general.unlocked summary{color:var(--accent-dark);font-weight:600}
         var cv = $('#cv-m6');
         stage = { canvas: cv, ctx: cv.getContext('2d'), w: 0, h: 0, yaw: -0.7, pitch: 0.55, zoom: 1 };
         stage.resize = function () { var s = fitStage(cv); if (s) { stage.w = s.w; stage.h = s.h; stage.ctx = s.ctx; } draw(); };
-        var newCv = initRotate3D(cv, stage, draw);
-        stage.canvas = newCv;
+        initRotate3D(cv, stage, draw);
 
         $$('#m6-solid button').forEach(function (b) {
           on(b, 'click', function () {

@@ -1,0 +1,1948 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>质数实验室 · 质数与合数探究工作台</title>
+<link rel="icon" href="data:,">
+<style data-inline-source="src/styles.css">
+/* 质数实验室 —— 数学实验室型 UI（浅色 / 品牌蓝 / 三栏工作台） */
+:root {
+  --bg: #f4f7f8;
+  --surface: #ffffff;
+  --surface-strong: #eef4f5;
+  --line: #d7e1e3;
+  --text: #152529;
+  --muted: #66777d;
+  --accent: #3b82f6;
+  --accent-dark: #2563eb;
+  --accent-soft: #dbeafe;
+  --warning: #c47a1c;
+  --proof: #f3c44e;
+  --good: #16a34a;
+  --bad: #dc2626;
+  --pass2: #ef4444;
+  --pass3: #f59e0b;
+  --pass5: #10b981;
+  --pass7: #8b5cf6;
+  --gold: #d97706;
+  --twin: #ec4899;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.55;
+}
+button { font-family: inherit; }
+.num, .metric-value, .cell, .chipnum { font-variant-numeric: tabular-nums; }
+
+/* ---------- 顶栏 ---------- */
+.topbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 18px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 50;
+}
+.brand-kicker { font-size: 12px; color: var(--muted); letter-spacing: .08em; }
+.brand-title { font-size: 19px; font-weight: 800; color: var(--text); }
+.topbar .spacer { flex: 1; }
+.ach-progress-wrap { display: flex; align-items: center; gap: 8px; min-width: 150px; }
+.ach-progress-wrap .ach-progress-track { flex: 1; }
+.ach-progress-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* ---------- 布局 ---------- */
+.app {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr) 250px;
+  gap: 14px;
+  max-width: 1460px;
+  margin: 0 auto;
+  padding: 14px 18px 40px;
+  align-items: start;
+}
+.side-nav { position: sticky; top: 64px; display: flex; flex-direction: column; gap: 6px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; min-height: 44px;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); color: var(--text);
+  cursor: pointer; text-align: left; font-size: 14px;
+  transition: border-color .15s, background .15s;
+}
+.nav-item:hover { border-color: var(--accent); }
+.nav-item.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.nav-item .nav-no {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  background: var(--surface-strong); border-radius: 6px; padding: 2px 6px;
+  flex: none;
+}
+.nav-item.active .nav-no { background: rgba(255,255,255,.22); color: #fff; }
+.nav-item .nav-title { font-weight: 600; }
+.nav-item .nav-sub { font-size: 11px; color: var(--muted); }
+.nav-item.active .nav-sub { color: #e5efff; }
+
+.stage { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.mod-view { display: none; }
+.mod-view.active { display: block; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+.card-title { font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.card-title::before { content: ""; width: 4px; height: 18px; border-radius: 2px; background: var(--accent); }
+.card-desc { color: var(--muted); font-size: 13.5px; margin-bottom: 10px; }
+
+/* ---------- 数据面板 ---------- */
+.data-panel { position: sticky; top: 64px; display: flex; flex-direction: column; gap: 10px; }
+.panel-block {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 12px 14px;
+}
+.panel-block h3 { font-size: 13px; color: var(--muted); font-weight: 700; margin-bottom: 8px; letter-spacing: .04em; }
+.metric-row { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; gap: 8px; }
+.metric-label { font-size: 12.5px; color: var(--muted); }
+.metric-value { font-size: 15px; font-weight: 700; color: var(--text); }
+.metric-value.hl { color: var(--accent-dark); }
+
+/* ---------- 底部探究提示 ---------- */
+.inquiry {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 12px 16px;
+}
+.inquiry-tabs { display: flex; gap: 8px; margin-bottom: 8px; }
+.inquiry-tab {
+  min-height: 40px; padding: 0 16px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface);
+  font-size: 13px; cursor: pointer; color: var(--muted); font-weight: 600;
+}
+.inquiry-tab.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); }
+.inquiry-text { font-size: 14px; color: var(--text); }
+
+/* ---------- 通用控件 ---------- */
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0; }
+.btn {
+  min-height: 42px; padding: 0 18px;
+  border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--text);
+  font-size: 14.5px; font-weight: 600; cursor: pointer;
+  transition: transform .12s, background .15s, border-color .15s;
+}
+.btn:hover { border-color: var(--accent); }
+.btn:active { transform: scale(.97); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-dark); }
+.btn-ghost { background: var(--surface-strong); }
+.btn.is-locked {
+  border-style: dashed; opacity: .62; position: relative;
+}
+.btn.is-locked::after { content: "🔒 先预测"; font-size: 11px; margin-left: 6px; color: var(--warning); }
+.btn.small { min-height: 36px; padding: 0 12px; font-size: 13px; }
+.range-group { display: flex; align-items: center; gap: 10px; }
+.range-group label { font-size: 13.5px; color: var(--muted); font-weight: 600; }
+input[type="range"] {
+  width: 190px; height: 30px; -webkit-appearance: none; background: transparent;
+}
+input[type="range"]::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: var(--line); }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 22px; height: 22px; margin-top: -7px;
+  border-radius: 50%; background: var(--accent); cursor: pointer; border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.25);
+}
+input[type="range"]::-moz-range-track { height: 8px; border-radius: 4px; background: var(--line); }
+input[type="range"]::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%; background: var(--accent); cursor: pointer; border: 3px solid #fff;
+}
+.range-value {
+  background: var(--accent); color: #fff; border-radius: 999px;
+  min-width: 46px; text-align: center; padding: 3px 10px; font-weight: 700; font-size: 14px;
+}
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button {
+  min-height: 40px; padding: 0 14px; border: none; background: var(--surface);
+  font-size: 13.5px; cursor: pointer; color: var(--muted); font-weight: 600;
+}
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.active { background: var(--accent); color: #fff; }
+.numinput {
+  min-height: 42px; border: 1px solid var(--line); border-radius: 10px;
+  padding: 0 12px; font-size: 15px; width: 110px; font-family: inherit;
+}
+.numinput:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+
+/* ---------- 预测 / 揭晓 ---------- */
+.predict-box {
+  border: 1.5px dashed var(--accent); border-radius: 12px;
+  background: #f6f9ff; padding: 12px 14px; margin: 12px 0;
+}
+.predict-box.flash { animation: predictFlash 1s ease 2; }
+@keyframes predictFlash {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: 0 0 0 5px var(--accent-soft); }
+}
+.predict-box .eyebrow {
+  font-size: 11px; font-weight: 800; letter-spacing: .1em; color: var(--accent-dark);
+}
+.predict-q { font-size: 14.5px; font-weight: 600; margin: 6px 0 10px; }
+.option-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.option-btn {
+  min-height: 40px; padding: 6px 14px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface);
+  font-size: 13.5px; cursor: pointer;
+}
+.option-btn:hover { border-color: var(--accent); }
+.option-btn.chosen { background: var(--accent); border-color: var(--accent); color: #fff; }
+.option-btn.right { background: var(--good); border-color: var(--good); color: #fff; }
+.option-btn.wrong { background: var(--bad); border-color: var(--bad); color: #fff; }
+.predict-note { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+
+.reveal-box { margin-top: 12px; }
+.reveal-body {
+  border-left: 4px solid var(--proof); background: #fffbea;
+  border-radius: 0 12px 12px 0; padding: 12px 14px; margin-top: 8px;
+  font-size: 14px; display: none;
+}
+.reveal-body.show { display: block; }
+.reveal-body h4 { font-size: 14px; margin-bottom: 6px; color: #92600e; }
+.reveal-body p { margin: 4px 0; }
+.reveal-placeholder { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+
+.feedback { font-size: 14px; font-weight: 700; margin-top: 8px; min-height: 20px; }
+.feedback.good { color: var(--good); }
+.feedback.bad { color: var(--bad); }
+
+/* ---------- 数表（M1/M2/M4） ---------- */
+.grid100 {
+  display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px;
+  max-width: 560px; margin: 8px auto;
+}
+.grid100 .colhead {
+  text-align: center; font-size: 11px; color: var(--muted); font-weight: 700;
+}
+.cell {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--line); border-radius: 9px;
+  background: var(--surface); font-size: 14px; font-weight: 600;
+  cursor: default; user-select: none;
+  transition: background .25s, border-color .25s, color .25s, transform .25s, opacity .25s;
+}
+.cell.clickable { cursor: pointer; }
+.cell.clickable:hover { border-color: var(--accent); }
+.cell.excluded { background: var(--surface-strong); color: #b7c3c6; border-color: var(--surface-strong); }
+.cell.dead { color: #fff; transform: scale(.92); opacity: .82; }
+.cell.dead.p2 { background: var(--pass2); border-color: var(--pass2); }
+.cell.dead.p3 { background: var(--pass3); border-color: var(--pass3); }
+.cell.dead.p5 { background: var(--pass5); border-color: var(--pass5); }
+.cell.dead.p7 { background: var(--pass7); border-color: var(--pass7); }
+.cell.dead.fade { opacity: .3; transform: scale(.85); }
+.cell.prime { background: var(--accent); border-color: var(--accent-dark); color: #fff; transform: scale(1.03); }
+.cell.special { background: var(--gold); border-color: var(--gold); color: #fff; }
+.cell.hidden-q { background: var(--surface-strong); color: transparent; position: relative; }
+.cell.hidden-q::after { content: "?"; position: absolute; color: var(--muted); }
+.cell.picked { outline: 3px solid var(--accent); outline-offset: 1px; }
+.cell.right { background: var(--good); border-color: var(--good); color: #fff; }
+.cell.wrong { background: var(--bad); border-color: var(--bad); color: #fff; animation: shake .35s; }
+.cell.missed { outline: 3px dashed var(--warning); outline-offset: 1px; }
+.cell.twin { background: var(--twin); border-color: var(--twin); color: #fff; }
+.cell.gold { background: var(--gold); border-color: var(--gold); color: #fff; }
+.cell.dim { opacity: .28; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); } 75% { transform: translateX(4px); }
+}
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0; font-size: 12.5px; color: var(--muted); }
+.legend .key { display: inline-flex; align-items: center; gap: 5px; }
+.legend .swatch { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+
+/* ---------- M0 豆子 ---------- */
+.bean-stage {
+  min-height: 190px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface-strong); padding: 14px; display: flex;
+  align-items: center; justify-content: center;
+}
+.bean-wrap { display: grid; gap: 7px; justify-content: center; }
+.bean {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #7cc3ff, var(--accent-dark));
+  transition: transform .3s; box-shadow: 0 1px 2px rgba(0,0,0,.2);
+}
+.bean.leftover { background: radial-gradient(circle at 35% 30%, #ffb1b1, var(--bad)); animation: shake .4s; }
+.verdict-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 999px; padding: 6px 16px; font-weight: 800; font-size: 15px;
+  animation: pop .3s ease;
+}
+@keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.verdict-badge.prime { background: var(--accent-soft); color: var(--accent-dark); }
+.verdict-badge.composite { background: #dcfce7; color: var(--good); }
+.verdict-badge.neither { background: #fef3c7; color: var(--warning); }
+.rowchips { display: flex; flex-wrap: wrap; gap: 8px; }
+.rowchip {
+  min-height: 40px; min-width: 58px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface); cursor: pointer; font-size: 14px; font-weight: 700;
+}
+.rowchip.ok { background: var(--good); border-color: var(--good); color: #fff; }
+.rowchip.fail { background: var(--bad); border-color: var(--bad); color: #fff; }
+.rowchip:disabled { opacity: .45; cursor: not-allowed; }
+.sort-num { font-size: 34px; font-weight: 900; color: var(--accent-dark); min-width: 64px; text-align: center; }
+.route-map { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.route-card {
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
+  background: var(--surface); cursor: pointer; text-align: left; font-size: 13px;
+}
+.route-card:hover { border-color: var(--accent); }
+.route-card b { display: block; font-size: 13.5px; }
+.route-card span { color: var(--muted); font-size: 12px; }
+
+/* ---------- M3 √N ---------- */
+.svg-stage {
+  width: 100%; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); display: block;
+}
+.step-line { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; min-height: 44px; }
+.step-chip {
+  border: 1.5px solid var(--line); border-radius: 10px; padding: 6px 10px;
+  font-size: 13px; background: var(--surface); font-variant-numeric: tabular-nums;
+  opacity: 0; transform: translateY(6px); transition: all .3s;
+}
+.step-chip.show { opacity: 1; transform: none; }
+.step-chip.pass { border-color: var(--good); color: var(--good); font-weight: 700; }
+.step-chip.hit { border-color: var(--bad); background: var(--bad); color: #fff; font-weight: 700; }
+.big-verdict { margin-top: 10px; min-height: 34px; }
+
+/* ---------- M4 闯关 ---------- */
+.gate-progress { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.gate-step {
+  display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700;
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; color: var(--muted);
+  background: var(--surface); cursor: pointer; min-height: 40px;
+}
+.gate-step.active { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-soft); }
+.gate-step.done { border-color: var(--good); color: var(--good); }
+.gate-view { display: none; }
+.gate-view.active { display: block; }
+.prime-chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0; }
+.pchip {
+  min-width: 46px; min-height: 42px; border-radius: 10px;
+  border: 1.5px solid var(--line); background: var(--surface);
+  font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.pchip:hover { border-color: var(--accent); }
+.pchip.sel { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pchip:disabled { opacity: .4; cursor: not-allowed; }
+.slot-row { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 800; margin: 8px 0; flex-wrap: wrap; }
+.slot {
+  min-width: 64px; height: 52px; border: 2px dashed var(--line); border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-strong); color: var(--accent-dark);
+}
+.slot.filled { border-style: solid; border-color: var(--accent); background: var(--accent-soft); }
+.hint-fold { margin-top: 10px; }
+.hint-fold summary { cursor: pointer; font-size: 13px; color: var(--warning); font-weight: 700; min-height: 32px; display: flex; align-items: center; }
+.hint-fold p { font-size: 13px; color: var(--muted); padding: 4px 0 0 12px; }
+.tailcars { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.tailcar {
+  display: flex; align-items: center; gap: 10px; border: 1px solid var(--line);
+  border-radius: 10px; padding: 8px 12px; font-size: 14.5px; background: var(--surface);
+  transition: all .3s;
+}
+.tailcar .formula { font-weight: 700; min-width: 90px; }
+.tailcar .tail-digit {
+  margin-left: auto; width: 34px; height: 34px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-strong); font-weight: 800;
+}
+.tailcar.killed { border-color: var(--bad); background: #fef2f2; }
+.tailcar.killed .tail-digit { background: var(--bad); color: #fff; }
+.tailcar.safe { border-color: var(--good); background: #f0fdf4; }
+.tailcar.safe .tail-digit { background: var(--good); color: #fff; }
+
+/* ---------- M5 轮盘 ---------- */
+.wheel-wrap { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+.wheel-svg { flex: 1 1 320px; max-width: 460px; }
+.wheel-side { flex: 1 1 240px; min-width: 220px; }
+.window-strip { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.wchip {
+  min-width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; background: var(--surface);
+}
+.wchip.inwin { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
+.wchip.mult { background: var(--gold); border-color: var(--gold); color: #fff; }
+
+/* ---------- M6 螺旋 ---------- */
+.spiral-holder { position: relative; width: 100%; }
+.spiral-canvas {
+  width: 100%; display: block; border: 1px solid var(--line);
+  border-radius: 12px; background: #fff;
+}
+
+/* ---------- M7 哥德巴赫 ---------- */
+.task-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.task-chip {
+  font-size: 12.5px; border: 1px solid var(--line); border-radius: 999px;
+  padding: 6px 12px; color: var(--muted); background: var(--surface); min-height: 36px;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.task-chip.done { border-color: var(--good); color: var(--good); background: #f0fdf4; font-weight: 700; }
+.desert-strip { display: flex; flex-wrap: wrap; gap: 8px; min-height: 52px; align-items: center; }
+.desert-number {
+  min-width: 62px; min-height: 46px; border: 1.5px solid var(--bad); border-radius: 10px;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #fef2f2; color: var(--bad); font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.desert-number small { color: var(--muted); font-size: 10px; font-weight: 600; }
+
+/* ---------- M8 总结 ---------- */
+.concept-wall { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.concept-card {
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+  padding: 12px 14px; cursor: pointer; min-height: 118px; text-align: left;
+  transition: border-color .2s;
+}
+.concept-card:hover { border-color: var(--accent); }
+.concept-card .tag {
+  font-size: 11px; color: var(--accent-dark); background: var(--accent-soft);
+  border-radius: 6px; padding: 2px 8px; font-weight: 700;
+}
+.concept-card h4 { font-size: 14px; margin: 8px 0 4px; }
+.concept-card .front-q { font-size: 12.5px; color: var(--muted); }
+.concept-card .back-a { display: none; font-size: 12.8px; color: var(--text); }
+.concept-card.flipped { border-color: var(--proof); background: #fffbea; }
+.concept-card.flipped .front-q { display: none; }
+.concept-card.flipped .back-a { display: block; }
+.quiz-box { margin-top: 4px; }
+.quiz-q { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+.quiz-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.quiz-opt {
+  min-height: 44px; border: 1.5px solid var(--line); border-radius: 10px;
+  background: var(--surface); font-size: 14px; cursor: pointer; padding: 8px 12px; text-align: left;
+}
+.quiz-opt:hover { border-color: var(--accent); }
+.quiz-opt.right { background: var(--good); border-color: var(--good); color: #fff; }
+.quiz-opt.wrong { background: var(--bad); border-color: var(--bad); color: #fff; }
+.quiz-opt:disabled { cursor: not-allowed; }
+.quiz-expl { font-size: 13px; color: var(--muted); margin-top: 8px; min-height: 18px; }
+.rank-badge {
+  display: inline-flex; align-items: center; gap: 8px; border-radius: 12px;
+  padding: 10px 18px; font-size: 17px; font-weight: 800;
+  background: var(--accent-soft); color: var(--accent-dark); animation: pop .4s;
+}
+.euclid-steps { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.euclid-step {
+  border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px;
+  font-size: 14px; background: var(--surface); display: none;
+}
+.euclid-step.show { display: block; animation: pop .3s; }
+.euclid-step b { font-variant-numeric: tabular-nums; }
+
+/* ---------- 成就弹窗 ---------- */
+.modal-mask {
+  position: fixed; inset: 0; background: rgba(21, 37, 41, .45);
+  display: none; align-items: center; justify-content: center; z-index: 200; padding: 18px;
+}
+.modal-mask.show { display: flex; }
+.modal {
+  background: var(--surface); border-radius: 16px; padding: 18px;
+  width: min(560px, 100%); max-height: 82vh; overflow: auto;
+}
+.modal h3 { margin-bottom: 10px; font-size: 16px; }
+.modal .ach-rows { display: flex; flex-direction: column; gap: 8px; }
+.modal-close { float: right; }
+
+/* ---------- 撒花 ---------- */
+.confetti {
+  position: fixed; width: 9px; height: 14px; top: -20px; z-index: 300;
+  pointer-events: none; border-radius: 2px;
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1099px) {
+  .app { grid-template-columns: 1fr; }
+  .side-nav {
+    position: static; flex-direction: row; overflow-x: auto; padding-bottom: 4px;
+  }
+  .nav-item { flex: none; }
+  .nav-item .nav-sub { display: none; }
+  .data-panel { position: static; flex-direction: row; flex-wrap: wrap; }
+  .panel-block { flex: 1 1 220px; }
+}
+@media (max-width: 699px) {
+  body { font-size: 14px; }
+  .app { padding: 10px 10px 30px; }
+  .topbar { padding: 8px 12px; }
+  .brand-title { font-size: 16px; }
+  .ach-progress-wrap { min-width: 110px; }
+  .grid100 { gap: 3px; }
+  .cell { font-size: 11.5px; border-radius: 6px; }
+  .controls { gap: 8px; }
+  input[type="range"] { width: 150px; }
+  .slot { min-width: 52px; height: 46px; }
+  .quiz-options { grid-template-columns: 1fr; }
+}
+
+</style>
+<style data-inline-source="src/incentive/achievements.css">
+/*
+ * achievements.css —— 成就系统底座配套样式
+ * 配合 achievements.js 使用；可整段内联进单 HTML。
+ */
+.ach-toast-stack {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.ach-toast {
+  min-width: 220px;
+  max-width: 300px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #d7e1e3);
+  border-left: 4px solid var(--accent, #3b82f6);
+  box-shadow: 0 6px 20px rgba(15, 30, 40, 0.12);
+  animation: ach-toast-in 0.25s ease-out;
+}
+.ach-toast-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--accent-dark, #2563eb);
+  font-weight: 600;
+}
+.ach-toast-name {
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #152529);
+}
+.ach-toast-desc {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted, #66777d);
+}
+@keyframes ach-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ach-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-strong, #eef4f5);
+  overflow: hidden;
+}
+.ach-progress-track > [data-ach-progress] {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: var(--accent, #3b82f6);
+  transition: width 0.3s ease;
+}
+
+.ach-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #d7e1e3);
+  background: var(--surface, #ffffff);
+  opacity: 0.55;
+}
+.ach-row.is-unlocked { opacity: 1; border-color: var(--accent-soft, #dbeafe); }
+.ach-row .ach-icon { font-size: 22px; text-align: center; }
+.ach-row .ach-name { font-weight: 600; color: var(--text, #152529); }
+.ach-row .ach-desc { font-size: 12px; color: var(--muted, #66777d); }
+.ach-row .ach-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted, #66777d);
+  white-space: nowrap;
+}
+.ach-row.is-unlocked .ach-status { color: var(--accent-dark, #2563eb); }
+
+.ach-trophy-btn {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line, #d7e1e3);
+  background: var(--surface, #ffffff);
+  color: var(--text, #152529);
+  cursor: pointer;
+}
+
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div>
+    <div class="brand-kicker">数论与组合 · 质数与合数</div>
+    <div class="brand-title">🍉 质数实验室</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="ach-progress-wrap">
+    <span class="ach-progress-label">成就 <span data-ach-count>0</span>/<span data-ach-total>0</span></span>
+    <div class="ach-progress-track" style="width:90px"><span data-ach-progress></span></div>
+  </div>
+  <button class="ach-trophy-btn" id="btnTrophy">🏆 成就</button>
+</header>
+
+<div class="app">
+  <nav class="side-nav" id="sideNav"></nav>
+
+  <main class="stage">
+
+    <!-- ================= M0 豆子与矩形 ================= -->
+    <section class="mod-view" id="view-m0">
+      <div class="card">
+        <div class="card-title">豆子排队实验</div>
+        <div class="card-desc">抓一把豆子，试试能不能摆成「每行至少 2 颗、行数至少 2 行」的整齐矩形。有的数怎么摆都摆不成——它们就是今天的主角。</div>
+        <div class="controls">
+          <div class="range-group">
+            <label>豆子数</label>
+            <input type="range" id="m0N" min="1" max="30" value="12">
+            <span class="range-value" id="m0NVal">12</span>
+          </div>
+          <div class="rowchips" id="m0Rows"></div>
+        </div>
+        <div class="bean-stage"><div id="m0Beans" class="bean-wrap"></div></div>
+        <div class="big-verdict" id="m0Verdict"></div>
+        <div class="reveal-box">
+          <button class="btn small" id="m0RevealBtn">显示结论</button>
+          <div class="reveal-placeholder" id="m0RevealHint">先把 2～30 里几个数都试一遍，再来揭晓。</div>
+          <div class="reveal-body" id="m0RevealBody">
+            <h4>矩形 = 因数的样子</h4>
+            <p>能摆成 r 行整齐矩形 ⇔ 豆子数能被 r 整除（r 是它的<b>因数</b>）。</p>
+            <p>除了 1 和它本身，还有别的因数 → 摆得出矩形 → 这样的数叫<b>合数</b>；</p>
+            <p>只有 1 和它本身两个因数 → 只能排成一条线 → 这样的数叫<b>质数</b>；</p>
+            <p>⚠️ 特别记住：<b>0 和 1 既不是质数，也不是合数</b>（1 只有一个因数）。</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">快分挑战</div>
+        <div class="card-desc">连续 10 个数，快速判断它是质数还是合数（小心陷阱）。</div>
+        <div class="controls">
+          <button class="btn btn-primary" id="m0SortStart">开始挑战</button>
+          <span class="sort-num" id="m0SortNum">–</span>
+          <button class="btn" id="m0BtnPrime">质数</button>
+          <button class="btn" id="m0BtnComp">合数</button>
+          <button class="btn" id="m0BtnNeither">都不是</button>
+        </div>
+        <div class="feedback" id="m0SortFb"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">探索路线图</div>
+        <div class="route-map" id="m0Route"></div>
+      </div>
+    </section>
+
+    <!-- ================= M1 埃氏筛法 ================= -->
+    <section class="mod-view" id="view-m1">
+      <div class="card">
+        <div class="card-title">埃拉托色尼筛法 · 2～100</div>
+        <div class="card-desc">两千多年前，古希腊数学家埃拉托色尼发明了「筛质数」的办法：留下最小的候选数，筛掉它的所有倍数，一轮一轮往下筛。</div>
+        <div class="predict-box" id="m1Predict">
+          <span class="eyebrow">先预测</span>
+          <div class="predict-q">1～100 这一百个数里，最后能留下多少个质数？</div>
+          <div class="option-list" id="m1PredictOpts"></div>
+          <div class="predict-note" id="m1PredictNote">选一个再开始筛。</div>
+        </div>
+        <div class="controls">
+          <button class="btn btn-primary" id="m1BtnStep">开始筛</button>
+          <button class="btn" id="m1BtnReset">重置</button>
+          <span class="feedback" id="m1Status"></span>
+        </div>
+        <div class="legend" id="m1Legend"></div>
+        <div class="grid100" id="m1Grid"></div>
+        <div class="reveal-box">
+          <button class="btn small" id="m1WhyBtn">为什么筛到 7 就能停？</button>
+          <div class="reveal-body" id="m1WhyBody">
+            <h4>下一个候选是 11，但 11 的倍数早就倒下了</h4>
+            <p>11×2、11×3、…、11×9 都含有比 11 小的因数，早被 2、3、5、7 筛掉；</p>
+            <p>11 自己「新」筛的第一个数是 11×11=121，已经超出 100 这张表。</p>
+            <p>一般地：筛 1～N 只需筛到 <b>√N</b> 为止的质数——这个「√N 分界线」在「√N 判定机」模块还会立大功。</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">记忆挑战 · 把 25 个质数找回来</div>
+        <div class="card-desc">筛完之后，试试凭记忆把 100 以内的质数全部点出来（点错不扣分，可反复验证）。</div>
+        <div class="controls">
+          <button class="btn btn-primary" id="m1BtnRecall">开始记忆挑战</button>
+          <button class="btn" id="m1BtnRecallCheck" style="display:none">验证</button>
+          <span class="feedback" id="m1RecallFb"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= M2 尾数大道 ================= -->
+    <section class="mod-view" id="view-m2">
+      <div class="card">
+        <div class="card-title">质数的尾数大道</div>
+        <div class="card-desc">把 1～100 按<b>个位数字</b>排成 10 条大道（每一列个位相同）。质数会住在哪几条大道上？</div>
+        <div class="predict-box" id="m2Predict">
+          <span class="eyebrow">先预测</span>
+          <div class="predict-q">除了 2 和 5 本身，两位以上的质数，个位可能是哪些数字？（可多选）</div>
+          <div class="option-list" id="m2Tails"></div>
+          <div class="predict-note">选好后点「点亮质数」验证。</div>
+        </div>
+        <div class="controls">
+          <button class="btn btn-primary" id="m2BtnLight">点亮质数</button>
+          <button class="btn" id="m2BtnEmirp">镜像挑战</button>
+          <button class="btn" id="m2BtnReset">重置</button>
+          <span class="feedback" id="m2Fb"></span>
+        </div>
+        <div class="grid100" id="m2Grid"></div>
+        <div class="reveal-box">
+          <button class="btn small" id="m2RevealBtn">显示结论</button>
+          <div class="reveal-body" id="m2RevealBody">
+            <h4>四条质数大道：1、3、7、9</h4>
+            <p>个位是 0、2、4、6、8 → 是 2 的倍数（偶数），大于 2 就一定是合数；</p>
+            <p>个位是 0 或 5 → 是 5 的倍数，大于 5 就一定是合数；</p>
+            <p>所以 <b>除了 2 和 5，质数的个位只能是 1、3、7、9</b>。注意：住在大道上 ≠ 一定是质数（比如 21、27、33……）。</p>
+            <p>🔍 镜像挑战答案：交换个位十位后仍是质数的两位质数共 <b>9 个</b>（含回文的 11）；若只算「交换后变成另一个质数」则是 8 个。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= M3 √N 判定机 ================= -->
+    <section class="mod-view" id="view-m3">
+      <div class="card">
+        <div class="card-title">第一步 · 因数总是成对出现</div>
+        <div class="card-desc">选一个数，看它的因数如何「一小配一大」手拉手。注意每一对里<b>小的那个</b>最远走到哪里。</div>
+        <div class="controls">
+          <div class="seg" id="m3PairSeg"></div>
+        </div>
+        <svg class="svg-stage" id="m3PairSvg" viewBox="0 0 720 240" role="img" aria-label="因数配对弧线图"></svg>
+      </div>
+      <div class="card">
+        <div class="card-title">第二步 · √N 判定机</div>
+        <div class="card-desc">要判断一个较大的数是不是质数，先找一个比它大且最接近的平方数 K²，再用小于 K 的质数挨个试除——这就是讲义里的「√N 法」。</div>
+        <div class="predict-box" id="m3Predict">
+          <span class="eyebrow">先预测</span>
+          <div class="predict-q">要判断 239 是不是质数，需要用多少个质数去试除？</div>
+          <div class="option-list" id="m3PredictOpts"></div>
+          <div class="predict-note" id="m3PredictNote"></div>
+        </div>
+        <div class="controls">
+          <div class="seg" id="m3Presets"></div>
+          <input class="numinput" id="m3Input" type="number" min="2" max="99999" placeholder="自定义">
+          <button class="btn btn-primary" id="m3BtnRun">开始判定</button>
+        </div>
+        <div class="feedback" id="m3KLine"></div>
+        <div class="step-line" id="m3Steps"></div>
+        <div class="big-verdict" id="m3Verdict"></div>
+        <div class="reveal-box">
+          <button class="btn small" id="m3RevealBtn">为什么只试到 √N？</button>
+          <div class="reveal-body" id="m3RevealBody">
+            <h4>因数一小配一大，抓小的就够了</h4>
+            <p>如果 N = a×b（a≤b），那么 a×a ≤ a×b = N，即 <b>a ≤ √N</b>：每一对因数里，小的那个一定不超过 √N。</p>
+            <p>所以只要 √N 以内的质数都除不尽，N 就不可能有任何真因数——它是质数。</p>
+            <p>试除只用质数就够：任何合数因数本身还能拆成更小的质数。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= M4 特殊质数闯关 ================= -->
+    <section class="mod-view" id="view-m4">
+      <div class="card">
+        <div class="card-title">特殊质数闯关</div>
+        <div class="card-desc">四道关卡，认识两位「最特殊」的质数：唯一的偶质数 2、唯一个位是 5 的质数 5，以及形影不离的孪生质数。</div>
+        <div class="gate-progress" id="m4GateNav"></div>
+
+        <div class="gate-view" id="m4g1">
+          <div class="predict-q">🚪 第 1 关 · 奇偶门：两个质数的和是 39，它们是谁？在下面点选两个质数。</div>
+          <div class="slot-row"><span class="slot" id="m4g1s1">?</span> + <span class="slot" id="m4g1s2">?</span> = 39</div>
+          <div class="prime-chips" id="m4g1Chips"></div>
+          <div class="controls">
+            <button class="btn btn-primary" id="m4g1Check">验证</button>
+            <button class="btn small" id="m4g1Clear">清空</button>
+          </div>
+          <div class="feedback" id="m4g1Fb"></div>
+          <details class="hint-fold"><summary>提示 1（观察）</summary><p>39 是奇数。两个数加起来是奇数，它们的奇偶性是什么样的？</p></details>
+          <details class="hint-fold"><summary>提示 2（推理）</summary><p>奇数 + 奇数 = 偶数。所以两个数必须一奇一偶——质数里唯一的偶数是谁？</p></details>
+          <div class="reveal-body" id="m4g1Reveal">
+            <h4>奇偶分析法</h4>
+            <p>奇 + 奇 = 偶，偶 + 奇 = 奇。和是奇数 ⇒ 必有一个偶数 ⇒ 只能是唯一的偶质数 <b>2</b>，另一个就是 39−2=37。</p>
+            <p>「和/差是奇数」的质数题，第一反应：<b>2 必到场</b>。</p>
+          </div>
+        </div>
+
+        <div class="gate-view" id="m4g2">
+          <div class="predict-q">🚪 第 2 关：三个<b>互不相同</b>的质数相加等于 40，它们是谁？</div>
+          <div class="slot-row"><span class="slot" id="m4g2s1">?</span> + <span class="slot" id="m4g2s2">?</span> + <span class="slot" id="m4g2s3">?</span> = 40</div>
+          <div class="prime-chips" id="m4g2Chips"></div>
+          <div class="controls">
+            <button class="btn btn-primary" id="m4g2Check">验证</button>
+            <button class="btn small" id="m4g2Clear">清空</button>
+          </div>
+          <div class="feedback" id="m4g2Fb"></div>
+          <details class="hint-fold"><summary>提示 1（观察）</summary><p>40 是偶数。三个奇数加起来会是偶数吗？</p></details>
+          <details class="hint-fold"><summary>提示 2（推理）</summary><p>奇+奇+奇=奇 ≠ 40，所以必须有偶数 2。剩下两个不同的质数要凑 38。</p></details>
+          <div class="reveal-body" id="m4g2Reveal">
+            <h4>还是奇偶分析</h4>
+            <p>三个奇质数之和是奇数，凑不出偶数 40 ⇒ 必含 2；38 拆成两个不同质数只有 7+31（19+19 相同，不行）。</p>
+            <p>答案唯一：2 + 7 + 31。</p>
+          </div>
+        </div>
+
+        <div class="gate-view" id="m4g3">
+          <div class="predict-q">🚪 第 3 关 · 尾数门：n、n+6、n+84、n+102、n+218 都是质数。点一个个位数字，看看 n 的个位能是几。</div>
+          <div class="option-list" id="m4g3Tails"></div>
+          <div class="tailcars" id="m4g3Cars"></div>
+          <div class="feedback" id="m4g3Fb"></div>
+          <div class="controls"><button class="btn btn-primary" id="m4g3Confirm" style="display:none">所以 n = 5，验证！</button></div>
+          <details class="hint-fold"><summary>提示（观察）</summary><p>个位是 5 的数里，只有 5 本身是质数。哪个尾数会让五个数里冒出「尾 5 的大数」？</p></details>
+          <div class="reveal-body" id="m4g3Reveal">
+            <h4>尾数判断法</h4>
+            <p>n 是大于 2 的质数 ⇒ 个位只能是 1、3、7、9 或 5。前四种都会让某个 n+□ 的个位变成 5（而它大于 5）⇒ 合数，被淘汰。</p>
+            <p>只剩个位 5——个位是 5 的质数只有 <b>5</b> 自己。验证：5、11、89、107、223 全是质数 ✓</p>
+            <p>和 2 一样，5 也有「独门身份」：<b>唯一个位是 5 的质数</b>。</p>
+          </div>
+        </div>
+
+        <div class="gate-view" id="m4g4">
+          <div class="predict-q">🚪 第 4 关 · 孪生猎人：相差 2 的一对质数叫「孪生质数」。在表中把 100 以内的孪生质数对全部找出来（点中一对里的两个数）。</div>
+          <div class="grid100" id="m4g4Grid"></div>
+          <div class="feedback" id="m4g4Fb"></div>
+          <div class="reveal-body" id="m4g4Reveal">
+            <h4>孪生质数 · 张益唐的战场</h4>
+            <p>观察每一对（大于 4 的）：中间夹着的数 4、6、12、18、30、42、60、72——都是 <b>6 的倍数</b>！</p>
+            <p>为什么：连续三个数必有 3 的倍数；两头是大于 3 的质数不会是 3 的倍数 ⇒ 3 的倍数是中间数；中间又是偶数 ⇒ 是 6 的倍数。</p>
+            <p>「孪生质数有无穷多对吗？」至今没人知道。2013 年华裔数学家<b>张益唐</b>证明了存在无穷多对间隔小于 7000 万的质数，震动世界——这是普通人也能读懂题目的最前沿数学。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= M5 余数跑道 ================= -->
+    <section class="mod-view" id="view-m5">
+      <div class="card">
+        <div class="card-title">余数跑道 · 完全剩余系</div>
+        <div class="card-desc">把整数按「除以 m 的余数」分进 m 条跑道（余数类）。很多质数难题，秘诀都藏在跑道上。</div>
+        <div class="controls">
+          <div class="seg" id="m5Tabs"></div>
+        </div>
+        <div class="wheel-wrap">
+          <svg class="wheel-svg" id="m5Wheel" viewBox="0 0 640 640" role="img" aria-label="余数轮盘"></svg>
+          <div class="wheel-side" id="m5Side">
+            <div id="m5SideA">
+              <div class="controls">
+                <div class="seg" id="m5MSeg"></div>
+              </div>
+              <div class="range-group">
+                <label>窗口起点</label>
+                <input type="range" id="m5Start" min="0" max="42" value="7">
+                <span class="range-value" id="m5StartVal">7</span>
+              </div>
+              <div class="window-strip" id="m5Strip"></div>
+              <div class="feedback" id="m5FbA"></div>
+              <div class="reveal-box">
+                <button class="btn small" id="m5RevealABtn">显示结论</button>
+                <div class="reveal-body" id="m5RevealABody">
+                  <h4>完全剩余系（讲义两条性质）</h4>
+                  <p><b>性质 1</b>：若 m 个整数对模 m 两两不同余，它们构成模 m 的一个<b>完全剩余系</b>（把 m 条跑道占满，每条恰好一个）。</p>
+                  <p><b>性质 2</b>：任意<b>连续 m 个整数</b>构成模 m 的完全剩余系——其中必有一个是 m 的倍数。</p>
+                </div>
+              </div>
+            </div>
+            <div id="m5SideB">
+              <p class="card-desc">现在跑道固定为 6 条（mod 6）。点亮质数，看它们住在哪几条跑道上。</p>
+              <div class="controls">
+                <button class="btn btn-primary" id="m5BtnPrimes">点亮质数</button>
+              </div>
+              <div class="feedback" id="m5FbB"></div>
+              <div class="reveal-box">
+                <button class="btn small" id="m5RevealBBtn">显示结论</button>
+                <div class="reveal-body" id="m5RevealBBody">
+                  <h4>大于 3 的质数都是 6k±1</h4>
+                  <p>跑道 0、2、4 → 偶数；跑道 3 → 3 的倍数：除了 2 和 3，质数进不去这四条道。</p>
+                  <p>所以大于 3 的质数只住余 1、余 5 两条跑道，即 <b>6k+1 或 6k−1</b>。（反过来不成立：25=6×4+1 是合数。）</p>
+                  <p>孪生质数正好一左一右横跨 6 的倍数：(6k−1, 6k+1)——上一关中间数是 6 的倍数的另一种看法！</p>
+                </div>
+              </div>
+            </div>
+            <div id="m5SideC">
+              <div class="predict-box" id="m5Predict">
+                <span class="eyebrow">先预测</span>
+                <div class="predict-q">p、p+8、p+16 三个数，存在大于 3 的质数 p 让它们同时都是质数吗？</div>
+                <div class="option-list" id="m5PredictOpts"></div>
+                <div class="predict-note"></div>
+              </div>
+              <div class="range-group">
+                <label>试试 p =</label>
+                <input type="range" id="m5P" min="1" max="60" value="7">
+                <span class="range-value" id="m5PVal">7</span>
+              </div>
+              <div class="feedback" id="m5FbC"></div>
+              <div class="reveal-box">
+                <button class="btn small" id="m5RevealCBtn">显示结论</button>
+                <div class="reveal-body" id="m5RevealCBody">
+                  <h4>三枚棋子占满 mod 3 跑道</h4>
+                  <p>8≡2、16≡1 (mod 3)，所以 p、p+8、p+16 的余数是「r、r+2、r+1」——不管 p 落哪条跑道，三枚棋子<b>永远占满 3 条跑道</b>。</p>
+                  <p>其中必有一枚落在「余 0」跑道 = 3 的倍数。它还要是质数 ⇒ 只能是 3 本身 ⇒ <b>p=3</b>（3、11、19 ✓）。</p>
+                  <p>这招叫「完全剩余系抽屉」：n+8、n+12、n+26、n+54 这类题，把平移量 mod 5 一算占满五条跑道，答案立刻现形 n=5。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= M6 质数螺旋 ================= -->
+    <section class="mod-view" id="view-m6">
+      <div class="card">
+        <div class="card-title">乌拉姆质数螺旋</div>
+        <div class="card-desc">1963 年，数学家乌拉姆开会走神，把 1、2、3、… 沿方形螺旋写下来，再把质数涂黑——他看到了意想不到的东西。</div>
+        <div class="predict-box" id="m6Predict">
+          <span class="eyebrow">先预测</span>
+          <div class="predict-q">把质数点在螺旋上，它们的分布会是什么样？</div>
+          <div class="option-list" id="m6PredictOpts"></div>
+          <div class="predict-note"></div>
+        </div>
+        <div class="controls">
+          <div class="seg" id="m6Size"></div>
+          <button class="btn btn-primary" id="m6BtnDraw">先看数字怎样排列</button>
+          <button class="btn" id="m6BtnLucky" disabled>点亮幸运线</button>
+          <span class="feedback" id="m6Status"></span>
+        </div>
+        <div class="spiral-holder"><canvas class="spiral-canvas" id="m6Canvas"></canvas></div>
+        <div class="reveal-box">
+          <button class="btn small" id="m6RevealBtn">显示结论</button>
+          <div class="reveal-body" id="m6RevealBody">
+            <h4>质数爱走对角线</h4>
+            <p>质数不是均匀撒落，而是明显聚成<b>斜线条纹</b>。螺旋上的每条对角线都对应一个「二次多项式」，有些二次式特别会生产质数。</p>
+            <p>金色那条是欧拉 1772 年发现的传奇算式 <b>n²+n+41</b>：n=0,1,…,39 连续 40 个值全是质数（n=40 时 =41²，破功）。</p>
+            <p>为什么有的斜线富得流油、有的寸草不生？这与黎曼猜想等数论最深的未解之谜相连——你看到的图案，数学家也还没完全解释。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= M7 可选数论探索站 ================= -->
+    <section class="mod-view" id="view-m7">
+      <div class="card">
+        <div class="card-title">数论探索站 · 哥德巴赫桥</div>
+        <div class="card-desc">1742 年哥德巴赫写信给欧拉：「任一大于 2 的偶数，都能写成两个质数之和。」给偶数搭「质数桥」：桥的两端 p 和 E−p 都得是质数。</div>
+        <div class="controls">
+          <div class="range-group">
+            <label>偶数 E</label>
+            <input type="range" id="m7E" min="4" max="100" step="2" value="10">
+            <span class="range-value" id="m7EVal">10</span>
+          </div>
+          <button class="btn btn-primary" id="m7BtnSearch">搭桥搜索</button>
+        </div>
+        <div class="task-chips" id="m7Tasks"></div>
+        <svg class="svg-stage" id="m7Svg" viewBox="0 0 720 300" role="img" aria-label="哥德巴赫质数桥"></svg>
+        <div class="feedback" id="m7Fb"></div>
+        <div class="reveal-box">
+          <button class="btn small" id="m7RevealBtn">显示结论</button>
+          <div class="reveal-body" id="m7RevealBody">
+            <h4>验证了 ≠ 证明了</h4>
+            <p>你验证的每个偶数都搭出了桥；计算机已验证到 4×10¹⁸ 无一反例。<b>但它至今仍是「猜想」</b>——没有人能证明所有偶数都行。</p>
+            <p>我国数学家陈景润 1966 年证明的「1+2」（每个大偶数 = 质数 + 至多两个质数的乘积）是至今最接近的成果。</p>
+            <p>区分三种身份：<b>定理</b>（已证明，如质数无穷多）、<b>猜想</b>（如哥德巴赫、孪生质数）、<b>反例可推翻</b>（找到一个搭不出桥的偶数它就倒了——你刚才试过，找不到）。</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">欧几里得实验 · 质数会用完吗？</div>
+        <div class="card-desc">把已知质数相乘再加 1。先猜它是不是质数，再观察它的质因数与原集合有什么关系。</div>
+        <div class="controls"><button class="btn btn-primary" id="m7EuclidBtn">加入下一个质数</button></div>
+        <div class="euclid-steps" id="m7EuclidOut"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">质数沙漠 · 连续合数能有多长？</div>
+        <div class="card-desc">选一个长度，用阶乘构造一段“一个质数也没有”的连续整数。</div>
+        <div class="controls">
+          <div class="range-group"><label>沙漠长度</label><input type="range" id="m7DesertLen" min="2" max="8" value="5"><span class="range-value" id="m7DesertVal">5</span></div>
+          <button class="btn btn-primary" id="m7DesertBtn">构造沙漠</button>
+        </div>
+        <div class="desert-strip" id="m7DesertOut"></div>
+      </div>
+    </section>
+
+    <!-- ================= M8 总结闯关 ================= -->
+    <section class="mod-view" id="view-m8">
+      <div class="card">
+        <div class="card-title">概念卡片墙</div>
+        <div class="card-desc">每张卡先自己回答，再点开对照。全部翻完，去下面闯关。</div>
+        <div class="concept-wall" id="m8Wall"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">总结闯关 · 8 题定段位</div>
+        <div class="controls">
+          <button class="btn btn-primary" id="m8BtnQuiz">开始闯关</button>
+          <span class="feedback" id="m8QuizProg"></span>
+        </div>
+        <div class="quiz-box" id="m8QuizBox"></div>
+        <div class="big-verdict" id="m8Rank"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="data-panel">
+    <div class="panel-block">
+      <h3 id="panelModName">实时读数</h3>
+      <div id="metrics"></div>
+    </div>
+    <div class="panel-block" id="taskBlock" style="display:none">
+      <h3>任务进度</h3>
+      <div id="taskList"></div>
+    </div>
+  </aside>
+</div>
+
+<div class="app" style="padding-top:0">
+  <div></div>
+  <div class="inquiry" id="inquiry">
+    <div class="inquiry-tabs">
+      <button class="inquiry-tab active" data-tier="0">观察</button>
+      <button class="inquiry-tab" data-tier="1">验证</button>
+      <button class="inquiry-tab" data-tier="2">证明</button>
+    </div>
+    <div class="inquiry-text" id="inquiryText"></div>
+  </div>
+  <div></div>
+</div>
+
+<div class="modal-mask" id="achModal">
+  <div class="modal">
+    <button class="btn small modal-close" id="achClose">关闭</button>
+    <h3>🏆 成就墙</h3>
+    <div class="ach-rows" id="achList"></div>
+    <div class="controls" style="margin-top:12px">
+      <button class="btn small" id="btnAchReset">清空成就进度</button>
+    </div>
+  </div>
+</div>
+
+<script data-inline-source="src/incentive/achievements.js">
+/*
+ * achievements.js —— 交互课件「成就/激励系统」代码底座
+ * ---------------------------------------------------------------
+ * 来源：从成品 lights-out.html / polyomino-tiling.html 的成就系统提炼。
+ * 特性：零依赖、原生 JS、可直接 file:// 打开、可整段内联进单 HTML。
+ * 用法与设计说明见：references/patterns-library.md →「成就系统底座」。
+ *
+ * 设计要点（务必照做）：
+ *  - 成就奖励「发现 / 掌握」里程碑，不奖励「点击次数」。
+ *  - 声明式成就表 + check(state) 谓词；状态变更后调用 ach.check(state) 即可。
+ *  - localStorage 持久化（带版本号 key），刷新后进度保留。
+ *  - 解锁即 toast；可选奖杯弹窗 + 进度条。
+ * ---------------------------------------------------------------
+ */
+(function (global) {
+  'use strict';
+
+  function createAchievements(options) {
+    options = options || {};
+    var defs = options.defs || [];
+    var storageKey = options.storageKey || 'courseware-achievements-v1';
+    var toastDuration = options.toastDuration || 4200;
+    var onUnlock = typeof options.onUnlock === 'function' ? options.onUnlock : null;
+
+    var unlocked = new Set();
+
+    function findDef(id) {
+      for (var i = 0; i < defs.length; i++) { if (defs[i].id === id) return defs[i]; }
+      return null;
+    }
+    function load() {
+      try {
+        var raw = global.localStorage.getItem(storageKey);
+        if (raw) JSON.parse(raw).forEach(function (id) { unlocked.add(id); });
+      } catch (e) { /* 隐私模式 / file:// 受限时静默降级 */ }
+    }
+    function save() {
+      try { global.localStorage.setItem(storageKey, JSON.stringify(Array.from(unlocked))); }
+      catch (e) { /* 静默降级：本次会话仍可用，只是不持久 */ }
+    }
+
+    // ---- toast（懒创建容器，无需在 HTML 里预置） ----
+    function toastStack() {
+      var el = document.getElementById('achToastStack');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'achToastStack';
+        el.className = 'ach-toast-stack';
+        document.body.appendChild(el);
+      }
+      return el;
+    }
+    function showToast(def) {
+      var el = document.createElement('div');
+      el.className = 'ach-toast';
+      el.innerHTML =
+        '<div class="ach-toast-title"><span>🏆</span>解锁成就</div>' +
+        '<div class="ach-toast-name">' + (def.icon || '') + ' ' + def.name + '</div>' +
+        '<div class="ach-toast-desc">' + (def.desc || '') + '</div>';
+      toastStack().appendChild(el);
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, toastDuration);
+    }
+
+    // ---- 进度反馈（按 data 属性自动挂载，无则跳过） ----
+    function updateProgress() {
+      var got = count(), tot = Math.max(1, total());
+      var bar = document.querySelector('[data-ach-progress]');
+      if (bar) bar.style.width = Math.round(got / tot * 100) + '%';
+      var c = document.querySelector('[data-ach-count]'); if (c) c.textContent = count();
+      var t = document.querySelector('[data-ach-total]'); if (t) t.textContent = total();
+    }
+
+    function fire(def) {
+      save();
+      showToast(def);
+      updateProgress();
+      if (onUnlock) onUnlock(def);
+    }
+
+    // 命令式解锁：用于「做了某动作就解锁」的离散事件
+    function unlock(id) {
+      if (unlocked.has(id)) return false;
+      var def = findDef(id);
+      if (!def) return false;
+      unlocked.add(id);
+      fire(def);
+      return true;
+    }
+
+    // 声明式解锁：传入当前 state，自动解锁所有 check(state) 为真者
+    function check(state) {
+      var fresh = [];
+      for (var i = 0; i < defs.length; i++) {
+        var def = defs[i];
+        if (def.check && !unlocked.has(def.id) && def.check(state)) {
+          unlocked.add(def.id);
+          fresh.push(def);
+        }
+      }
+      if (fresh.length) { fresh.forEach(fire); }
+      return fresh;
+    }
+
+    function has(id) { return unlocked.has(id); }
+    function count() { return defs.filter(function (d) { return unlocked.has(d.id); }).length; }
+    function total() { return defs.length; }
+    function reset() { unlocked.clear(); save(); updateProgress(); }
+
+    // 可选：把成就清单渲染进某个容器（用于奖杯弹窗）
+    function renderList(container) {
+      if (!container) return;
+      container.innerHTML = '';
+      defs.forEach(function (def) {
+        var got = unlocked.has(def.id);
+        var row = document.createElement('div');
+        row.className = 'ach-row' + (got ? ' is-unlocked' : '');
+        row.innerHTML =
+          '<div class="ach-icon">' + (got ? (def.icon || '🏆') : '🔒') + '</div>' +
+          '<div class="ach-meta"><div class="ach-name">' + def.name + '</div>' +
+          '<div class="ach-desc">' + (def.desc || '') + '</div></div>' +
+          '<div class="ach-status">' + (got ? '✓ 已解锁' : '未解锁') + '</div>';
+        container.appendChild(row);
+      });
+      updateProgress();
+    }
+
+    load();
+    updateProgress();
+
+    return {
+      check: check,
+      unlock: unlock,
+      has: has,
+      count: count,
+      total: total,
+      reset: reset,
+      renderList: renderList
+    };
+  }
+
+  global.createAchievements = createAchievements;
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { createAchievements: createAchievements }; }
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
+<script data-inline-source="src/prime-engine.js">
+/*
+ * prime-engine.js —— 质数与合数课件可计算内核（UMD：浏览器全局 + Node require 双用）
+ * 口径对齐讲义：
+ *  - √N 判定（"N 法"）：找大于且接近 N 的平方数 K²，用小于 K 的所有质数试除；
+ *    （数学上等价于试除所有 p ≤ √N 的质数）
+ *  - 埃氏筛：从 2 开始逐轮筛，每轮只记录"首次被筛掉"的数；100 以内只需 2/3/5/7 四轮。
+ * 所有导出为纯函数，不依赖 DOM。
+ */
+(function (global, factory) {
+  if (typeof module !== 'undefined' && module.exports) { module.exports = factory(); }
+  else { global.PrimeEngine = factory(); }
+})(typeof window !== 'undefined' ? window : this, function () {
+  'use strict';
+
+  // ---------- 基础判定 ----------
+
+  // 质数判定（试除法）。n<2 返回 false；调用方需要"既不是质数也不是合数"时用 classify。
+  function isPrime(n) {
+    if (!Number.isInteger(n) || n < 2) return false;
+    if (n < 4) return true;            // 2, 3
+    if (n % 2 === 0) return false;
+    for (var d = 3; d * d <= n; d += 2) {
+      if (n % d === 0) return false;
+    }
+    return true;
+  }
+
+  // 'prime' | 'composite' | 'neither'（0 和 1 既不是质数也不是合数）
+  function classify(n) {
+    if (!Number.isInteger(n) || n < 0) return 'neither';
+    if (n < 2) return 'neither';
+    return isPrime(n) ? 'prime' : 'composite';
+  }
+
+  function primesUpTo(limit) {
+    var out = [];
+    for (var i = 2; i <= limit; i++) { if (isPrime(i)) out.push(i); }
+    return out;
+  }
+
+  function primeCount(limit) { return primesUpTo(limit).length; }
+
+  // ---------- 埃氏筛（逐轮轨迹，供动画） ----------
+  // 返回 { passes: [{ p, removed: [首次被 p 筛掉的数…] }], primes, excluded }
+  // 只需筛 p ≤ √limit 的质数；removed 不含 p 本身，也不含之前轮已倒下的数。
+  function sievePasses(limit) {
+    var dead = new Array(limit + 1).fill(false);
+    var passes = [];
+    for (var p = 2; p * p <= limit; p++) {
+      if (dead[p]) continue;
+      var removed = [];
+      for (var m = p * p; m <= limit; m += p) {
+        if (!dead[m]) { dead[m] = true; removed.push(m); }
+      }
+      passes.push({ p: p, removed: removed });
+    }
+    // 注意：从 p² 起筛会漏掉 p×2..p×(p−1)？不会——它们已被更小的质数筛过。
+    // 但第一轮 p=2 从 4 起筛恰好覆盖全部偶合数。校验见单测。
+    var primes = [];
+    for (var i = 2; i <= limit; i++) { if (!dead[i]) primes.push(i); }
+    return { passes: passes, primes: primes, excluded: limit >= 1 ? [1] : [] };
+  }
+
+  // ---------- 因数与分解 ----------
+
+  function factorize(n) {
+    var out = [];
+    if (!Number.isInteger(n) || n < 2) return out;
+    var rest = n;
+    for (var d = 2; d * d <= rest; d++) {
+      if (rest % d === 0) {
+        var e = 0;
+        while (rest % d === 0) { rest /= d; e++; }
+        out.push({ p: d, e: e });
+      }
+    }
+    if (rest > 1) out.push({ p: rest, e: 1 });
+    return out;
+  }
+
+  // 因数对 [d, n/d]（d ≤ n/d），体现"因数成对、一小配一大"
+  function factorPairs(n) {
+    var out = [];
+    if (!Number.isInteger(n) || n < 1) return out;
+    for (var d = 1; d * d <= n; d++) {
+      if (n % d === 0) out.push([d, n / d]);
+    }
+    return out;
+  }
+
+  function divisorsOf(n) {
+    var pairs = factorPairs(n), set = [];
+    pairs.forEach(function (pr) {
+      set.push(pr[0]);
+      if (pr[1] !== pr[0]) set.push(pr[1]);
+    });
+    return set.sort(function (a, b) { return a - b; });
+  }
+
+  // ---------- √N 判定轨迹（讲义"N 法"） ----------
+  // K = 使 K² > n 的最小正整数；试除质数 = 所有小于 K 的质数。
+  // steps 逐个记录 {p, q, r, divides}；发现整除立即停（合数已定）。
+  function sqrtTrace(n) {
+    var res = {
+      n: n, K: null, kSquare: null, testPrimes: [], steps: [],
+      verdict: classify(n), firstFactor: null, cofactor: null
+    };
+    if (!Number.isInteger(n) || n < 2) return res;
+    var K = 1;
+    while (K * K <= n) K++;
+    res.K = K; res.kSquare = K * K;
+    res.testPrimes = primesUpTo(K - 1);
+    for (var i = 0; i < res.testPrimes.length; i++) {
+      var p = res.testPrimes[i];
+      var q = Math.floor(n / p), r = n % p;
+      var divides = (r === 0);
+      res.steps.push({ p: p, q: q, r: r, divides: divides });
+      if (divides) { res.firstFactor = p; res.cofactor = q; break; }
+    }
+    return res;
+  }
+
+  // ---------- 尾数 / 镜像质数 ----------
+
+  function lastDigit(n) { return Math.abs(n) % 10; }
+
+  // 两位质数中，交换个位十位后仍是质数的（讲义经典例题1 末问）
+  // 返回 [{ n, swapped, palindrome }]；讲义答案 8 个不含回文 11，解析列 9 个含 11。
+  function digitSwapPrimes() {
+    var out = [];
+    for (var n = 10; n <= 99; n++) {
+      if (!isPrime(n)) continue;
+      var swapped = lastDigit(n) * 10 + Math.floor(n / 10);
+      if (swapped >= 10 && isPrime(swapped)) {
+        out.push({ n: n, swapped: swapped, palindrome: swapped === n });
+      }
+    }
+    return out;
+  }
+
+  // ---------- 余数类 / 完全剩余系 ----------
+
+  function mod(n, m) { return ((n % m) + m) % m; }
+
+  // 一组平移量 offsets（含 0 表示 p 本身）在 mod m 下占用的余数类
+  // coversAll = true 时：p, p+a, … 必有一个 ≡ 0 (mod m) ⇒ 要全是质数只能 p = m（讲义题17/18/19 的引理）
+  function residuesOfOffsets(offsets, m) {
+    var seen = {};
+    offsets.forEach(function (a) { seen[mod(a, m)] = true; });
+    var residues = Object.keys(seen).map(Number).sort(function (a, b) { return a - b; });
+    return { residues: residues, coversAll: residues.length === m };
+  }
+
+  // 连续 span 个整数（从 start 起）在 mod m 下的占位——性质2 的可视化数据
+  function consecutiveResidues(start, span, m) {
+    var cells = [];
+    for (var i = 0; i < span; i++) {
+      cells.push({ n: start + i, r: mod(start + i, m), isMultiple: mod(start + i, m) === 0 });
+    }
+    return cells;
+  }
+
+  // 尾数排除表：给定平移量，个位为 t 的 n 会被哪个平移量"送进尾 5"（经典例题7 的推理）
+  // 返回 { 1: killerOffset|null, 3:…, 7:…, 9:…, 5:… }
+  function tailElimination(offsets) {
+    var tails = [1, 3, 7, 9, 5], out = {};
+    tails.forEach(function (t) {
+      var killer = null;
+      for (var i = 0; i < offsets.length; i++) {
+        if (offsets[i] !== 0 && (t + offsets[i]) % 10 === 5) { killer = offsets[i]; break; }
+      }
+      out[t] = killer;
+    });
+    return out;
+  }
+
+  // ---------- 特殊质数（闯关判题） ----------
+
+  function twinPrimes(limit) {
+    var out = [];
+    for (var p = 2; p + 2 <= limit; p++) {
+      if (isPrime(p) && isPrime(p + 2)) out.push([p, p + 2]);
+    }
+    return out;
+  }
+
+  // 两质数之和 = target 的全部写法（p ≤ q；同一种只记一次）
+  function twoPrimeSums(target) {
+    var out = [];
+    for (var p = 2; p <= target / 2; p++) {
+      if (isPrime(p) && isPrime(target - p)) out.push([p, target - p]);
+    }
+    return out;
+  }
+
+  // 三个互不相同质数之和 = target 的全部写法（a < b < c）
+  function threePrimeSums(target) {
+    var out = [];
+    for (var a = 2; a < target; a++) {
+      if (!isPrime(a)) continue;
+      for (var b = a + 1; a + b < target; b++) {
+        if (!isPrime(b)) continue;
+        var c = target - a - b;
+        if (c > b && isPrime(c)) out.push([a, b, c]);
+      }
+    }
+    return out;
+  }
+
+  // 哥德巴赫：偶数 e 的质数对（即 twoPrimeSums 限定偶数）
+  function goldbachPairs(e) {
+    if (!Number.isInteger(e) || e < 4 || e % 2 !== 0) return [];
+    return twoPrimeSums(e);
+  }
+
+  // ---------- 乌拉姆螺旋 ----------
+  // 1 在原点，向右起步、逆时针盘旋。返回 [{n, x, y}]，y 向上为正。
+  // 校验锚点：奇平方数 9,25,49 落在右下对角线 (k,−k)。
+  function ulamSpiral(count) {
+    var out = [];
+    var x = 0, y = 0, n = 1;
+    var dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]]; // 右、上、左、下（逆时针）
+    var dirIdx = 0, runLen = 1, leg = 0;
+    out.push({ n: 1, x: 0, y: 0 });
+    while (n < count) {
+      var d = dirs[dirIdx];
+      for (var s = 0; s < runLen && n < count; s++) {
+        x += d[0]; y += d[1]; n++;
+        out.push({ n: n, x: x, y: y });
+      }
+      dirIdx = (dirIdx + 1) % 4;
+      leg++;
+      if (leg % 2 === 0) runLen++; // 每两条边后步长 +1：1,1,2,2,3,3,…
+    }
+    return out;
+  }
+
+  // 欧拉幸运数 n²+n+41（n=0..39 全是质数，n=40 起破功）——螺旋上的著名斜线
+  function eulerLuckyValues(maxValue) {
+    var out = [];
+    for (var n = 0; ; n++) {
+      var v = n * n + n + 41;
+      if (v > maxValue) break;
+      out.push(v);
+    }
+    return out;
+  }
+
+  // ---------- 可选探索站 ----------
+
+  // 相邻质数的间隙，用于数轴上发现“质数沙漠”。
+  function primeGaps(limit) {
+    var ps = primesUpTo(limit), out = [];
+    for (var i = 1; i < ps.length; i++) {
+      out.push({ from: ps[i - 1], to: ps[i], gap: ps[i] - ps[i - 1] });
+    }
+    return out;
+  }
+
+  // (length+1)!+2, ..., (length+1)!+(length+1) 是 length 个连续合数。
+  function compositeRun(length) {
+    if (!Number.isInteger(length) || length < 1 || length > 10) {
+      return { base: null, values: [] };
+    }
+    var base = 1;
+    for (var i = 2; i <= length + 1; i++) base *= i;
+    var values = [];
+    for (var add = 2; add <= length + 1; add++) values.push(base + add);
+    return { base: base, values: values };
+  }
+
+  // 把一组已知质数相乘再加 1：候选数未必是质数，但其质因数都不在原集合中。
+  function euclidExperiment(input) {
+    var seen = {}, ps = [];
+    (Array.isArray(input) ? input : []).forEach(function (p) {
+      if (isPrime(p) && !seen[p]) { seen[p] = true; ps.push(p); }
+    });
+    var product = ps.reduce(function (acc, p) { return acc * p; }, 1);
+    var candidate = product + 1;
+    var factors = factorize(candidate).map(function (item) { return item.p; });
+    return {
+      primes: ps,
+      product: product,
+      candidate: candidate,
+      factors: factors,
+      newPrimeFactors: factors.filter(function (p) { return !seen[p]; }),
+      candidateIsPrime: isPrime(candidate)
+    };
+  }
+
+  return {
+    isPrime: isPrime,
+    classify: classify,
+    primesUpTo: primesUpTo,
+    primeCount: primeCount,
+    sievePasses: sievePasses,
+    factorize: factorize,
+    factorPairs: factorPairs,
+    divisorsOf: divisorsOf,
+    sqrtTrace: sqrtTrace,
+    lastDigit: lastDigit,
+    digitSwapPrimes: digitSwapPrimes,
+    mod: mod,
+    residuesOfOffsets: residuesOfOffsets,
+    consecutiveResidues: consecutiveResidues,
+    tailElimination: tailElimination,
+    twinPrimes: twinPrimes,
+    twoPrimeSums: twoPrimeSums,
+    threePrimeSums: threePrimeSums,
+    goldbachPairs: goldbachPairs,
+    ulamSpiral: ulamSpiral,
+    eulerLuckyValues: eulerLuckyValues,
+    primeGaps: primeGaps,
+    compositeRun: compositeRun,
+    euclidExperiment: euclidExperiment
+  };
+});
+
+</script>
+<script data-inline-source="src/app.js">
+(function () {
+  'use strict';
+
+  var E = window.PrimeEngine;
+  var $ = function (id) { return document.getElementById(id); };
+  var activeId = 'm0';
+  var inquiryTier = 0;
+  var state = {
+    classified: false, sieveDone: false, tailsSeen: false, sqrtDone: false,
+    gates: [false, false, false, false], residuesSeen: false, spiralSeen: false,
+    explored: false, cards: 0, quizDone: false
+  };
+
+  var MODULE_META = [
+    { id: 'm0', no: '入门', title: '豆阵侦探', sub: '质数与合数' },
+    { id: 'm1', no: 'M1', title: '埃氏筛法', sub: '100 以内质数' },
+    { id: 'm2', no: 'M2', title: '尾数大道', sub: '1·3·7·9' },
+    { id: 'm3', no: 'M3', title: '√N 判定机', sub: '讲义中的 N 法' },
+    { id: 'm4', no: 'M4', title: '特殊质数', sub: '闯关挑战' },
+    { id: 'm5', no: 'M5', title: '余数跑道', sub: '完全剩余系' },
+    { id: 'm6', no: 'M6', title: '质数螺旋', sub: '乌拉姆图案' },
+    { id: 'm7', no: '可选', title: '数论探索站', sub: '猜想·无穷·间隙' },
+    { id: 'm8', no: '总结', title: '学成出师', sub: '概念卡与测评' }
+  ];
+
+  var INQUIRIES = {
+    m0: ['换几个豆子数，哪些数无论怎样都摆不成至少 2×2 的矩形？', '把“能摆成矩形”和“有其他因数”连起来。', '为什么 1 不能归入质数？'],
+    m1: ['每轮倒下的数有什么共同点？', '比较 2、3、5、7 四轮新筛掉的数量。', '为什么下一轮从 11² 开始已经超出数表？'],
+    m2: ['质数集中在哪几条尾数大道？', '找一个住在 1、3、7、9 大道但仍是合数的反例。', '用 2 和 5 的整除特征解释这四条道。'],
+    m3: ['每对因数中较小的一个最远走到哪里？', '观察试除流水线何时提前停止。', '若 N=a×b 且 a≤b，为什么 a≤√N？'],
+    m4: ['哪两个质数拥有“唯一身份”？', '遇到奇数和时，为什么 2 常常必须到场？', '解释大于 4 的孪生质数为什么夹着 6 的倍数。'],
+    m5: ['移动连续 m 个整数的窗口，跑道占位会变吗？', '哪些 mod 6 跑道不可能住着大于 3 的质数？', '为什么“占满所有余数类”会逼出一个模数的倍数？'],
+    m6: ['质数点更像均匀散开，还是聚成条纹？', '切换规模后，斜线结构是否还在？', '欧拉幸运线在 n=40 为什么破功？'],
+    m7: ['实验能支持猜想，但能代替证明吗？', '观察“乘积+1”的质因数为什么不会回到原集合。', '用 (k+1)!+2 到 (k+1)!+(k+1) 证明质数间隙可以很大。'],
+    m8: ['先自己说出卡片背面的结论，再翻卡对照。', '哪些结论是“必要条件”，但反过来不成立？', '把一道陌生质数题送回到筛法、尾数、√N 或余数跑道中。']
+  };
+
+  var ach = window.createAchievements({
+    storageKey: 'prime-lab-ach-v2',
+    defs: [
+      { id: 'classifier', icon: '🫘', name: '因数侦探', desc: '用豆阵区分质数、合数与 1', check: function (s) { return s.classified; } },
+      { id: 'sieve', icon: '🧹', name: '筛法学徒', desc: '完成 2、3、5、7 四轮筛选', check: function (s) { return s.sieveDone; } },
+      { id: 'tails', icon: '🛣️', name: '尾数守门人', desc: '发现质数的四条尾数大道', check: function (s) { return s.tailsSeen; } },
+      { id: 'sqrt', icon: '√', name: '根号裁判', desc: '独立跑完一次 √N 判定', check: function (s) { return s.sqrtDone; } },
+      { id: 'special', icon: '🚪', name: '特殊质数猎人', desc: '通过四道特殊质数关卡', check: function (s) { return s.gates.every(Boolean); } },
+      { id: 'residue', icon: '🎽️', name: '余数调度员', desc: '让连续整数占满所有跑道', check: function (s) { return s.residuesSeen; } },
+      { id: 'spiral', icon: '🌀', name: '斜线发现者', desc: '在乌拉姆螺旋中看到质数条纹', check: function (s) { return s.spiralSeen; } },
+      { id: 'explorer', icon: '🔭', name: '数论探险家', desc: '完成可选探索站的三种实验', check: function (s) { return s.explored; } },
+      { id: 'graduate', icon: '🎓', name: '学成出师', desc: '完成概念卡与总结测评', check: function (s) { return s.quizDone && s.cards >= 8; } }
+    ],
+    onUnlock: function () { renderAchievements(); }
+  });
+
+  function button(text, cls, onClick) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = text; b.className = cls || 'btn';
+    if (onClick) b.addEventListener('click', onClick);
+    return b;
+  }
+
+  function setFeedback(id, text, good) {
+    var node = $(id); if (!node) return;
+    node.textContent = text || '';
+    node.classList.remove('good', 'bad');
+    if (text) node.classList.add(good ? 'good' : 'bad');
+  }
+
+  function setMetrics(title, rows) {
+    $('panelModName').textContent = title;
+    $('metrics').innerHTML = rows.map(function (row) {
+      return '<div class="metric-row"><span class="metric-label">' + row[0] + '</span><span class="metric-value' + (row[2] ? ' hl' : '') + '">' + row[1] + '</span></div>';
+    }).join('');
+  }
+
+  function setupReveal(btnId, bodyId, onReveal) {
+    var btn = $(btnId), body = $(bodyId); if (!btn || !body) return;
+    btn.addEventListener('click', function () {
+      var show = !body.classList.contains('show');
+      body.classList.toggle('show', show);
+      btn.textContent = show ? '隐藏结论' : '显示结论';
+      if (show && onReveal) onReveal();
+    });
+  }
+
+  function makeOptions(containerId, values, onPick, multi) {
+    var host = $(containerId); host.innerHTML = '';
+    values.forEach(function (value) {
+      var b = button(String(value), 'option-btn', function () {
+        if (!multi) Array.prototype.forEach.call(host.children, function (x) { x.classList.remove('chosen'); });
+        b.classList.toggle('chosen', multi ? !b.classList.contains('chosen') : true);
+        onPick(value, b);
+      });
+      host.appendChild(b);
+    });
+  }
+
+  function setupLocked(buttonId, predictId, isReady, action) {
+    var b = $(buttonId); b.classList.add('is-locked');
+    b.addEventListener('click', function (ev) {
+      if (!isReady()) {
+        ev.preventDefault();
+        var p = $(predictId); p.classList.add('flash'); p.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(function () { p.classList.remove('flash'); }, 2100);
+        return;
+      }
+      b.classList.remove('is-locked');
+      action();
+    });
+  }
+
+  function seg(containerId, values, initial, onChange) {
+    var host = $(containerId); host.innerHTML = '';
+    values.forEach(function (v) {
+      var b = button(String(v), v === initial ? 'active' : '', function () {
+        Array.prototype.forEach.call(host.children, function (x) { x.classList.remove('active'); });
+        b.classList.add('active'); onChange(v);
+      });
+      host.appendChild(b);
+    });
+  }
+
+  function confetti() {
+    var colors = ['#3b82f6', '#f59e0b', '#10b981', '#ec4899'];
+    for (var i = 0; i < 24; i++) {
+      var c = document.createElement('i'); c.className = 'confetti';
+      c.style.left = (10 + Math.random() * 80) + 'vw'; c.style.background = colors[i % colors.length];
+      c.style.transform = 'rotate(' + (i * 31) + 'deg)'; c.style.transition = 'top 1.2s ease-in, opacity 1.2s';
+      document.body.appendChild(c);
+      (function (node, delay) { setTimeout(function () { node.style.top = '105vh'; node.style.opacity = '0'; }, delay); setTimeout(function () { node.remove(); }, 1700 + delay); })(c, i * 18);
+    }
+  }
+
+  function checkAchievements() { ach.check(state); }
+  function renderAchievements() { ach.renderList($('achList')); }
+
+  // ---------- M0 ----------
+  var m0Challenge = { running: false, items: [1, 2, 9, 13, 21, 25, 29, 49, 57, 97], at: 0, score: 0 };
+  function drawBeans(n, rows) {
+    var host = $('m0Beans'), cols = Math.ceil(n / rows); host.innerHTML = '';
+    host.style.gridTemplateColumns = 'repeat(' + cols + ', 22px)';
+    for (var i = 0; i < n; i++) {
+      var bean = document.createElement('span'); bean.className = 'bean' + (i >= Math.floor(n / rows) * rows ? ' leftover' : ''); host.appendChild(bean);
+    }
+  }
+  function renderM0(n) {
+    $('m0NVal').textContent = n; var rows = $('m0Rows'); rows.innerHTML = '';
+    for (var r = 2; r <= Math.min(10, n); r++) {
+      (function (rr) { var ok = n % rr === 0 && n / rr >= 2; var b = button(rr + ' 行', 'rowchip', function () { drawBeans(n, rr); b.classList.add(ok ? 'ok' : 'fail'); }); rows.appendChild(b); })(r);
+    }
+    var kind = E.classify(n), label = kind === 'prime' ? '质数：只有 1×' + n : kind === 'composite' ? '合数：能摆出真正矩形' : '特别数：既不是质数也不是合数';
+    $('m0Verdict').innerHTML = '<span class="verdict-badge ' + kind + '">' + label + '</span>';
+    var defaultRows = E.factorPairs(n).filter(function (p) { return p[0] >= 2; })[0]; drawBeans(n, defaultRows ? defaultRows[0] : 1);
+    setMetrics('豆阵实时读数', [['豆子数', n, true], ['分类', kind === 'prime' ? '质数' : kind === 'composite' ? '合数' : '都不是'], ['因数', E.divisorsOf(n).join(', ') || '—']]);
+  }
+  function nextM0Challenge() {
+    if (m0Challenge.at >= m0Challenge.items.length) {
+      setFeedback('m0SortFb', '挑战完成：' + m0Challenge.score + '/10', m0Challenge.score >= 8); state.classified = true; checkAchievements(); return;
+    }
+    $('m0SortNum').textContent = m0Challenge.items[m0Challenge.at];
+  }
+  function judgeM0(kind) {
+    if (!m0Challenge.running || m0Challenge.at >= m0Challenge.items.length) return;
+    var n = m0Challenge.items[m0Challenge.at], right = E.classify(n) === kind;
+    if (right) m0Challenge.score++;
+    setFeedback('m0SortFb', right ? '判断正确！' : '再看看它的因数。', right);
+    m0Challenge.at++; setTimeout(nextM0Challenge, 360);
+  }
+
+  // ---------- M1 ----------
+  var m1 = { prediction: null, pass: 0, timer: null, recall: false, picked: {} };
+  function buildNumberGrid(id, click) {
+    var host = $(id); host.innerHTML = '';
+    for (var n = 1; n <= 100; n++) {
+      (function (value) { var c = document.createElement('div'); c.className = 'cell' + (click ? ' clickable' : ''); c.textContent = value; c.dataset.n = value; if (click) c.addEventListener('click', function () { click(value, c); }); host.appendChild(c); })(n);
+    }
+  }
+  function finalizeSieveGrid(grid, primes) {
+    var primeSet = new Set(primes);
+    Array.prototype.forEach.call(grid.children, function (cell) {
+      var n = Number(cell.dataset.n), isPrime = primeSet.has(n);
+      cell.classList.toggle('prime', isPrime);
+      cell.classList.toggle('dim', !isPrime);
+    });
+  }
+  function resetSieve() {
+    if (m1.timer) clearInterval(m1.timer); m1.timer = null; m1.pass = 0;
+    buildNumberGrid('m1Grid'); var one = $('m1Grid').querySelector('[data-n="1"]'); if (one) one.classList.add('excluded');
+    $('m1BtnStep').textContent = '开始筛'; setFeedback('m1Status', '', true);
+  }
+  function animateSievePass() {
+    var data = E.sievePasses(100), pass = data.passes[m1.pass];
+    if (!pass) return;
+    var start = performance.now(), duration = 700, removed = pass.removed.slice();
+    if (m1.timer) clearInterval(m1.timer);
+    m1.timer = setInterval(function () {
+      var k = Math.min(1, (performance.now() - start) / duration), shown = Math.ceil(k * removed.length);
+      removed.slice(0, shown).forEach(function (n) { var c = $('m1Grid').querySelector('[data-n="' + n + '"]'); c.className = 'cell dead p' + pass.p; });
+      if (k >= 1) {
+        clearInterval(m1.timer); m1.timer = null; m1.pass++;
+        setFeedback('m1Status', '用 ' + pass.p + ' 新筛掉 ' + pass.removed.length + ' 个数。', true);
+        $('m1BtnStep').textContent = m1.pass < data.passes.length ? '下一轮' : '筛选完成';
+        if (m1.pass === data.passes.length) {
+          finalizeSieveGrid($('m1Grid'), data.primes);
+          state.sieveDone = true; checkAchievements(); setMetrics('筛法实时读数', [['已完成轮数', '4/4', true], ['留下质数', '25'], ['最后筛子', '7']]);
+        } else setMetrics('筛法实时读数', [['已完成轮数', m1.pass + '/4', true], ['本轮筛子', pass.p], ['新筛掉', pass.removed.length]]);
+      }
+    }, 28);
+  }
+  function startRecall() {
+    m1.recall = true; m1.picked = {};
+    buildNumberGrid('m1Grid', function (n, c) { if (!m1.recall) return; m1.picked[n] = !m1.picked[n]; c.classList.toggle('picked', m1.picked[n]); });
+    $('m1BtnRecallCheck').style.display = ''; setFeedback('m1RecallFb', '请点出你记得的 25 个质数。', true);
+  }
+  function checkRecall() {
+    var primes = E.primesUpTo(100), chosen = Object.keys(m1.picked).filter(function (n) { return m1.picked[n]; }).map(Number), right = 0;
+    chosen.forEach(function (n) { var c = $('m1Grid').querySelector('[data-n="' + n + '"]'); if (E.isPrime(n)) { c.classList.add('right'); right++; } else c.classList.add('wrong'); });
+    primes.forEach(function (n) { if (!m1.picked[n]) $('m1Grid').querySelector('[data-n="' + n + '"]').classList.add('missed'); });
+    setFeedback('m1RecallFb', '找对 ' + right + '/25；虚线是漏掉的质数。', right === 25);
+  }
+
+  // ---------- M2 ----------
+  var m2 = { picked: {}, lit: false, timer: null };
+  function drawTailGrid() { buildNumberGrid('m2Grid'); }
+  function lightPrimes() {
+    var nodes = Array.prototype.slice.call($('m2Grid').children), start = performance.now(), duration = 850;
+    if (m2.timer) clearInterval(m2.timer);
+    m2.timer = setInterval(function () {
+      var k = Math.min(1, (performance.now() - start) / duration), upto = Math.ceil(k * nodes.length);
+      nodes.slice(0, upto).forEach(function (c) { var n = Number(c.dataset.n); if (E.isPrime(n)) c.classList.add('prime'); else if (n > 1) c.classList.add('dim'); });
+      if (k >= 1) { clearInterval(m2.timer); m2.timer = null; m2.lit = true; state.tailsSeen = true; checkAchievements(); var chosen = Object.keys(m2.picked).filter(function (x) { return m2.picked[x]; }).map(Number).sort(); setFeedback('m2Fb', JSON.stringify(chosen) === JSON.stringify([1,3,7,9]) ? '预测全中！但别忘了 2 和 5 是特例。' : '观察蓝色质数：除 2、5 外只住在 1、3、7、9 大道。', true); setMetrics('尾数实时读数', [['100 以内质数', '25', true], ['常规尾数', '1, 3, 7, 9'], ['特例', '2, 5']]); }
+    }, 26);
+  }
+
+  // ---------- M3 ----------
+  var m3 = { pairN: 36, n: 239, prediction: null, timer: null };
+  function drawFactorPairs(n) {
+    var svg = $('m3PairSvg'), pairs = E.factorPairs(n), w = 720, y = 180, max = Math.max(2, n), html = '<line x1="40" y1="' + y + '" x2="680" y2="' + y + '" stroke="#d7e1e3" stroke-width="2"/>';
+    pairs.forEach(function (p, i) {
+      var x1 = 45 + 630 * (p[0] / max), x2 = 45 + 630 * (p[1] / max), lift = 42 + i * 18;
+      html += '<path d="M' + x1 + ',' + y + ' Q' + ((x1+x2)/2) + ',' + (y-lift) + ' ' + x2 + ',' + y + '" fill="none" stroke="#3b82f6" stroke-width="3"/>';
+      html += '<text x="' + x1 + '" y="205" text-anchor="middle" font-size="13">' + p[0] + '</text><text x="' + x2 + '" y="205" text-anchor="middle" font-size="13">' + p[1] + '</text>';
+    });
+    var rootX = 45 + 630 * (Math.sqrt(n) / max); html += '<line x1="' + rootX + '" y1="25" x2="' + rootX + '" y2="215" stroke="#f59e0b" stroke-dasharray="6 5"/><text x="' + rootX + '" y="20" text-anchor="middle" fill="#92600e" font-size="13">√' + n + '</text>';
+    svg.innerHTML = html;
+  }
+  function runSqrt() {
+    var raw = Number($('m3Input').value || m3.n);
+    if (!Number.isInteger(raw) || raw < 2 || raw > 99999) { setFeedback('m3KLine', '请输入 2–99999 之间的整数。', false); return; }
+    m3.n = raw; var trace = E.sqrtTrace(raw); $('m3Steps').innerHTML = ''; $('m3Verdict').innerHTML = '';
+    $('m3KLine').textContent = raw + ' < ' + trace.K + '² = ' + trace.kSquare + '，只需试除小于 ' + trace.K + ' 的质数。';
+    if (m3.timer) clearInterval(m3.timer); var at = 0;
+    m3.timer = setInterval(function () {
+      if (at >= trace.steps.length) {
+        clearInterval(m3.timer); m3.timer = null; var prime = trace.verdict === 'prime';
+        $('m3Verdict').innerHTML = '<span class="verdict-badge ' + (prime ? 'prime' : 'composite') + '">' + raw + (prime ? ' 是质数' : ' 是合数：' + trace.firstFactor + '×' + trace.cofactor) + '</span>';
+        state.sqrtDone = true; checkAchievements(); setMetrics('√N 判定读数', [['待判定 N', raw, true], ['分界 K', trace.K], ['实际试除', trace.steps.length + ' 次'], ['结果', prime ? '质数' : '合数']]); return;
+      }
+      var s = trace.steps[at++], c = document.createElement('span'); c.className = 'step-chip show ' + (s.divides ? 'hit' : 'pass'); c.textContent = raw + '÷' + s.p + '=' + s.q + '…' + s.r; $('m3Steps').appendChild(c);
+    }, 360);
+  }
+
+  // ---------- M4 ----------
+  var m4 = { gate: 0, selected1: [], selected2: [], twinSelected: {} };
+  function showGate(index) {
+    m4.gate = index;
+    Array.prototype.forEach.call(document.querySelectorAll('.gate-view'), function (v, i) { v.classList.toggle('active', i === index); });
+    Array.prototype.forEach.call($('m4GateNav').children, function (b, i) { b.classList.toggle('active', i === index); });
+  }
+  function buildGateNav() {
+    var host = $('m4GateNav'); host.innerHTML = '';
+    ['奇偶门', '三质数', '尾数门', '孪生素数'].forEach(function (name, i) { var b = button((i+1) + ' ' + name, 'gate-step', function () { showGate(i); }); host.appendChild(b); }); showGate(m4.gate);
+  }
+  function buildPrimeChips(id, max, selected, cap, slots) {
+    var host = $(id); host.innerHTML = '';
+    E.primesUpTo(max).forEach(function (p) { var b = button(p, 'pchip', function () { var idx = selected.indexOf(p); if (idx >= 0) selected.splice(idx, 1); else if (selected.length < cap) selected.push(p); b.classList.toggle('sel', selected.indexOf(p) >= 0); slots.forEach(function (sid, i) { $(sid).textContent = selected[i] || '?'; $(sid).classList.toggle('filled', !!selected[i]); }); }); host.appendChild(b); });
+  }
+  function completeGate(i, revealId) { state.gates[i] = true; $(revealId).classList.add('show'); $('m4GateNav').children[i].classList.add('done'); checkAchievements(); confetti(); }
+  function buildTwinGrid() {
+    buildNumberGrid('m4g4Grid', function (n, c) {
+      if (!E.isPrime(n)) { c.classList.add('wrong'); return; }
+      m4.twinSelected[n] = !m4.twinSelected[n]; c.classList.toggle('picked', m4.twinSelected[n]);
+      var wanted = {}; E.twinPrimes(100).forEach(function (pair) { wanted[pair[0]] = true; wanted[pair[1]] = true; });
+      var selected = Object.keys(m4.twinSelected).filter(function (x) { return m4.twinSelected[x]; });
+      if (selected.length === Object.keys(wanted).length && selected.every(function (n) { return wanted[n]; })) { selected.forEach(function (n) { $('m4g4Grid').querySelector('[data-n="'+n+'"]').classList.add('twin'); }); setFeedback('m4g4Fb', '全部找到：100 以内共 8 对孪生质数。', true); completeGate(3, 'm4g4Reveal'); }
+    });
+  }
+
+  // ---------- M5 ----------
+  var m5 = { tab: 0, m: 5, start: 7, prediction: null };
+  function drawWheel(m, cells, primeMode) {
+    var svg = $('m5Wheel'), cx = 320, cy = 320, R = 240, html = '';
+    for (var r = 0; r < m; r++) {
+      var a = -Math.PI/2 + r * Math.PI*2/m, x = cx + Math.cos(a)*R, y = cy + Math.sin(a)*R;
+      html += '<line x1="'+cx+'" y1="'+cy+'" x2="'+x+'" y2="'+y+'" stroke="#d7e1e3" stroke-width="2"/><circle cx="'+x+'" cy="'+y+'" r="34" fill="'+(r===0?'#fff7ed':'#dbeafe')+'" stroke="'+(r===0?'#d97706':'#3b82f6')+'"/><text x="'+x+'" y="'+(y+5)+'" text-anchor="middle" font-size="16" font-weight="700">余 '+r+'</text>';
+    }
+    (cells || []).forEach(function (c, i) { var a = -Math.PI/2 + c.r*Math.PI*2/m, rr = 105 + (i%4)*22, x = cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr; html += '<circle cx="'+x+'" cy="'+y+'" r="10" fill="'+(c.isMultiple?'#d97706':primeMode?'#3b82f6':'#16a34a')+'"/><title>'+c.n+' 余 '+c.r+'</title>'; });
+    svg.innerHTML = html;
+  }
+  function renderResidueWindow() {
+    var cells = E.consecutiveResidues(m5.start, m5.m, m5.m), host = $('m5Strip'); host.innerHTML = '';
+    cells.forEach(function (c) { var s = document.createElement('span'); s.className = 'wchip inwin' + (c.isMultiple ? ' mult' : ''); s.textContent = c.n; s.title = '余 ' + c.r; host.appendChild(s); }); drawWheel(m5.m, cells, false);
+    $('m5StartVal').textContent = m5.start; setFeedback('m5FbA', '余数依次为：' + cells.map(function (c) { return c.r; }).join(', ') + '，每条跑道恰好一个。', true); state.residuesSeen = true; checkAchievements();
+    setMetrics('余数跑道读数', [['模 m', m5.m, true], ['窗口起点', m5.start], ['占用跑道', m5.m + '/' + m5.m], ['m 的倍数', cells.filter(function(c){return c.isMultiple;})[0].n]]);
+  }
+  function showM5Tab(index) {
+    m5.tab = index; ['m5SideA','m5SideB','m5SideC'].forEach(function (id, i) { $(id).style.display = i === index ? '' : 'none'; });
+    Array.prototype.forEach.call($('m5Tabs').children, function (b, i) { b.classList.toggle('active', i === index); });
+    if (index === 0) renderResidueWindow(); else if (index === 1) drawWheel(6, [], false); else drawWheel(3, [], false);
+  }
+
+  // ---------- M6 ----------
+  var m6 = { prediction: null, size: 100, phase: 'ready', drawn: false, lucky: false };
+  function fitSpiral() {
+    var canvas = $('m6Canvas'), rect = canvas.getBoundingClientRect(), cssW = Math.max(300, rect.width || 700), cssH = Math.min(620, Math.max(340, cssW * .72)), dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.style.height = cssH + 'px'; canvas.width = Math.round(cssW*dpr); canvas.height = Math.round(cssH*dpr); var ctx = canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return { ctx: ctx, w: cssW, h: cssH };
+  }
+  function drawSpiralArrangement() {
+    var stage = fitSpiral(), ctx = stage.ctx, w = stage.w, h = stage.h, pts = E.ulamSpiral(100), maxCoord = 5, scale = Math.min(w,h)*.86/(maxCoord*2+1), box = Math.max(17, scale*.82);
+    ctx.clearRect(0,0,w,h); ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h);
+    ctx.beginPath(); pts.forEach(function(p,i){var x=w/2+p.x*scale,y=h/2-p.y*scale;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}); ctx.strokeStyle='#cbd5e1';ctx.lineWidth=2;ctx.stroke();
+    pts.forEach(function(p){var x=w/2+p.x*scale,y=h/2-p.y*scale;ctx.fillStyle=p.n===1?'#fff7ed':'#f8fafc';ctx.strokeStyle=p.n===1?'#d97706':'#cbd5e1';ctx.lineWidth=1;ctx.fillRect(x-box/2,y-box/2,box,box);ctx.strokeRect(x-box/2,y-box/2,box,box);ctx.fillStyle=p.n===1?'#b45309':'#334155';ctx.font='600 '+Math.max(8,Math.min(12,box*.34))+'px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(p.n,x,y);});
+    m6.phase='arranged';m6.drawn=false;$('m6Predict').style.display='';$('m6BtnDraw').textContent='点亮质数';$('m6BtnDraw').classList.toggle('is-locked',m6.prediction===null);
+    setFeedback('m6Status','先看排列：1 在中心，数字向右、向上、向左、向下逐圈长大。现在预测，再点亮质数。',true);setMetrics('方形螺旋排列',[['演示范围','1–100',true],['起点','中心的 1'],['方向','右→上→左→下'],['下一步','预测质数分布']]);
+  }
+  function drawSpiral() {
+    var stage = fitSpiral(), ctx = stage.ctx, w = stage.w, h = stage.h, pts = E.ulamSpiral(m6.size), maxCoord = Math.max.apply(null, pts.map(function(p){return Math.max(Math.abs(p.x),Math.abs(p.y));})), scale = Math.min(w,h)*.9/(maxCoord*2+1), lucky = {};
+    if (m6.lucky) E.eulerLuckyValues(m6.size).forEach(function(n){lucky[n]=true;});
+    ctx.clearRect(0,0,w,h); ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h);
+    pts.forEach(function (p) { if (!E.isPrime(p.n)) return; ctx.fillStyle = lucky[p.n] ? '#d97706' : '#2563eb'; var x=w/2+p.x*scale, y=h/2-p.y*scale, s=Math.max(1.2,scale*.68); ctx.fillRect(x-s/2,y-s/2,s,s); });
+    m6.phase = 'primes'; m6.drawn = true; state.spiralSeen = true; checkAchievements(); $('m6BtnLucky').classList.remove('is-locked'); $('m6BtnDraw').classList.remove('is-locked'); $('m6BtnDraw').textContent='重新点亮质数';
+    setFeedback('m6Status', '已绘制 ' + m6.size + ' 个数，其中 ' + E.primeCount(m6.size) + ' 个质数。', true); setMetrics('质数螺旋读数', [['点数', m6.size, true], ['质数数量', E.primeCount(m6.size)], ['质数密度', (E.primeCount(m6.size)/m6.size*100).toFixed(1)+'%'], ['幸运线', m6.lucky ? '已点亮' : '未点亮']]);
+  }
+  function advanceSpiral() {
+    if (m6.phase === 'ready') { drawSpiralArrangement(); return; }
+    if (m6.phase === 'arranged' && m6.prediction === null) { $('m6Predict').classList.add('flash'); $('m6Predict').scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(function(){$('m6Predict').classList.remove('flash');},2100); return; }
+    drawSpiral();
+  }
+
+  // ---------- M7 ----------
+  var m7 = { goldbachDone: false, euclidAt: 0, euclidDone: false, desertDone: false };
+  function drawGoldbach(e) {
+    var pairs = E.goldbachPairs(e), svg = $('m7Svg'), w=720, base=245, x=function(n){return 40+n/e*640;}, html='<line x1="40" y1="'+base+'" x2="680" y2="'+base+'" stroke="#94a3b8" stroke-width="2"/>';
+    for(var n=0;n<=e;n+=Math.max(2,Math.ceil(e/10/2)*2)) html+='<text x="'+x(n)+'" y="270" text-anchor="middle" font-size="11">'+n+'</text>';
+    pairs.forEach(function(pair,i){var x1=x(pair[0]),x2=x(pair[1]),lift=45+i*25; html+='<path d="M'+x1+','+base+' Q'+((x1+x2)/2)+','+(base-lift)+' '+x2+','+base+'" fill="none" stroke="#3b82f6" stroke-width="3"/><circle cx="'+x1+'" cy="'+base+'" r="5" fill="#2563eb"/><circle cx="'+x2+'" cy="'+base+'" r="5" fill="#2563eb"/>'}); svg.innerHTML=html;
+    setFeedback('m7Fb', e + ' 共搭出 ' + pairs.length + ' 座质数桥：' + pairs.map(function(p){return p[0]+'+'+p[1];}).join('，'), true); m7.goldbachDone=true; updateExplore(); setMetrics('哥德巴赫实验', [['偶数 E', e, true], ['质数桥', pairs.length], ['实验身份', '验证，非证明']]);
+  }
+  function runEuclid() {
+    var base = [2,3,5,7,11,13], use = base.slice(0, Math.min(base.length, 2+m7.euclidAt)), result = E.euclidExperiment(use), row=document.createElement('div'); row.className='euclid-step show'; row.innerHTML='<b>'+use.join('×')+' + 1 = '+result.candidate+'</b><br>质因数：'+result.factors.join('×')+' —— '+(result.candidateIsPrime?'这次候选数本身是质数':'这次候选数是合数，但仍引出新质数'); $('m7EuclidOut').appendChild(row); m7.euclidAt++;
+    if(m7.euclidAt>=5){m7.euclidDone=true;$('m7EuclidBtn').textContent='已看见“新质数”';} updateExplore();
+  }
+  function runDesert() {
+    var len=Number($('m7DesertLen').value), data=E.compositeRun(len), host=$('m7DesertOut'); host.innerHTML='<div class="feedback good" style="width:100%">'+(len+1)+'! = '+data.base+'，下面每个数都有一个明显因数：</div>';
+    data.values.forEach(function(n,i){var add=i+2,s=document.createElement('span');s.className='desert-number';s.innerHTML=n+'<small>可被 '+add+' 整除</small>';host.appendChild(s);}); m7.desertDone=true; updateExplore();
+  }
+  function updateExplore(){state.explored=m7.goldbachDone&&m7.euclidDone&&m7.desertDone;checkAchievements();}
+
+  // ---------- M8 ----------
+  var concepts = [
+    ['入门', '质数和合数怎样区分？', '质数只有 1 和自身两个正因数；合数还有其他正因数。1 两者都不是。'],
+    ['实验 M1', '为什么筛 100 以内质数到 7 就够？', '下一个质数 11 的新倍数从 11²=121 开始，已超出 100。'],
+    ['实验 M2', '除 2、5 外，质数尾数只能是什么？', '1、3、7、9；但这只是必要条件，21 就是反例。'],
+    ['实验 M3', '为什么判定 N 只需试到 √N？', '因数成对出现，每对较小的因数必不超过 √N。'],
+    ['实验 M4', '最特殊的两个质数是谁？', '2 是唯一偶质数，5 是唯一个位为 5 的质数。'],
+    ['实验 M5', '什么是模 m 的完全剩余系？', 'm 个整数对模 m 的余数两两不同，恰好占满 0 到 m−1 所有余数类。'],
+    ['实验 M5', '大于 3 的质数住在 mod 6 哪两条跑道？', '余 1 或余 5，即 6k±1；反过来不一定是质数。'],
+    ['实验 M6', '质数螺旋告诉我们什么？', '质数在方形螺旋上会聚成斜线条纹，分布并非简单均匀。']
+  ];
+  var quizzes = [
+    ['1 属于哪一类？',['质数','合数','都不是'],2,'1 只有一个正因数。'],
+    ['100 以内共有多少个质数？',['21','25','27'],1,'埃氏筛最终留下 25 个。'],
+    ['哪个数可能是大于 5 的质数？',['125','137','141'],1,'137 尾 7，且试除无因数。'],
+    ['判定 323 时首次试除成功的质数是？',['7','13','17'],2,'323=17×19。'],
+    ['唯一的偶质数是？',['1','2','4'],1,'2 的正因数只有 1、2。'],
+    ['大于 3 的质数必定是？',['6k±1','6k','6k+3'],0,'偶数跑道和 3 的倍数跑道都被排除。'],
+    ['实验了很多偶数都能拆成两质数之和，这叫？',['已证明定理','支持猜想的证据','反例'],1,'有限验证不能代替一般证明。'],
+    ['“质数尾数是 1、3、7、9”的逆命题成立吗？',['成立','不成立'],1,'21、27、49 都是反例。']
+  ];
+  var quiz = { at: 0, score: 0, running: false };
+  function renderConcepts(){var host=$('m8Wall');host.innerHTML='';concepts.forEach(function(c){var b=button('', 'concept-card', function(){b.classList.toggle('flipped');if(!b.dataset.discovered){b.dataset.discovered='true';state.cards++;checkAchievements();}});b.innerHTML='<span class="tag">'+c[0]+'</span><h4>'+c[1]+'</h4><div class="front-q">先自己回答，再点卡片。</div><div class="back-a">'+c[2]+'</div>';host.appendChild(b);});}
+  function renderQuiz(){if(quiz.at>=quizzes.length){var pct=Math.round(quiz.score/quizzes.length*100),rank=pct>=88?'质数大师':pct>=63?'筛法侦探':'继续探索';$('m8QuizBox').innerHTML='';$('m8Rank').innerHTML='<span class="rank-badge">🎓 '+rank+' · '+quiz.score+'/'+quizzes.length+'</span>';state.quizDone=true;checkAchievements();confetti();return;}var q=quizzes[quiz.at],host=$('m8QuizBox');host.innerHTML='<div class="quiz-q">'+(quiz.at+1)+'. '+q[0]+'</div><div class="quiz-options"></div><div class="quiz-expl"></div>';var opts=host.querySelector('.quiz-options');q[1].forEach(function(text,i){var b=button(text,'quiz-opt',function(){Array.prototype.forEach.call(opts.children,function(x){x.disabled=true;});b.classList.add(i===q[2]?'right':'wrong');if(i===q[2])quiz.score++;host.querySelector('.quiz-expl').textContent=q[3];quiz.at++;$('m8QuizProg').textContent='进度 '+quiz.at+'/'+quizzes.length+' · 得分 '+quiz.score;setTimeout(renderQuiz,760);});opts.appendChild(b);});}
+
+  var controllers = {
+    m0: { enter: function(){renderM0(Number($('m0N').value));}, render: function(){renderM0(Number($('m0N').value));}, reset: function(){}, dispose: function(){} },
+    m1: { enter: function(){if(!$('m1Grid').children.length)resetSieve();setMetrics('筛法实时读数',[['已完成轮数',m1.pass+'/4',true],['目标','25 个质数']]);}, render: function(){}, reset: resetSieve, dispose: function(){if(m1.timer)clearInterval(m1.timer);} },
+    m2: { enter: function(){if(!$('m2Grid').children.length)drawTailGrid();setMetrics('尾数大道',[['待观察','1–100',true],['预测','未提交']]);}, render: function(){}, reset: function(){if(m2.timer)clearInterval(m2.timer);m2.picked={};m2.lit=false;drawTailGrid();Array.prototype.forEach.call($('m2Tails').children,function(b){b.classList.remove('chosen');});$('m2BtnLight').classList.add('is-locked');}, dispose: function(){if(m2.timer)clearInterval(m2.timer);} },
+    m3: { enter: function(){drawFactorPairs(m3.pairN);setMetrics('√N 判定读数',[['当前 N',m3.n,true],['状态','等待判定']]);}, render: function(){drawFactorPairs(m3.pairN);}, reset: function(){if(m3.timer)clearInterval(m3.timer);$('m3Steps').innerHTML='';$('m3Verdict').innerHTML='';}, dispose: function(){if(m3.timer)clearInterval(m3.timer);} },
+    m4: { enter: function(){showGate(m4.gate);setMetrics('特殊质数闯关',[['已通关',state.gates.filter(Boolean).length+'/4',true],['核心角色','2 与 5']]);}, render: function(){}, reset: function(){}, dispose: function(){} },
+    m5: { enter: function(){showM5Tab(m5.tab);}, render: function(){showM5Tab(m5.tab);}, reset: function(){m5.start=7;$('m5Start').value=7;renderResidueWindow();}, dispose: function(){} },
+    m6: { enter: function(){$('m6Predict').style.display=m6.phase==='ready'?'none':'';if(m6.phase==='primes')drawSpiral();else if(m6.phase==='arranged')drawSpiralArrangement();else{fitSpiral();setMetrics('质数螺旋',[['第一步','观察数字排列',true],['范围',m6.size]]);}}, render: function(){if(m6.phase==='primes')drawSpiral();else if(m6.phase==='arranged')drawSpiralArrangement();else fitSpiral();}, reset: function(){m6.phase='ready';m6.drawn=false;m6.lucky=false;$('m6Predict').style.display='none';$('m6BtnDraw').textContent='先看数字怎样排列';$('m6BtnDraw').classList.remove('is-locked');fitSpiral();}, dispose: function(){} },
+    m7: { enter: function(){setMetrics('可选数论探索',[['哥德巴赫',m7.goldbachDone?'已探索':'待探索',true],['欧几里得',m7.euclidDone?'已发现':'待发现'],['质数沙漠',m7.desertDone?'已构造':'待构造']]);}, render: function(){}, reset: function(){}, dispose: function(){} },
+    m8: { enter: function(){setMetrics('学成出师',[['已翻概念卡',Math.min(state.cards,8)+'/8',true],['总结测评',state.quizDone?'已完成':'待完成']]);}, render: function(){}, reset: function(){}, dispose: function(){} }
+  };
+
+  function activate(id) {
+    if (!controllers[id]) return;
+    controllers[activeId].dispose(); activeId=id;
+    Array.prototype.forEach.call(document.querySelectorAll('.mod-view'),function(v){v.classList.toggle('active',v.id==='view-'+id);});
+    Array.prototype.forEach.call($('sideNav').children,function(b){b.classList.toggle('active',b.dataset.id===id);});
+    inquiryTier=0;Array.prototype.forEach.call(document.querySelectorAll('.inquiry-tab'),function(b,i){b.classList.toggle('active',i===0);});$('inquiryText').textContent=INQUIRIES[id][0];controllers[id].enter();window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function initNavigation(){var nav=$('sideNav');MODULE_META.forEach(function(m){var b=button('', 'nav-item',function(){activate(m.id);});b.dataset.id=m.id;b.innerHTML='<span class="nav-no">'+m.no+'</span><span><span class="nav-title">'+m.title+'</span><span class="nav-sub">'+m.sub+'</span></span>';nav.appendChild(b);});}
+
+  function init() {
+    initNavigation(); renderAchievements();
+    $('btnTrophy').addEventListener('click',function(){renderAchievements();$('achModal').classList.add('show');}); $('achClose').addEventListener('click',function(){$('achModal').classList.remove('show');}); $('achModal').addEventListener('click',function(e){if(e.target===$('achModal'))$('achModal').classList.remove('show');}); $('btnAchReset').addEventListener('click',function(){ach.reset();renderAchievements();});
+    Array.prototype.forEach.call(document.querySelectorAll('.inquiry-tab'),function(b,i){b.addEventListener('click',function(){inquiryTier=i;Array.prototype.forEach.call(document.querySelectorAll('.inquiry-tab'),function(x,j){x.classList.toggle('active',i===j);});$('inquiryText').textContent=INQUIRIES[activeId][i];});});
+
+    $('m0N').addEventListener('input',function(){renderM0(Number(this.value));}); $('m0RevealBtn').addEventListener('click',function(){$('m0RevealBody').classList.toggle('show');this.textContent=$('m0RevealBody').classList.contains('show')?'隐藏结论':'显示结论';}); $('m0SortStart').addEventListener('click',function(){m0Challenge.running=true;m0Challenge.at=0;m0Challenge.score=0;nextM0Challenge();}); $('m0BtnPrime').addEventListener('click',function(){judgeM0('prime');});$('m0BtnComp').addEventListener('click',function(){judgeM0('composite');});$('m0BtnNeither').addEventListener('click',function(){judgeM0('neither');});
+    var route=$('m0Route');MODULE_META.slice(1).forEach(function(m){var b=button('', 'route-card',function(){activate(m.id);});b.innerHTML='<b>'+m.title+'</b><span>'+m.sub+'</span>';route.appendChild(b);});
+
+    makeOptions('m1PredictOpts',[15,25,35,50],function(v){m1.prediction=v;$('m1BtnStep').classList.remove('is-locked');$('m1PredictNote').textContent='已预测 '+v+' 个，现在亲手筛。';},false); setupLocked('m1BtnStep','m1Predict',function(){return m1.prediction!==null;},animateSievePass); $('m1BtnReset').addEventListener('click',resetSieve); setupReveal('m1WhyBtn','m1WhyBody'); $('m1BtnRecall').addEventListener('click',startRecall); $('m1BtnRecallCheck').addEventListener('click',checkRecall); $('m1Legend').innerHTML='<span class="key"><i class="swatch" style="background:var(--pass2)"></i>2</span><span class="key"><i class="swatch" style="background:var(--pass3)"></i>3</span><span class="key"><i class="swatch" style="background:var(--pass5)"></i>5</span><span class="key"><i class="swatch" style="background:var(--pass7)"></i>7</span><span class="key"><i class="swatch" style="background:var(--accent)"></i>质数</span>';
+
+    makeOptions('m2Tails',[0,1,2,3,4,5,6,7,8,9],function(v){m2.picked[v]=!m2.picked[v];$('m2BtnLight').classList.remove('is-locked');},true); setupLocked('m2BtnLight','m2Predict',function(){return Object.keys(m2.picked).some(function(k){return m2.picked[k];});},lightPrimes); $('m2BtnEmirp').addEventListener('click',function(){if(!m2.lit){setFeedback('m2Fb','先点亮质数，再寻找镜像对。',false);return;}var set={};E.digitSwapPrimes().forEach(function(x){set[x.n]=true;});Array.prototype.forEach.call($('m2Grid').children,function(c){c.classList.toggle('gold',!!set[c.dataset.n]);c.classList.toggle('dim',!set[c.dataset.n]);});setFeedback('m2Fb','金色为交换十位与个位后仍是质数的 9 个数（含 11）。',true);});$('m2BtnReset').addEventListener('click',controllers.m2.reset);setupReveal('m2RevealBtn','m2RevealBody');
+
+    seg('m3PairSeg',[36,48,60,72],36,function(v){m3.pairN=v;drawFactorPairs(v);});makeOptions('m3PredictOpts',[4,6,9,15],function(v){m3.prediction=v;$('m3BtnRun').classList.remove('is-locked');$('m3PredictNote').textContent='已预测 '+v+' 次。';},false);seg('m3Presets',[91,111,239,323,619],239,function(v){m3.n=v;$('m3Input').value=v;});setupLocked('m3BtnRun','m3Predict',function(){return m3.prediction!==null;},runSqrt);setupReveal('m3RevealBtn','m3RevealBody');
+
+    buildGateNav();buildPrimeChips('m4g1Chips',39,m4.selected1,2,['m4g1s1','m4g1s2']);buildPrimeChips('m4g2Chips',40,m4.selected2,3,['m4g2s1','m4g2s2','m4g2s3']);$('m4g1Clear').addEventListener('click',function(){m4.selected1.length=0;buildPrimeChips('m4g1Chips',39,m4.selected1,2,['m4g1s1','m4g1s2']);});$('m4g2Clear').addEventListener('click',function(){m4.selected2.length=0;buildPrimeChips('m4g2Chips',40,m4.selected2,3,['m4g2s1','m4g2s2','m4g2s3']);});$('m4g1Check').addEventListener('click',function(){var ok=m4.selected1.slice().sort(function(a,b){return a-b;}).join(',')==='2,37';setFeedback('m4g1Fb',ok?'正确：奇数和逼出唯一偶质数 2。':'先用奇偶性判断谁必须到场。',ok);if(ok)completeGate(0,'m4g1Reveal');});$('m4g2Check').addEventListener('click',function(){var ok=m4.selected2.slice().sort(function(a,b){return a-b;}).join(',')==='2,7,31';setFeedback('m4g2Fb',ok?'正确：2+7+31=40。':'三个奇质数的和是奇数，所以必含 2。',ok);if(ok)completeGate(1,'m4g2Reveal');});makeOptions('m4g3Tails',[1,3,7,9,5],function(t){var elim=E.tailElimination([6,84,102,218]),host=$('m4g3Cars');host.innerHTML='';[0,6,84,102,218].forEach(function(off){var tail=(t+off)%10,row=document.createElement('div');row.className='tailcar '+(tail===5&&off!==0?'killed':t===5?'safe':'');row.innerHTML='<span class="formula">n'+(off?'+'+off:'')+'</span><span>尾数</span><span class="tail-digit">'+tail+'</span>';host.appendChild(row);});var safe=t===5;setFeedback('m4g3Fb',safe?'只有尾 5 不会让其他数掉进“尾 5 合数”陷阱。':'尾 '+t+' 会被偏移 +'+elim[t]+' 送进尾 5 陷阱。',safe);$('m4g3Confirm').style.display=safe?'':'none';},false);$('m4g3Confirm').addEventListener('click',function(){completeGate(2,'m4g3Reveal');});buildTwinGrid();
+
+    seg('m5Tabs',['连续窗口','6k±1','三枚棋子'],'连续窗口',function(v){showM5Tab(['连续窗口','6k±1','三枚棋子'].indexOf(v));});seg('m5MSeg',[3,4,5,6,7],5,function(v){m5.m=v;renderResidueWindow();});$('m5Start').addEventListener('input',function(){m5.start=Number(this.value);renderResidueWindow();});$('m5BtnPrimes').addEventListener('click',function(){var ps=E.primesUpTo(97).filter(function(p){return p>3;}).map(function(p){return {n:p,r:E.mod(p,6),isMultiple:false};});drawWheel(6,ps,true);setFeedback('m5FbB','蓝点全部落在余 1 和余 5 两条跑道。',true);});setupReveal('m5RevealABtn','m5RevealABody');setupReveal('m5RevealBBtn','m5RevealBBody');setupReveal('m5RevealCBtn','m5RevealCBody');makeOptions('m5PredictOpts',['可以','不可以'],function(v){m5.prediction=v;},false);$('m5P').addEventListener('input',function(){var p=Number(this.value),vals=[p,p+8,p+16],cells=vals.map(function(n){return {n:n,r:E.mod(n,3),isMultiple:E.mod(n,3)===0};});$('m5PVal').textContent=p;drawWheel(3,cells,false);setFeedback('m5FbC',vals.map(function(n){return n+'→余'+E.mod(n,3)+(E.isPrime(n)?'✓':'×');}).join('，'),vals.every(E.isPrime));});
+
+    $('m6Predict').style.display='none';makeOptions('m6PredictOpts',['均匀散开','随机成团','聚成斜线'],function(v){m6.prediction=v;if(m6.phase==='arranged')$('m6BtnDraw').classList.remove('is-locked');},false);seg('m6Size',[100,2500,10000],100,function(v){m6.size=v;if(m6.phase==='primes')drawSpiral();});$('m6BtnDraw').addEventListener('click',advanceSpiral);$('m6BtnLucky').disabled=false;$('m6BtnLucky').classList.add('is-locked');$('m6BtnLucky').addEventListener('click',function(){if(!m6.drawn){$('m6Predict').scrollIntoView({behavior:'smooth'});return;}m6.lucky=!m6.lucky;this.textContent=m6.lucky?'隐藏幸运线':'点亮幸运线';drawSpiral();});setupReveal('m6RevealBtn','m6RevealBody');
+
+    $('m7E').addEventListener('input',function(){$('m7EVal').textContent=this.value;});$('m7BtnSearch').addEventListener('click',function(){drawGoldbach(Number($('m7E').value));});[30,60,90,100].forEach(function(n){var c=document.createElement('span');c.className='task-chip';c.textContent='挑战 '+n;$('m7Tasks').appendChild(c);});$('m7EuclidBtn').addEventListener('click',runEuclid);$('m7DesertLen').addEventListener('input',function(){$('m7DesertVal').textContent=this.value;});$('m7DesertBtn').addEventListener('click',runDesert);setupReveal('m7RevealBtn','m7RevealBody');
+
+    renderConcepts();$('m8BtnQuiz').addEventListener('click',function(){quiz={at:0,score:0,running:true};$('m8Rank').innerHTML='';renderQuiz();});
+    window.addEventListener('resize',function(){controllers[activeId].render();}); activate('m0');
+  }
+
+  init();
+})();
+
+</script>
+</body>
+</html>

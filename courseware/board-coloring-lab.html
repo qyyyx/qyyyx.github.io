@@ -1,0 +1,2830 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>棋盘染色实验室</title>
+  <link rel="icon" href="data:,">
+  <style>
+/* 棋盘染色实验室 —— 数学实验室型 UI（浅色、白卡片、品牌蓝） */
+:root {
+  color-scheme: light;
+  --bg: #f4f7f8;
+  --surface: #ffffff;
+  --surface-strong: #eef4f5;
+  --line: #d7e1e3;
+  --text: #152529;
+  --muted: #66777d;
+  --accent: #3b82f6;
+  --accent-dark: #2563eb;
+  --accent-soft: #dbeafe;
+  --warning: #c47a1c;
+  --warn-soft: #fdf3e2;
+  --good: #15803d;
+  --good-soft: #dcfce7;
+  --bad: #b91c1c;
+  --bad-soft: #fee2e2;
+  --shadow: 0 18px 50px rgba(30, 52, 60, 0.10);
+
+  /* 棋盘染色的四种色阶（与讲义灰阶对应，但用更适合投屏的中性色） */
+  --cell-0: #ffffff;
+  --cell-1: #94a3b8;
+  --cell-2: #cbd5e1;
+  --cell-3: #64748b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", Arial, sans-serif;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+button { font: inherit; }
+h1, h2, h3, h4, p, dl, dd, dt { margin: 0; }
+
+/* ================= 骨架 ================= */
+.lab-shell {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr) 330px;
+  gap: 16px;
+  width: 100%;
+  min-height: 100vh;
+  padding: 16px;
+}
+.lab-nav, .data-panel { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.lab-nav { border-right: 1px solid var(--line); padding-right: 16px; }
+.workbench { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+.brand-block { padding: 4px 2px 8px; }
+.brand-kicker, .section-label, .panel-label, .prompt-label {
+  color: var(--accent-dark); font-size: 12px; font-weight: 700; letter-spacing: .04em;
+}
+.brand-block h1 { font-size: 23px; line-height: 1.2; margin-top: 6px; }
+.brand-sub { margin-top: 8px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+.module-list { display: flex; flex-direction: column; gap: 6px; }
+.module-item {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 42px; padding: 8px 10px;
+  border: 1px solid transparent; border-radius: 10px;
+  background: transparent; color: var(--text);
+  text-align: left; cursor: pointer; font-size: 13.5px;
+}
+.module-item:hover { background: var(--surface); border-color: var(--line); }
+.module-item.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); font-weight: 700; }
+.module-index { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.module-item.active .module-index { color: var(--accent-dark); }
+.module-item .done-dot { margin-left: auto; color: var(--good); font-size: 12px; }
+
+.ach-block { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 12px; }
+
+.lab-header {
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 12px;
+  flex-wrap: wrap;
+}
+.lab-header h2 { font-size: 22px; margin-top: 4px; }
+.status-strip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 12px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--line);
+  font-size: 12px; color: var(--muted);
+}
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
+
+.stage-scroll { flex: 1; min-height: 0; }
+.prompt-panel {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px;
+}
+#promptText { margin-top: 5px; font-size: 13.5px; color: var(--muted); line-height: 1.7; }
+
+/* ================= 通用卡片 / 控件 ================= */
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 14px;
+}
+.card + .card { margin-top: 12px; }
+.card-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.card-body { margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.75; }
+.card-body strong { color: var(--text); }
+
+.tool-button {
+  min-height: 40px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--text); cursor: pointer;
+  font-size: 13.5px;
+}
+.tool-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-dark); }
+.tool-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.tool-button.primary:hover { background: var(--accent-dark); }
+.tool-button:disabled { opacity: .45; cursor: default; }
+.tool-button.is-locked {
+  border-style: dashed; color: var(--muted); background: var(--surface-strong);
+}
+/* 门禁也可以套在一整组控件上（如武器库芯片组） */
+.chip-grid.is-locked { opacity: .5; }
+.chip-grid.is-locked .color-chip { border-style: dashed; }
+.lock-tag {
+  display: inline-flex; align-items: center;
+  font-size: 12px; color: var(--warning); margin-left: 6px; white-space: nowrap;
+}
+
+.rack { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rack + .rack { margin-top: 10px; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 999px; font-size: 12px;
+  background: var(--surface-strong); color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.warn { background: var(--warn-soft); color: var(--warning); }
+
+/* ================= 棋盘 ================= */
+.board-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.board {
+  display: grid; gap: 0;
+  border: 2px solid #334155; background: #334155;
+  border-radius: 4px; overflow: hidden;
+  touch-action: manipulation; user-select: none;
+  width: min(100%, var(--board-max, 460px));
+}
+.cell {
+  position: relative; aspect-ratio: 1 / 1;
+  border-right: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1;
+  background: var(--cell-0);
+  display: flex; align-items: center; justify-content: center;
+  font-size: clamp(9px, 2.1vw, 14px); color: #1e293b;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+.board.clickable .cell { cursor: pointer; }
+.cell.c0 { background: var(--cell-0); }
+.cell.c1 { background: var(--cell-1); }
+.cell.c2 { background: var(--cell-2); }
+.cell.c3 { background: var(--cell-3); }
+.cell.c1, .cell.c3 { color: #f8fafc; }
+.cell.hole { background: repeating-linear-gradient(45deg, #e2e8f0 0 5px, #f1f5f9 5px 10px); }
+.cell.hole::after { content: '✕'; color: #94a3b8; font-size: 12px; }
+
+/* 骨牌层：半透明覆盖，让底下的染色仍然看得见（教学关键） */
+.cell .piece-layer { position: absolute; inset: 0; pointer-events: none; }
+.cell.occupied .piece-layer { background: var(--pc, #3b82f6); opacity: .34; }
+.cell .piece-edge { position: absolute; inset: 0; pointer-events: none; }
+.cell.edge-t .piece-edge { border-top: 3px solid var(--pcl, #1d4ed8); }
+.cell.edge-r .piece-edge { border-right: 3px solid var(--pcl, #1d4ed8); }
+.cell.edge-b .piece-edge { border-bottom: 3px solid var(--pcl, #1d4ed8); }
+.cell.edge-l .piece-edge { border-left: 3px solid var(--pcl, #1d4ed8); }
+
+.cell.ghost .piece-layer { background: #3b82f6; opacity: .30; }
+.cell.ghost-bad .piece-layer { background: #ef4444; opacity: .30; }
+.cell.spot { outline: 3px solid var(--warning); outline-offset: -3px; z-index: 2; }
+.cell.dim { opacity: .35; }
+
+.board-legend { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; font-size: 12px; color: var(--muted); }
+.swatch { display: inline-block; width: 13px; height: 13px; border: 1px solid #94a3b8; vertical-align: -2px; margin-right: 4px; border-radius: 2px; }
+
+/* ================= 骨牌选择器 / 迷你图 ================= */
+.mini { display: inline-grid; gap: 1px; vertical-align: middle; }
+.mini i { width: 9px; height: 9px; background: #cbd5e1; border-radius: 1px; display: block; }
+.mini i.on { background: var(--accent); }
+.piece-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 40px; padding: 6px 12px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+  cursor: pointer; font-size: 13px;
+}
+.piece-chip.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); font-weight: 600; }
+
+/* ================= 染色芯片（武器库） ================= */
+.chip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.color-chip {
+  min-height: 40px; padding: 8px 6px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+  cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px;
+  font-size: 12px; line-height: 1.3; color: var(--text);
+}
+.color-chip:hover { border-color: var(--accent); }
+.color-chip.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); font-weight: 700; }
+.color-chip.hit { border-color: var(--good); }
+.color-chip .swatch-mini { display: grid; grid-template-columns: repeat(4, 7px); gap: 1px; }
+.color-chip .swatch-mini i { width: 7px; height: 7px; display: block; border-radius: 1px; }
+.color-chip .mark { font-size: 11px; }
+
+/* ================= 矛盾探测器 ================= */
+.detector { font-size: 13px; }
+.detector .row {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  padding: 7px 0; border-bottom: 1px dashed var(--line);
+}
+.detector .row:last-child { border-bottom: 0; }
+.detector .k { color: var(--muted); font-size: 12.5px; }
+.detector .v { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.detector .piece-row { padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.detector .piece-row .name { display: flex; align-items: center; gap: 7px; font-weight: 600; font-size: 13px; }
+.detector .piece-row .vals { margin-top: 5px; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
+.sample-btn {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 7px;
+  padding: 2px 8px; font-size: 12px; cursor: pointer; margin: 2px 4px 0 0;
+  font-variant-numeric: tabular-nums; min-height: 26px;
+}
+.sample-btn:hover { border-color: var(--warning); color: var(--warning); }
+
+.verdict { margin-top: 12px; padding: 11px 12px; border-radius: 10px; font-size: 13px; line-height: 1.75; }
+.verdict.win { background: var(--good-soft); color: #14532d; border: 1px solid #86efac; }
+.verdict.miss { background: var(--warn-soft); color: #7c4a08; border: 1px solid #fcd9a0; }
+
+/* ================= 揭晓 / 预测 ================= */
+.reveal-box { margin-top: 12px; }
+.reveal-body {
+  display: none; margin-top: 10px; padding: 12px;
+  background: var(--surface-strong); border-radius: 10px;
+  font-size: 13px; line-height: 1.8;
+}
+.reveal-box.show .reveal-body { display: block; }
+.reveal-placeholder { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+.reveal-box.show .reveal-placeholder { display: none; }
+
+.predict-box { border: 1px solid var(--accent-soft); background: #f8fbff; border-radius: 12px; padding: 12px 14px; }
+.predict-box.flash { animation: flash 1s ease 2; }
+@keyframes flash { 0%,100% { background: #f8fbff; } 50% { background: #ffeccc; } }
+.predict-q { font-size: 13.5px; font-weight: 600; }
+.opt-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.opt {
+  min-height: 40px; padding: 0 16px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-size: 13.5px;
+}
+.opt.chosen { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); font-weight: 600; }
+.opt:disabled { cursor: default; }
+.predict-feedback { margin-top: 9px; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
+
+/* ================= 关卡条 ================= */
+.level-bar { display: flex; flex-wrap: wrap; gap: 8px; }
+.level-btn {
+  min-height: 40px; padding: 0 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); cursor: pointer;
+  font-size: 13px; display: inline-flex; align-items: center; gap: 7px;
+}
+.level-btn.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); font-weight: 700; }
+.level-btn .tick { color: var(--good); }
+
+/* ================= 概念卡 / 小测 ================= */
+.concept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.concept {
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--surface);
+  cursor: pointer;
+}
+.concept .tag { font-size: 11px; color: var(--accent-dark); background: var(--accent-soft); padding: 2px 8px; border-radius: 999px; }
+.concept h4 { margin-top: 8px; font-size: 14px; }
+.concept .txt { display: none; margin-top: 8px; font-size: 12.5px; color: var(--muted); line-height: 1.75; }
+.concept.open .txt { display: block; }
+.concept .hintline { margin-top: 8px; font-size: 12px; color: var(--muted); }
+.concept.open .hintline { display: none; }
+
+.quiz-item { padding: 12px 0; border-bottom: 1px dashed var(--line); }
+.quiz-item:last-child { border-bottom: 0; }
+.quiz-q { font-size: 13.5px; font-weight: 600; line-height: 1.7; }
+.quiz-opts { display: flex; flex-direction: column; gap: 7px; margin-top: 9px; }
+.quiz-opt {
+  text-align: left; min-height: 40px; padding: 8px 12px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-size: 13px; line-height: 1.6;
+}
+.quiz-opt.right { border-color: var(--good); background: var(--good-soft); }
+.quiz-opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.quiz-opt:disabled { cursor: default; }
+
+/* ================= 沙盘 ================= */
+.slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.slider-row input[type=range] { flex: 1; min-width: 110px; height: 40px; }
+.slider-row .val { min-width: 26px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.recipe-row {
+  display: flex; align-items: center; gap: 8px; padding: 7px 0;
+  border-bottom: 1px dashed var(--line); font-size: 13px;
+}
+.recipe-row:last-child { border-bottom: 0; }
+.recipe-row .nm { flex: 1; display: flex; align-items: center; gap: 7px; }
+.step-btn {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); cursor: pointer; font-size: 15px; line-height: 1;
+}
+.step-btn:hover { border-color: var(--accent); color: var(--accent-dark); }
+.recipe-row .n { min-width: 24px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* ================= 弹窗 ================= */
+.modal-mask {
+  position: fixed; inset: 0; background: rgba(15, 30, 40, .45);
+  display: flex; align-items: center; justify-content: center; padding: 18px; z-index: 999;
+}
+/* 作者样式的 display:flex 会盖过 UA 的 [hidden]{display:none}，必须显式收回 */
+.modal-mask[hidden] { display: none; }
+.modal-card {
+  background: var(--surface); border-radius: 14px; padding: 18px;
+  width: min(560px, 100%); max-height: 82vh; overflow: auto; box-shadow: var(--shadow);
+}
+.modal-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+.modal-head h3 { font-size: 16px; }
+.ach-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* ================= 响应式 ================= */
+@media (max-width: 1099px) {
+  .lab-shell { grid-template-columns: minmax(0, 1fr); padding: 12px; gap: 12px; }
+  .lab-nav { border-right: 0; padding-right: 0; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+  .module-list { flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
+  .module-item { flex: 0 0 auto; white-space: nowrap; }
+  .ach-block { margin-top: 4px; flex-direction: row; align-items: center; }
+  .ach-progress-track { flex: 1; }
+  .brand-block h1 { font-size: 20px; }
+  .brand-sub { display: none; }
+}
+@media (max-width: 700px) {
+  .lab-shell { padding: 10px; }
+  .lab-header h2 { font-size: 18px; }
+  .chip-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+  .board { --board-max: 100%; }
+  .concept-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+
+/*
+ * achievements.css —— 成就系统底座配套样式
+ * 配合 achievements.js 使用；可整段内联进单 HTML。
+ * 颜色沿用数学实验室型变量（品牌蓝 #3b82f6 / 浅色卡片），无变量时有兜底值。
+ */
+
+/* ---- toast 解锁提示（右下角堆叠） ---- */
+.ach-toast-stack {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.ach-toast {
+  min-width: 220px;
+  max-width: 300px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #d7e1e3);
+  border-left: 4px solid var(--accent, #3b82f6);
+  box-shadow: 0 6px 20px rgba(15, 30, 40, 0.12);
+  animation: ach-toast-in 0.25s ease-out;
+}
+.ach-toast-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--accent-dark, #2563eb);
+  font-weight: 600;
+}
+.ach-toast-name {
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #152529);
+}
+.ach-toast-desc {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted, #66777d);
+}
+@keyframes ach-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- 奖杯进度条（在任意位置放 [data-ach-progress] 的轨道即可） ---- */
+.ach-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-strong, #eef4f5);
+  overflow: hidden;
+}
+.ach-progress-track > [data-ach-progress] {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: var(--accent, #3b82f6);
+  transition: width 0.3s ease;
+}
+
+/* ---- 成就清单行（奖杯弹窗内） ---- */
+.ach-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #d7e1e3);
+  background: var(--surface, #ffffff);
+  opacity: 0.55;
+}
+.ach-row.is-unlocked { opacity: 1; border-color: var(--accent-soft, #dbeafe); }
+.ach-row .ach-icon { font-size: 22px; text-align: center; }
+.ach-row .ach-name { font-weight: 600; color: var(--text, #152529); }
+.ach-row .ach-desc { font-size: 12px; color: var(--muted, #66777d); }
+.ach-row .ach-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted, #66777d);
+  white-space: nowrap;
+}
+.ach-row.is-unlocked .ach-status { color: var(--accent-dark, #2563eb); }
+
+/* 触控目标：奖杯入口按钮不小于 40px */
+.ach-trophy-btn {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line, #d7e1e3);
+  background: var(--surface, #ffffff);
+  color: var(--text, #152529);
+  cursor: pointer;
+}
+
+  </style>
+  </head>
+<body>
+  <main class="lab-shell">
+    <!-- ============ 左栏：模块导航 ============ -->
+    <aside class="lab-nav" aria-label="模块导航">
+      <div class="brand-block">
+        <p class="brand-kicker">Math Lab</p>
+        <h1>棋盘染色实验室</h1>
+        <p class="brand-sub">用一把「不变量」的刀，把「铺不满」证死</p>
+      </div>
+      <nav class="module-list" id="moduleList"></nav>
+      <div class="ach-block">
+        <button class="ach-trophy-btn" type="button" id="trophyBtn">
+          🏆 成就 <span data-ach-count>0</span>/<span data-ach-total>0</span>
+        </button>
+        <div class="ach-progress-track"><span data-ach-progress></span></div>
+      </div>
+    </aside>
+
+    <!-- ============ 中栏：工作台 ============ -->
+    <section class="workbench">
+      <header class="lab-header">
+        <div>
+          <p class="section-label" id="modKicker">实验 00</p>
+          <h2 id="modTitle">模块标题</h2>
+        </div>
+        <div class="status-strip"><span class="status-dot"></span><span id="statusText">可操作</span></div>
+      </header>
+
+      <div class="stage-scroll">
+        <div id="stageHost"></div>
+      </div>
+
+      <footer class="prompt-panel">
+        <p class="prompt-label">探究提示</p>
+        <p id="promptText">先动手，再观察，最后才揭晓。</p>
+      </footer>
+    </section>
+
+    <!-- ============ 右栏：数据面板 ============ -->
+    <aside class="data-panel" aria-label="数据面板">
+      <div id="panelHost"></div>
+    </aside>
+  </main>
+
+  <!-- 成就弹窗 -->
+  <div class="modal-mask" id="achModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>成就 · 奖励「发现」而不是「点击」</h3>
+        <button class="tool-button" type="button" id="achClose">关闭</button>
+      </div>
+      <div class="ach-list" id="achList"></div>
+    </div>
+  </div>
+
+  <script>
+/*
+ * coloring-engine.js —— 棋盘染色实验室 · 可计算内核（UMD，浏览器 + Node 双用）
+ * ---------------------------------------------------------------------------
+ * 职责边界：
+ *   本文件只做「数学」，不碰 DOM。所有教学结论必须由这里算出来，
+ *   页面文案一律读引擎返回值，禁止写死具体数字（工坊硬规则）。
+ *
+ * 三块内容：
+ *   1. 染色方案库 COLORINGS —— 讲义第 17 页那张八种染色图鉴的可执行版本
+ *   2. 多格骨牌 PIECES + 朝向/摆放枚举
+ *   3. 矛盾探测器 analyze() —— 染色证否的通用判据，以及 solve() 穷举求解器
+ *
+ * 矛盾探测器的判据（按「学生能听懂」的强度排序，全部是必要条件）：
+ *   面积   : Σ 块数×格数 必须等于棋盘格数
+ *   恒定值 : 每种骨牌覆盖某色的格数恒为定值 → 总数被唯一确定 → 与棋盘实际数比
+ *   奇偶性 : 每种骨牌覆盖某色的格数奇偶恒定 → 总数奇偶被确定 → 与棋盘实际数比
+ *   可达集 : 对每种颜色做子集和 DP，棋盘实际数若不在可达集内 → 矛盾
+ *            （可达集是前两条的推广，恒定值/奇偶只是它的特例，用于给出人话理由）
+ */
+(function (root, factory) {
+  'use strict';
+  var api = factory();
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  if (root) root.ColoringEngine = api;
+})(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this), function () {
+  'use strict';
+
+  // =========================================================================
+  // 1. 染色方案库（对应讲义 P17「八种染色图鉴」，编号与讲义一致）
+  // =========================================================================
+  var COLORINGS = [
+    {
+      id: 'checker', name: '国际象棋型', short: '黑白', k: 2, labels: ['白', '黑'],
+      family: '黑白染色',
+      idea: '相邻格必不同色。最基础的一把刀，专治「每块必吃 1 黑 1 白」的图形。',
+      fn: function (r, c) { return (r + c) % 2; }
+    },
+    {
+      id: 'stripeV', name: '竖条型', short: '竖条', k: 2, labels: ['白', '黑'],
+      family: '条形染色',
+      idea: '一列黑一列白。黑白染色看不出破绽时，先试它。',
+      fn: function (r, c) { return c % 2; }
+    },
+    {
+      id: 'stripeH', name: '横条型', short: '横条', k: 2, labels: ['白', '黑'],
+      family: '条形染色',
+      idea: '一行黑一行白，竖条型转 90°。图形横竖不对称时两者结论可能不同。',
+      fn: function (r, c) { return r % 2; }
+    },
+    {
+      id: 'cycle4', name: '轮换四色', short: '四色', k: 4, labels: ['1', '2', '3', '4'],
+      family: '轮换染色',
+      idea: '1234 沿斜线轮换。任何 1×4 长条，横放竖放都必吃到 1、2、3、4 各一个。',
+      fn: function (r, c) { return (r + c) % 4; }
+    },
+    {
+      id: 'diag1', name: '斜线型1', short: '斜1', k: 2, labels: ['白', '黑'],
+      family: '斜线染色',
+      idea: '只把轮换四色里的「2」留成黑格。每个 1×4 恰好吃 1 个黑格。',
+      fn: function (r, c) { return (r + c) % 4 === 1 ? 1 : 0; }
+    },
+    {
+      id: 'diag2', name: '斜线型2', short: '斜2', k: 2, labels: ['白', '黑'],
+      family: '斜线染色',
+      idea: '两黑两白的斜条纹（条形染色每行偏移 1 格）。2×2 方块在它下面永远吃奇数个黑格。',
+      fn: function (r, c) { return (((c - r) % 4) + 4) % 4 < 2 ? 1 : 0; }
+    },
+    {
+      id: 'diag3', name: '斜线型3', short: '斜3', k: 2, labels: ['白', '黑'],
+      family: '斜线染色',
+      idea: '周期 3 的斜线。任何 1×3 长条恰吃 1 个黑格，长方形怎么转都不变。',
+      fn: function (r, c) { return (r + c) % 3 === 0 ? 1 : 0; }
+    },
+    {
+      id: 'block2', name: '大方格型', short: '大格', k: 2, labels: ['白', '黑'],
+      family: '其他染色',
+      idea: '把 2×2 当成一大格来轮流染。专治「四方块里有一小块跑出去」的旋转对称图形。',
+      fn: function (r, c) { return ((Math.floor(r / 2) + Math.floor(c / 2)) % 2 === 0) ? 1 : 0; }
+    },
+    {
+      id: 'square', name: '正方形型', short: '方型', k: 2, labels: ['白', '黑'],
+      family: '其他染色',
+      idea: '每隔一行一列点一个黑格。2×2 方块必吃 1 个，1×4 长条必吃偶数个。',
+      fn: function (r, c) { return (r % 2 === 0 && c % 2 === 0) ? 1 : 0; }
+    }
+  ];
+
+  function getColoring(id) {
+    for (var i = 0; i < COLORINGS.length; i++) if (COLORINGS[i].id === id) return COLORINGS[i];
+    return null;
+  }
+
+  /**
+   * 把「方案 id / 方案对象 / 自定义网格」统一成 { id, name, k, labels, grid }
+   * 自定义染色（沙盘模块）传 { id, name, k, labels, grid:[[..]] } 即可。
+   */
+  function resolveColoring(coloring, W, H) {
+    var def = typeof coloring === 'string' ? getColoring(coloring) : coloring;
+    if (!def) throw new Error('unknown coloring: ' + coloring);
+    var grid;
+    if (def.grid) {
+      grid = def.grid;
+      if (grid.length !== H || grid[0].length !== W) throw new Error('custom coloring grid size mismatch');
+    } else {
+      grid = [];
+      for (var r = 0; r < H; r++) {
+        var row = [];
+        for (var c = 0; c < W; c++) row.push(def.fn(r, c));
+        grid.push(row);
+      }
+    }
+    return {
+      id: def.id, name: def.name, short: def.short || def.name, k: def.k,
+      labels: def.labels, family: def.family || '自定义', idea: def.idea || '', grid: grid
+    };
+  }
+
+  /** blocked（挖掉的洞）统一成 { 'r,c': true } 查询表 */
+  function blockedSet(blocked) {
+    var s = {};
+    (blocked || []).forEach(function (p) { s[p[0] + ',' + p[1]] = true; });
+    return s;
+  }
+
+  /** blocked 参数既接受 [[r,c],..] 也接受已建好的查询表 */
+  function asSet(blocked) { return Array.isArray(blocked) || !blocked ? blockedSet(blocked) : blocked; }
+
+  /** 各颜色在棋盘上的格数（挖掉的洞不计） */
+  function colorCounts(resolved, blocked) {
+    var bs = asSet(blocked);
+    var out = new Array(resolved.k).fill(0);
+    for (var r = 0; r < resolved.grid.length; r++)
+      for (var c = 0; c < resolved.grid[r].length; c++)
+        if (!bs[r + ',' + c]) out[resolved.grid[r][c]]++;
+    return out;
+  }
+
+  // =========================================================================
+  // 2. 多格骨牌与朝向
+  // =========================================================================
+  var PIECES = [
+    { id: 'domino', name: '1×2 骨牌', glyph: '▭', cells: [[0, 0], [0, 1]] },
+    { id: 'tri-I', name: '1×3 长条', glyph: '▬', cells: [[0, 0], [0, 1], [0, 2]] },
+    { id: 'tri-L', name: 'L 形三连方', glyph: '⌐', cells: [[0, 0], [1, 0], [1, 1]] },
+    { id: 'tet-O', name: '2×2 方块', glyph: '■', cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { id: 'tet-I', name: '1×4 长条', glyph: '▭', cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
+    { id: 'tet-L', name: 'L 形四连方', glyph: 'L', cells: [[0, 2], [1, 0], [1, 1], [1, 2]] },
+    { id: 'tet-T', name: 'T 形四连方', glyph: 'T', cells: [[0, 1], [1, 0], [1, 1], [1, 2]] },
+    { id: 'tet-S', name: 'S 形四连方', glyph: 'S', cells: [[0, 1], [0, 2], [1, 0], [1, 1]] }
+  ];
+
+  function getPiece(id) {
+    for (var i = 0; i < PIECES.length; i++) if (PIECES[i].id === id) return PIECES[i];
+    return null;
+  }
+
+  /** 平移到左上角并按行序排序，作为朝向的唯一标准形 */
+  function normalize(cells) {
+    var minR = Infinity, minC = Infinity, i;
+    for (i = 0; i < cells.length; i++) { if (cells[i][0] < minR) minR = cells[i][0]; if (cells[i][1] < minC) minC = cells[i][1]; }
+    var out = cells.map(function (p) { return [p[0] - minR, p[1] - minC]; });
+    out.sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+    return out;
+  }
+  function key(cells) { return cells.map(function (p) { return p[0] + ',' + p[1]; }).join(';'); }
+  function rotate(cells) { return cells.map(function (p) { return [p[1], -p[0]]; }); }
+  function mirror(cells) { return cells.map(function (p) { return [p[0], -p[1]]; }); }
+
+  /** 所有互不相同的朝向（allowFlip=false 时只旋转，手性图形 L/S 会区分左右手） */
+  function orientations(piece, allowFlip) {
+    var base = typeof piece === 'string' ? getPiece(piece).cells : (piece.cells || piece);
+    var seen = {}, out = [], seeds = allowFlip ? [base, mirror(base)] : [base];
+    for (var s = 0; s < seeds.length; s++) {
+      var cur = seeds[s];
+      for (var t = 0; t < 4; t++) {
+        var n = normalize(cur), k = key(n);
+        if (!seen[k]) { seen[k] = 1; out.push(n); }
+        cur = rotate(cur);
+      }
+    }
+    return out;
+  }
+
+  /** 某个朝向在 W×H 棋盘上的所有落位（返回绝对格坐标数组） */
+  function placementsOf(orient, W, H) {
+    var maxR = 0, maxC = 0, i;
+    for (i = 0; i < orient.length; i++) { if (orient[i][0] > maxR) maxR = orient[i][0]; if (orient[i][1] > maxC) maxC = orient[i][1]; }
+    var out = [];
+    for (var dr = 0; dr + maxR < H; dr++)
+      for (var dc = 0; dc + maxC < W; dc++)
+        out.push(orient.map(function (p) { return [p[0] + dr, p[1] + dc]; }));
+    return out;
+  }
+
+  /** 一种骨牌在 W×H 棋盘上的全部落位（所有朝向合并，自动跳过压到洞上的落位） */
+  function allPlacements(pieceId, W, H, allowFlip, blocked) {
+    var bs = asSet(blocked), res = [];
+    orientations(pieceId, allowFlip).forEach(function (o) {
+      placementsOf(o, W, H).forEach(function (p) {
+        for (var i = 0; i < p.length; i++) if (bs[p[i][0] + ',' + p[i][1]]) return;
+        res.push(p);
+      });
+    });
+    return res;
+  }
+
+  // =========================================================================
+  // 3. 覆盖谱：一块骨牌在某染色下「能吃到几个某色格」
+  // =========================================================================
+  /**
+   * @returns {{ perColor: Array<{values:number[], min, max, constant:number|null, parity:0|1|null}>,
+   *             placements:number }}
+   */
+  function spectrum(pieceId, coloring, W, H, allowFlip, blocked) {
+    var col = resolveColoring(coloring, W, H);
+    var sets = [], samples = [];
+    for (var j = 0; j < col.k; j++) { sets.push({}); samples.push({}); }
+    var places = allPlacements(pieceId, W, H, allowFlip, blocked);
+    if (!places.length) throw new Error('piece ' + pieceId + ' does not fit in ' + W + 'x' + H);
+    places.forEach(function (cells) {
+      var v = new Array(col.k).fill(0);
+      cells.forEach(function (p) { v[col.grid[p[0]][p[1]]]++; });
+      for (var j = 0; j < col.k; j++) {
+        sets[j][v[j]] = 1;
+        if (!samples[j][v[j]]) samples[j][v[j]] = cells; // 每个取值留一个代表落位，供课件「看样例」
+      }
+    });
+    var perColor = sets.map(function (s, j) {
+      var values = Object.keys(s).map(Number).sort(function (a, b) { return a - b; });
+      var parity = null;
+      if (values.every(function (v) { return v % 2 === values[0] % 2; })) parity = values[0] % 2;
+      return {
+        values: values, min: values[0], max: values[values.length - 1],
+        constant: values.length === 1 ? values[0] : null, parity: parity,
+        samples: samples[j]
+      };
+    });
+    return { perColor: perColor, placements: places.length };
+  }
+
+  /** 子集和 DP：n_i 块、每块取值来自 sets[i]，能凑出的所有总数 */
+  function reachableSums(sets, counts, cap) {
+    var cur = {}; cur[0] = 1;
+    for (var i = 0; i < sets.length; i++) {
+      for (var n = 0; n < counts[i]; n++) {
+        var next = {};
+        for (var s in cur) {
+          for (var v = 0; v < sets[i].length; v++) {
+            var t = +s + sets[i][v];
+            if (t <= cap) next[t] = 1;
+          }
+        }
+        cur = next;
+        if (!Object.keys(cur).length) return [];
+      }
+    }
+    return Object.keys(cur).map(Number).sort(function (a, b) { return a - b; });
+  }
+
+  // =========================================================================
+  // 4. 矛盾探测器
+  // =========================================================================
+  /**
+   * @param {Object} cfg
+   * @param {number} cfg.W, cfg.H          棋盘尺寸
+   * @param {*}      cfg.coloring          方案 id / 方案对象 / 自定义 {k,labels,grid}
+   * @param {Array}  cfg.recipe            [{pieceId, count}]
+   * @param {boolean}cfg.allowFlip         图形是否允许翻转（默认 true）
+   * @returns {Object} 完整分析报告；proved=true 表示这套染色成功证否
+   */
+  function analyze(cfg) {
+    var W = cfg.W, H = cfg.H, allowFlip = cfg.allowFlip !== false;
+    var bs = asSet(cfg.blocked);
+    var col = resolveColoring(cfg.coloring, W, H);
+    var boardCounts = colorCounts(col, bs);
+    var boardArea = W * H - Object.keys(bs).length;
+
+    var pieceArea = 0, specs = [], counts = [];
+    cfg.recipe.forEach(function (item) {
+      var def = getPiece(item.pieceId);
+      pieceArea += def.cells.length * item.count;
+      specs.push({
+        pieceId: item.pieceId, name: def.name, count: item.count,
+        spec: spectrum(item.pieceId, col, W, H, allowFlip, bs)
+      });
+      counts.push(item.count);
+    });
+
+    var report = {
+      W: W, H: H, coloring: col, boardCounts: boardCounts, boardArea: boardArea,
+      pieceArea: pieceArea, areaOk: pieceArea === boardArea,
+      pieces: specs, colorReports: [], proved: false, best: null
+    };
+
+    // 面积先行：格数都对不上就没必要谈染色
+    if (!report.areaOk) {
+      report.proved = true;
+      report.best = {
+        type: 'area', color: -1,
+        text: '这些图形一共占 ' + pieceArea + ' 格，棋盘只有 ' + boardArea + ' 格，格数就对不上——不用染色也知道不行。'
+      };
+      return report;
+    }
+
+    for (var j = 0; j < col.k; j++) {
+      var sets = specs.map(function (s) { return s.spec.perColor[j].values; });
+      var reach = reachableSums(sets, counts, boardArea);
+      var actual = boardCounts[j];
+      var hit = reach.indexOf(actual) >= 0;
+      var label = col.labels[j];
+
+      var allConst = specs.every(function (s) { return s.spec.perColor[j].constant !== null; });
+      var allParity = specs.every(function (s) { return s.spec.perColor[j].parity !== null; });
+
+      var reason = null;
+      if (!hit) {
+        if (allConst) {
+          var parts = specs.map(function (s) {
+            return s.count + ' 个「' + s.name + '」每个必吃 ' + s.spec.perColor[j].constant + ' 个';
+          });
+          reason = {
+            type: 'constant',
+            text: parts.join('，') + '，合计必然是 ' + reach[0] + ' 个「' + label +
+              '」格；可是棋盘上「' + label + '」格有 ' + actual + ' 个。' + reach[0] + ' ≠ ' + actual + '，矛盾！'
+          };
+        } else if (allParity) {
+          var pSum = 0, pParts = [];
+          specs.forEach(function (s) {
+            var p = s.spec.perColor[j].parity;
+            pSum += p * s.count;
+            pParts.push(s.count + ' 个「' + s.name + '」每个吃' + (p ? '奇' : '偶') + '数个');
+          });
+          var want = pSum % 2;
+          reason = {
+            type: 'parity',
+            text: pParts.join('，') + '，所以总数必为' + (want ? '奇' : '偶') + '数；可是棋盘上「' + label +
+              '」格有 ' + actual + ' 个，是' + (actual % 2 ? '奇' : '偶') + '数。奇 ≠ 偶，矛盾！'
+          };
+        } else {
+          var lo = reach[0], hi = reach[reach.length - 1];
+          reason = {
+            type: 'reachable',
+            text: '把每块能吃的「' + label + '」格数逐一枚举、再全部相加，能凑出的总数只有 ' +
+              (reach.length <= 8 ? '{' + reach.join(', ') + '}' : lo + ' 到 ' + hi + ' 之间的 ' + reach.length + ' 个值') +
+              '；棋盘实际有 ' + actual + ' 个，凑不出来，矛盾！'
+          };
+        }
+      }
+
+      report.colorReports.push({
+        index: j, label: label, actual: actual, reachable: reach, contradiction: !hit,
+        perPiece: specs.map(function (s) { return { pieceId: s.pieceId, name: s.name, count: s.count, info: s.spec.perColor[j] }; }),
+        reason: reason
+      });
+    }
+
+    // best = 讲给学生听时最省力的那条：恒定值 > 奇偶性 > 可达集；
+    // 同强度时优先取「黑」（二色方案里索引大的那个），黑格论证读起来更顺。
+    var rank = { constant: 0, parity: 1, reachable: 2 };
+    report.colorReports.forEach(function (cr) {
+      if (!cr.contradiction) return;
+      report.proved = true;
+      var cand = { type: cr.reason.type, color: cr.index, text: cr.reason.text };
+      if (!report.best) { report.best = cand; return; }
+      var a = rank[cand.type], b = rank[report.best.type];
+      if (a < b || (a === b && cand.color > report.best.color)) report.best = cand;
+    });
+    return report;
+  }
+
+  /** 把 recipe 里所有骨牌在这套染色下的「可行/失效」一次算清，用于武器库排行 */
+  function rankColorings(cfg) {
+    return COLORINGS.map(function (c) {
+      var rep = analyze({
+        W: cfg.W, H: cfg.H, coloring: c.id, recipe: cfg.recipe,
+        allowFlip: cfg.allowFlip, blocked: cfg.blocked
+      });
+      return { id: c.id, name: c.name, short: c.short, family: c.family, proved: rep.proved, best: rep.best, report: rep };
+    });
+  }
+
+  // =========================================================================
+  // 5. 穷举求解器（找构造 / 诚实地证明「真的搜遍了」）
+  // =========================================================================
+  /**
+   * 按行序找第一个空格，强制由「行序最靠前的那一格」去盖它，天然去重。
+   * @returns {{solved:boolean, placements:Array, nodes:number, exhausted:boolean}}
+   */
+  function solve(cfg) {
+    var W = cfg.W, H = cfg.H, allowFlip = cfg.allowFlip !== false;
+    var budget = cfg.budget || 4000000;
+    var board = new Int8Array(W * H).fill(-1);
+    if (cfg.blocked) cfg.blocked.forEach(function (p) { board[p[0] * W + p[1]] = -2; });
+
+    var types = cfg.recipe.map(function (it) {
+      return { pieceId: it.pieceId, left: it.count, orients: orientations(it.pieceId, allowFlip) };
+    });
+    var free = W * H - (cfg.blocked ? cfg.blocked.length : 0);
+    var need = cfg.recipe.reduce(function (a, it) { return a + getPiece(it.pieceId).cells.length * it.count; }, 0);
+    if (need !== free) return { solved: false, placements: [], nodes: 0, exhausted: true, reason: 'area' };
+
+    var placed = [], nodes = 0, overflow = false;
+
+    function firstEmpty() {
+      for (var i = 0; i < board.length; i++) if (board[i] === -1) return i;
+      return -1;
+    }
+    function dfs() {
+      if (++nodes > budget) { overflow = true; return false; }
+      var idx = firstEmpty();
+      if (idx < 0) return true;
+      var r0 = Math.floor(idx / W), c0 = idx % W;
+      for (var t = 0; t < types.length; t++) {
+        if (!types[t].left) continue;
+        var os = types[t].orients;
+        for (var o = 0; o < os.length; o++) {
+          var cells = os[o];
+          // 行序第一格必须落在 (r0,c0)
+          var dr = r0 - cells[0][0], dc = c0 - cells[0][1], ok = true, abs = [];
+          for (var m = 0; m < cells.length; m++) {
+            var rr = cells[m][0] + dr, cc = cells[m][1] + dc;
+            if (rr < 0 || rr >= H || cc < 0 || cc >= W || board[rr * W + cc] !== -1) { ok = false; break; }
+            abs.push([rr, cc]);
+          }
+          if (!ok) continue;
+          for (m = 0; m < abs.length; m++) board[abs[m][0] * W + abs[m][1]] = placed.length;
+          placed.push({ pieceId: types[t].pieceId, cells: abs });
+          types[t].left--;
+          if (dfs()) return true;
+          types[t].left++;
+          placed.pop();
+          for (m = 0; m < abs.length; m++) board[abs[m][0] * W + abs[m][1]] = -1;
+          if (overflow) return false;
+        }
+      }
+      return false;
+    }
+
+    var solved = dfs();
+    return { solved: solved, placements: solved ? placed.slice() : [], nodes: nodes, exhausted: !overflow };
+  }
+
+  // =========================================================================
+  // 6. 手动铺砖的落位校验（供 UI 复用，避免 UI 自己再写一份规则）
+  // =========================================================================
+  function canPlace(occupied, W, H, cells) {
+    for (var i = 0; i < cells.length; i++) {
+      var r = cells[i][0], c = cells[i][1];
+      if (r < 0 || r >= H || c < 0 || c >= W) return false;
+      if (occupied[r * W + c] >= 0) return false;
+    }
+    return true;
+  }
+
+  return {
+    COLORINGS: COLORINGS, PIECES: PIECES,
+    getColoring: getColoring, getPiece: getPiece,
+    resolveColoring: resolveColoring, colorCounts: colorCounts, blockedSet: blockedSet,
+    normalize: normalize, orientations: orientations,
+    placementsOf: placementsOf, allPlacements: allPlacements,
+    spectrum: spectrum, reachableSums: reachableSums,
+    analyze: analyze, rankColorings: rankColorings,
+    solve: solve, canPlace: canPlace
+  };
+});
+
+
+/*
+ * achievements.js —— 交互课件「成就/激励系统」代码底座
+ * ---------------------------------------------------------------
+ * 来源：从成品 lights-out.html / polyomino-tiling.html 的成就系统提炼。
+ * 特性：零依赖、原生 JS、可直接 file:// 打开、可整段内联进单 HTML。
+ * 用法与设计说明见：references/patterns-library.md →「成就系统底座」。
+ *
+ * 设计要点（务必照做）：
+ *  - 成就奖励「发现 / 掌握」里程碑，不奖励「点击次数」。
+ *  - 声明式成就表 + check(state) 谓词；状态变更后调用 ach.check(state) 即可。
+ *  - localStorage 持久化（带版本号 key），刷新后进度保留。
+ *  - 解锁即 toast；可选奖杯弹窗 + 进度条。
+ * ---------------------------------------------------------------
+ */
+(function (global) {
+  'use strict';
+
+  /**
+   * @param {Object}   options
+   * @param {Array}    options.defs            成就定义：{ id, icon, name, desc, check?(state)=>bool }
+   * @param {string}   options.storageKey      localStorage key，建议带版本号，如 'lights-out-ach-v1'
+   * @param {number}  [options.toastDuration]  toast 停留毫秒，默认 4200
+   * @param {Function}[options.onUnlock]       每解锁一项的回调 (def) => void（可选，用于撒花/音效）
+   */
+  function createAchievements(options) {
+    options = options || {};
+    var defs = options.defs || [];
+    var storageKey = options.storageKey || 'courseware-achievements-v1';
+    var toastDuration = options.toastDuration || 4200;
+    var onUnlock = typeof options.onUnlock === 'function' ? options.onUnlock : null;
+
+    var unlocked = new Set();
+
+    function findDef(id) {
+      for (var i = 0; i < defs.length; i++) { if (defs[i].id === id) return defs[i]; }
+      return null;
+    }
+    function load() {
+      try {
+        var raw = global.localStorage.getItem(storageKey);
+        if (raw) JSON.parse(raw).forEach(function (id) { unlocked.add(id); });
+      } catch (e) { /* 隐私模式 / file:// 受限时静默降级 */ }
+    }
+    function save() {
+      try { global.localStorage.setItem(storageKey, JSON.stringify(Array.from(unlocked))); }
+      catch (e) { /* 静默降级：本次会话仍可用，只是不持久 */ }
+    }
+
+    // ---- toast（懒创建容器，无需在 HTML 里预置） ----
+    function toastStack() {
+      var el = document.getElementById('achToastStack');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'achToastStack';
+        el.className = 'ach-toast-stack';
+        document.body.appendChild(el);
+      }
+      return el;
+    }
+    function showToast(def) {
+      var el = document.createElement('div');
+      el.className = 'ach-toast';
+      el.innerHTML =
+        '<div class="ach-toast-title"><span>🏆</span>解锁成就</div>' +
+        '<div class="ach-toast-name">' + (def.icon || '') + ' ' + def.name + '</div>' +
+        '<div class="ach-toast-desc">' + (def.desc || '') + '</div>';
+      toastStack().appendChild(el);
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, toastDuration);
+    }
+
+    // ---- 进度反馈（按 data 属性自动挂载，无则跳过） ----
+    function updateProgress() {
+      var got = count(), tot = Math.max(1, total());
+      var bar = document.querySelector('[data-ach-progress]');
+      if (bar) bar.style.width = Math.round(got / tot * 100) + '%';
+      var c = document.querySelector('[data-ach-count]'); if (c) c.textContent = count();
+      var t = document.querySelector('[data-ach-total]'); if (t) t.textContent = total();
+    }
+
+    function fire(def) {
+      save();
+      showToast(def);
+      updateProgress();
+      if (onUnlock) onUnlock(def);
+    }
+
+    // 命令式解锁：用于「做了某动作就解锁」的离散事件
+    function unlock(id) {
+      if (unlocked.has(id)) return false;
+      var def = findDef(id);
+      if (!def) return false;
+      unlocked.add(id);
+      fire(def);
+      return true;
+    }
+
+    // 声明式解锁：传入当前 state，自动解锁所有 check(state) 为真者
+    function check(state) {
+      var fresh = [];
+      for (var i = 0; i < defs.length; i++) {
+        var def = defs[i];
+        if (def.check && !unlocked.has(def.id) && def.check(state)) {
+          unlocked.add(def.id);
+          fresh.push(def);
+        }
+      }
+      if (fresh.length) { fresh.forEach(fire); }
+      return fresh;
+    }
+
+    function has(id) { return unlocked.has(id); }
+    function count() { return defs.filter(function (d) { return unlocked.has(d.id); }).length; }
+    function total() { return defs.length; }
+    function reset() { unlocked.clear(); save(); updateProgress(); }
+
+    // 可选：把成就清单渲染进某个容器（用于奖杯弹窗）
+    function renderList(container) {
+      if (!container) return;
+      container.innerHTML = '';
+      defs.forEach(function (def) {
+        var got = unlocked.has(def.id);
+        var row = document.createElement('div');
+        row.className = 'ach-row' + (got ? ' is-unlocked' : '');
+        row.innerHTML =
+          '<div class="ach-icon">' + (got ? (def.icon || '🏆') : '🔒') + '</div>' +
+          '<div class="ach-meta"><div class="ach-name">' + def.name + '</div>' +
+          '<div class="ach-desc">' + (def.desc || '') + '</div></div>' +
+          '<div class="ach-status">' + (got ? '✓ 已解锁' : '未解锁') + '</div>';
+        container.appendChild(row);
+      });
+      updateProgress();
+    }
+
+    load();
+    updateProgress();
+
+    return {
+      check: check,        // 声明式：状态变更后调用 ach.check(state)
+      unlock: unlock,      // 命令式：离散事件触发 ach.unlock(id)
+      has: has,
+      count: count,
+      total: total,
+      reset: reset,
+      renderList: renderList
+    };
+  }
+
+  global.createAchievements = createAchievements;
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { createAchievements: createAchievements }; }
+})(typeof window !== 'undefined' ? window : this);
+
+
+/*
+ * app.js —— 棋盘染色实验室 UI 层
+ * 规矩：本文件不做数学。所有判定、格数、覆盖谱、矛盾理由一律来自 ColoringEngine，
+ *       页面文案读引擎返回值，禁止写死具体数字。
+ */
+(function () {
+  'use strict';
+
+  var E = window.ColoringEngine;
+  var $ = function (sel, root) { return (root || document).querySelector(sel); };
+  var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+
+  function el(tag, cls, html) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html != null) n.innerHTML = html;
+    return n;
+  }
+  function frag() { return document.createDocumentFragment(); }
+
+  // 骨牌配色（半透明叠在染色之上，底下的颜色仍然看得见）
+  var HUES = ['#2563eb', '#ea580c', '#059669', '#7c3aed', '#dc2626',
+    '#0891b2', '#db2777', '#65a30d', '#d97706', '#4f46e5'];
+
+  // =========================================================================
+  // 全局状态（成就判定只读这里的字段；字段名务必与成就 check 一致）
+  // =========================================================================
+  var S = {
+    module: 'intro',
+    sawSpectrum: false,      // M1 扫描出第一条覆盖谱
+    sawInvariant: false,     // M1 扫到恒定 / 奇偶恒定
+    sawBWFail: false,        // M2 亲眼看到黑白染色无矛盾
+    stripeWin: false,        // M2 条形染色打穿
+    cycleWin: false,         // M3 轮换四色打穿
+    stuck: false,            // M4 手铺到无处可放
+    arenaCleared: {},        // M4 每关是否打穿 / 铺满
+    oneShot: false,          // M4 第一次选武器就打穿
+    trapFound: false,        // M5-3 识破讲义漏洞
+    sandboxWin: false,       // M6 自制染色证否成功
+    quizPerfect: false,
+    unlockedCount: 0
+  };
+
+  var ACH_DEFS = [
+    { id: 'brute-force', icon: '🐌', name: '穷举投降', desc: '在缺角棋盘上看到穷举法搜不完', check: function (s) { return s.sawBrute; } },
+    { id: 'invariant', icon: '🔬', name: '初见不变量', desc: '扫描出一条恒定或奇偶恒定的覆盖谱', check: function (s) { return s.sawInvariant; } },
+    { id: 'bw-fail', icon: '🕳️', name: '黑白失灵', desc: '亲眼看到黑白染色判定「无矛盾」', check: function (s) { return s.sawBWFail; } },
+    { id: 'switch-blade', icon: '🔪', name: '换把刀', desc: '黑白证不出的题，用条形染色打穿', check: function (s) { return s.stripeWin; } },
+    { id: 'long-bane', icon: '🎯', name: '长条克星', desc: '用轮换四色证否 9 个 1×4', check: function (s) { return s.cycleWin; } },
+    { id: 'wall', icon: '🧱', name: '撞墙者', desc: '在靶场手铺到无处可放', check: function (s) { return s.stuck; } },
+    { id: 'sniper', icon: '🏹', name: '神射手', desc: '靶场五个小问全部拿下', check: function (s) { return Object.keys(s.arenaCleared).length >= 5; } },
+    { id: 'one-shot', icon: '⚡', name: '一击必杀', desc: '第一次选武器就打穿某一问', check: function (s) { return s.oneShot; } },
+    { id: 'trap', icon: '🔍', name: '识破漏洞', desc: '发现斜线染色证不出，改用大方格型', check: function (s) { return s.trapFound; } },
+    { id: 'smith', icon: '⚒️', name: '铸剑师', desc: '在沙盘自制一套染色并成功证否', check: function (s) { return s.sandboxWin; } },
+    { id: 'graduate', icon: '🎓', name: '学成出师', desc: '总结闯关小测全部答对', check: function (s) { return s.quizPerfect; } }
+  ];
+
+  var ach = window.createAchievements({ storageKey: 'coloring-lab-ach-v1', defs: ACH_DEFS });
+  function bump() { S.unlockedCount = ach.count(); ach.check(S); }
+
+  // =========================================================================
+  // 共享件 1：棋盘渲染器（DOM Grid）
+  // =========================================================================
+  function makeBoard(cfg) {
+    var st = {
+      W: cfg.W, H: cfg.H,
+      coloringId: cfg.coloringId || null,
+      customGrid: null,
+      blocked: cfg.blocked || [],
+      showLabels: !!cfg.showLabels,
+      placements: [],
+      ghost: null,
+      spot: null,
+      maxPx: cfg.maxPx || 460
+    };
+    var wrap = el('div', 'board-wrap');
+    var grid = el('div', 'board');
+    var legend = el('div', 'board-legend');
+    wrap.appendChild(grid);
+    wrap.appendChild(legend);
+
+    var cells = [];
+    function build() {
+      grid.innerHTML = '';
+      cells = [];
+      grid.style.gridTemplateColumns = 'repeat(' + st.W + ', 1fr)';
+      grid.style.setProperty('--board-max', st.maxPx + 'px');
+      for (var r = 0; r < st.H; r++) {
+        for (var c = 0; c < st.W; c++) {
+          var cell = el('div', 'cell');
+          cell.dataset.r = r; cell.dataset.c = c;
+          cell.appendChild(el('div', 'piece-layer'));
+          cell.appendChild(el('div', 'piece-edge'));
+          cell.appendChild(el('span', 'cell-label'));
+          grid.appendChild(cell);
+          cells.push(cell);
+        }
+      }
+    }
+    function at(r, c) { return cells[r * st.W + c]; }
+
+    function resolved() {
+      if (st.customGrid) {
+        // 尺寸与自定义网格暂时对不上时（改尺寸的那一瞬）先降级为无染色，
+        // 不让渲染抛异常把整块面板卡在旧状态上。
+        if (st.customGrid.length !== st.H || st.customGrid[0].length !== st.W) return null;
+        return E.resolveColoring({ id: 'custom', name: '自定义', k: 2, labels: ['白', '黑'], grid: st.customGrid }, st.W, st.H);
+      }
+      if (!st.coloringId) return null;
+      return E.resolveColoring(st.coloringId, st.W, st.H);
+    }
+
+    function render() {
+      var col = resolved();
+      var bs = E.blockedSet(st.blocked);
+      var owner = {};
+      st.placements.forEach(function (p, i) {
+        p.cells.forEach(function (q) { owner[q[0] + ',' + q[1]] = i; });
+      });
+      var ghostSet = {};
+      if (st.ghost) st.ghost.cells.forEach(function (q) { ghostSet[q[0] + ',' + q[1]] = 1; });
+      var spotSet = {};
+      if (st.spot) st.spot.forEach(function (q) { spotSet[q[0] + ',' + q[1]] = 1; });
+
+      for (var r = 0; r < st.H; r++) {
+        for (var c = 0; c < st.W; c++) {
+          var cell = at(r, c), k = r + ',' + c;
+          cell.className = 'cell';
+          var lab = cell.lastChild;
+          lab.textContent = '';
+          if (col) {
+            cell.classList.add('c' + col.grid[r][c]);
+            if (st.showLabels && col.k > 2) lab.textContent = col.labels[col.grid[r][c]];
+          }
+          if (bs[k]) cell.classList.add('hole');
+          var oi = owner[k];
+          if (oi !== undefined) {
+            cell.classList.add('occupied');
+            var hue = HUES[oi % HUES.length];
+            cell.style.setProperty('--pc', hue);
+            cell.style.setProperty('--pcl', hue);
+            if (owner[(r - 1) + ',' + c] !== oi) cell.classList.add('edge-t');
+            if (owner[(r + 1) + ',' + c] !== oi) cell.classList.add('edge-b');
+            if (owner[r + ',' + (c - 1)] !== oi) cell.classList.add('edge-l');
+            if (owner[r + ',' + (c + 1)] !== oi) cell.classList.add('edge-r');
+          }
+          if (ghostSet[k]) cell.classList.add(st.ghost.ok ? 'ghost' : 'ghost-bad');
+          if (spotSet[k]) cell.classList.add('spot');
+        }
+      }
+      // 图例
+      legend.innerHTML = '';
+      if (col) {
+        for (var j = 0; j < col.k; j++) {
+          var counts = E.colorCounts(col, bs);
+          var sw = el('span', null,
+            '<span class="swatch" style="background:var(--cell-' + j + ')"></span>' +
+            col.labels[j] + ' <strong>' + counts[j] + '</strong> 格');
+          legend.appendChild(sw);
+        }
+      }
+    }
+
+    build(); render();
+
+    return {
+      el: wrap, grid: grid, state: st,
+      resolved: resolved,
+      // 改尺寸时必须把新的自定义网格一起传进来，否则旧网格与新尺寸对不上
+      resize: function (W, H, custom) {
+        st.W = W; st.H = H;
+        if (custom !== undefined) st.customGrid = custom;
+        build(); render();
+      },
+      setColoring: function (id) { st.coloringId = id; st.customGrid = null; render(); },
+      setCustom: function (g) { st.customGrid = g; st.coloringId = null; render(); },
+      setBlocked: function (b) { st.blocked = b; render(); },
+      setPlacements: function (p) { st.placements = p; render(); },
+      setGhost: function (g) { st.ghost = g; render(); },
+      setSpot: function (s) { st.spot = s; render(); },
+      setLabels: function (v) { st.showLabels = v; render(); },
+      cellAt: function (ev) {
+        var t = ev.target.closest ? ev.target.closest('.cell') : null;
+        if (!t || !grid.contains(t)) return null;
+        return [+t.dataset.r, +t.dataset.c];
+      },
+      render: render
+    };
+  }
+
+  // 把一个朝向按「外接框左上角对齐到 (r,c)」放置，并夹回棋盘内
+  function anchorCells(orient, r, c, W, H) {
+    var maxR = 0, maxC = 0;
+    orient.forEach(function (p) { maxR = Math.max(maxR, p[0]); maxC = Math.max(maxC, p[1]); });
+    var dr = Math.max(0, Math.min(r, H - 1 - maxR));
+    var dc = Math.max(0, Math.min(c, W - 1 - maxC));
+    return orient.map(function (p) { return [p[0] + dr, p[1] + dc]; });
+  }
+  function cellsFree(cells, placements, blockedSet, W, H) {
+    var taken = {};
+    placements.forEach(function (p) { p.cells.forEach(function (q) { taken[q[0] + ',' + q[1]] = 1; }); });
+    for (var i = 0; i < cells.length; i++) {
+      var k = cells[i][0] + ',' + cells[i][1];
+      if (cells[i][0] < 0 || cells[i][0] >= H || cells[i][1] < 0 || cells[i][1] >= W) return false;
+      if (taken[k] || blockedSet[k]) return false;
+    }
+    return true;
+  }
+
+  // =========================================================================
+  // 共享件 2：骨牌迷你图
+  // =========================================================================
+  function miniPiece(cells, size) {
+    var maxR = 0, maxC = 0;
+    cells.forEach(function (p) { maxR = Math.max(maxR, p[0]); maxC = Math.max(maxC, p[1]); });
+    var n = el('span', 'mini');
+    n.style.gridTemplateColumns = 'repeat(' + (maxC + 1) + ', ' + (size || 9) + 'px)';
+    var set = {};
+    cells.forEach(function (p) { set[p[0] + ',' + p[1]] = 1; });
+    for (var r = 0; r <= maxR; r++) {
+      for (var c = 0; c <= maxC; c++) {
+        var i = el('i', set[r + ',' + c] ? 'on' : '');
+        i.style.width = (size || 9) + 'px'; i.style.height = (size || 9) + 'px';
+        if (!set[r + ',' + c]) i.style.background = 'transparent';
+        n.appendChild(i);
+      }
+    }
+    return n;
+  }
+  function pieceMini(pieceId, size) { return miniPiece(E.getPiece(pieceId).cells, size); }
+
+  // 染色芯片上的 4×4 缩略图
+  function coloringSwatch(id) {
+    var col = E.resolveColoring(id, 4, 4);
+    var n = el('span', 'swatch-mini');
+    for (var r = 0; r < 4; r++) for (var c = 0; c < 4; c++) {
+      var i = el('i');
+      i.style.background = 'var(--cell-' + col.grid[r][c] + ')';
+      i.style.border = '1px solid #cbd5e1';
+      n.appendChild(i);
+    }
+    return n;
+  }
+
+  // =========================================================================
+  // 共享件 3：矛盾探测器面板
+  // =========================================================================
+  function renderDetector(report, opts) {
+    opts = opts || {};
+    var box = el('div', 'detector');
+    var col = report.coloring;
+
+    // 棋盘各色格数
+    var head = el('div');
+    var line = el('div', 'row');
+    line.appendChild(el('span', 'k', '棋盘（' + report.W + '×' + report.H + '）'));
+    line.appendChild(el('span', 'v', col.labels.map(function (L, j) {
+      return L + ' ' + report.boardCounts[j];
+    }).join(' · ')));
+    head.appendChild(line);
+    box.appendChild(head);
+
+    if (report.best && report.best.type === 'area') {
+      var vr = el('div', 'verdict win', '✅ ' + report.best.text);
+      box.appendChild(vr);
+      return box;
+    }
+
+    var focus = report.best ? report.best.color : (col.k === 2 ? 1 : 0);
+
+    // 每种骨牌的覆盖谱
+    report.pieces.forEach(function (p) {
+      var row = el('div', 'piece-row');
+      var nm = el('div', 'name');
+      nm.appendChild(pieceMini(p.pieceId, 8));
+      nm.appendChild(el('span', null, p.name + ' × ' + p.count));
+      row.appendChild(nm);
+
+      var vals = el('div', 'vals');
+      if (col.k > 2) {
+        var per = col.labels.map(function (L, j) {
+          var inf = p.spec.perColor[j];
+          return L + '：' + (inf.constant !== null ? inf.constant : inf.values.join('/'));
+        }).join('　');
+        vals.appendChild(el('span', null, '每块吃 ' + per));
+      } else {
+        var inf = p.spec.perColor[focus];
+        var txt = '每块能吃 <strong>' + inf.values.join(' 或 ') + '</strong> 个「' + col.labels[focus] + '」格';
+        if (inf.constant !== null) txt += '（恒定 ✓）';
+        else if (inf.parity !== null) txt += '（恒' + (inf.parity ? '奇' : '偶') + '数 ✓）';
+        else txt += '（既不恒定也不定奇偶 ✗ 当不了武器）';
+        vals.appendChild(el('span', null, txt));
+      }
+      row.appendChild(vals);
+
+      // 样例落位按钮：把「吃 1 个 / 吃 3 个」变成棋盘上看得见的一次摆放
+      if (opts.onSample) {
+        var infS = p.spec.perColor[focus];
+        var br = el('div');
+        infS.values.forEach(function (v) {
+          var b = el('button', 'sample-btn', '看吃 ' + v + ' 个的摆法');
+          b.type = 'button';
+          b.addEventListener('click', function () { opts.onSample(infS.samples[v]); });
+          br.appendChild(b);
+        });
+        row.appendChild(br);
+      }
+      box.appendChild(row);
+    });
+
+    // 合计可达 vs 实际
+    var cr = report.colorReports[focus];
+    var rr = el('div', 'row');
+    rr.appendChild(el('span', 'k', '全部块合计能凑出的「' + cr.label + '」格数'));
+    var listTxt = cr.reachable.length <= 10
+      ? '{ ' + cr.reachable.join(', ') + ' }'
+      : cr.reachable[0] + ' … ' + cr.reachable[cr.reachable.length - 1] + '（共 ' + cr.reachable.length + ' 个值）';
+    rr.appendChild(el('span', 'v', listTxt));
+    box.appendChild(rr);
+
+    var ar = el('div', 'row');
+    ar.appendChild(el('span', 'k', '棋盘实际「' + cr.label + '」格数'));
+    ar.appendChild(el('span', 'v', String(cr.actual)));
+    box.appendChild(ar);
+
+    var v = el('div', 'verdict ' + (report.proved ? 'win' : 'miss'));
+    v.innerHTML = report.proved
+      ? '✅ <strong>证否成功！</strong><br>' + report.best.text
+      : '❌ <strong>这把武器打不穿。</strong><br>需要的数目落在能凑出的范围里，没有产生矛盾——换一把刀试试。';
+    box.appendChild(v);
+    return box;
+  }
+
+  // =========================================================================
+  // 共享件 4：预测门禁 / 隐藏结论
+  // =========================================================================
+  function makePredict(cfg) {
+    // cfg: { q, options:[{label, ok}], onAnswer(idx, ok) }
+    var box = el('div', 'predict-box');
+    box.appendChild(el('p', 'predict-q', '<span class="pill">先预测</span> ' + cfg.q));
+    var row = el('div', 'opt-row');
+    var fb = el('div', 'predict-feedback', cfg.hint || '选一个再往下走——先押注，后验证，记得才牢。');
+    var answered = false;
+    cfg.options.forEach(function (o, i) {
+      var b = el('button', 'opt', o.label);
+      b.type = 'button';
+      b.addEventListener('click', function () {
+        if (answered) return;
+        answered = true;
+        b.classList.add('chosen');
+        $$('.opt', row).forEach(function (x) { x.disabled = true; });
+        fb.innerHTML = o.ok
+          ? '✅ 记住这个判断，等下亲手验一遍。'
+          : '🤔 先记下你的选择，等下亲手验一遍——猜错才是最值钱的。';
+        box.dataset.answered = '1';
+        if (cfg.onAnswer) cfg.onAnswer(i, o.ok);
+      });
+      row.appendChild(b);
+    });
+    box.appendChild(row);
+    box.appendChild(fb);
+    return { el: box, answered: function () { return answered; } };
+  }
+
+  // 「可点但锁定」的门禁（不用裸 disabled，否则会被当成按钮坏了）
+  // ⚠️ 必须在 btn 已插入 DOM 之后调用，否则 btn.after(tag) 无处可插。
+  function gate(btn, predict, scrollTo) {
+    function sync() {
+      if (!predict.answered()) return;
+      btn.classList.remove('is-locked');
+      if (btn._tag) { btn._tag.remove(); btn._tag = null; }
+    }
+    if (!predict.answered()) {
+      btn.classList.add('is-locked');
+      var tag = el('span', 'lock-tag', '🔒 先预测');
+      if (btn.parentNode) { btn.after(tag); btn._tag = tag; }
+    }
+    btn.addEventListener('click', function (ev) {
+      if (!predict.answered()) {
+        ev.stopImmediatePropagation();
+        ev.preventDefault();
+        scrollTo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        scrollTo.classList.add('flash');
+        setTimeout(function () { scrollTo.classList.remove('flash'); }, 2100);
+      }
+    }, true);
+    var mo = new MutationObserver(sync);
+    mo.observe(predict.el, { attributes: true, attributeFilter: ['data-answered'] });
+    return sync;
+  }
+
+  function makeReveal(title, bodyHtml, onOpen) {
+    var box = el('div', 'reveal-box card');
+    var t = el('div', 'card-title', '💡 ' + title);
+    var btn = el('button', 'tool-button', '显示结论');
+    btn.type = 'button';
+    btn.style.marginLeft = 'auto';
+    t.appendChild(btn);
+    box.appendChild(t);
+    box.appendChild(el('p', 'reveal-placeholder', '先自己讲一遍，再点开对照。'));
+    box.appendChild(el('div', 'reveal-body', bodyHtml));
+    btn.addEventListener('click', function () {
+      var open = box.classList.toggle('show');
+      btn.textContent = open ? '隐藏结论' : '显示结论';
+      if (open && onOpen) onOpen();   // 「点开即解锁」类成就无条件置真，不读 class 时序
+    });
+    return box;
+  }
+
+  // 染色芯片组
+  function makeChips(ids, onPick) {
+    var wrap = el('div', 'chip-grid');
+    ids.forEach(function (id) {
+      var c = E.getColoring(id);
+      var b = el('button', 'color-chip');
+      b.type = 'button';
+      b.dataset.cid = id;
+      b.appendChild(coloringSwatch(id));
+      b.appendChild(el('span', null, c.name));
+      b.appendChild(el('span', 'mark', ''));
+      b.addEventListener('click', function () {
+        $$('.color-chip', wrap).forEach(function (x) { x.classList.remove('active'); });
+        b.classList.add('active');
+        onPick(id, b);
+      });
+      wrap.appendChild(b);
+    });
+    return wrap;
+  }
+
+  var ALL_COLORINGS = E.COLORINGS.map(function (c) { return c.id; });
+
+  // =========================================================================
+  // 模块 M0 · 染色法是什么
+  // =========================================================================
+  var CORNERS = [[0, 0], [7, 7]];
+  function buildIntro(stage, panel) {
+    var view = 'deficient';
+    var board = makeBoard({ W: 8, H: 8, blocked: CORNERS, maxPx: 420 });
+    var levelBar = el('div', 'level-bar');
+    var panelBox = el('div');
+
+    function setView(v) {
+      view = v;
+      $$('.level-btn', levelBar).forEach(function (b) { b.classList.toggle('active', b.dataset.v === v); });
+      if (v === 'deficient') {
+        board.resize(8, 8); board.setBlocked(CORNERS); board.setColoring(null); board.setPlacements([]);
+      } else {
+        board.resize(6, 6); board.setBlocked([]); board.setColoring('checker'); board.setLabels(true);
+      }
+      renderPanel();
+    }
+    [['deficient', '① 穷举 vs 染色'], ['faces', '② 一块棋盘的九副面孔']].forEach(function (p) {
+      var b = el('button', 'level-btn', p[1]);
+      b.type = 'button'; b.dataset.v = p[0];
+      b.addEventListener('click', function () { setView(p[0]); });
+      levelBar.appendChild(b);
+    });
+
+    // ---- 视图一：缺角棋盘 ----
+    var predict = makePredict({
+      q: '8×8 棋盘挖掉<strong>左上角和右下角</strong>两格（还剩 62 格），能用 31 个 1×2 骨牌恰好铺满吗？',
+      options: [{ label: '能铺满', ok: false }, { label: '铺不满', ok: true }],
+      onAnswer: function () { renderPanel(); }
+    });
+
+    var bruteBtn = el('button', 'tool-button', '让电脑穷举试试');
+    var colorBtn = el('button', 'tool-button primary', '用黑白染色看一眼');
+    bruteBtn.type = 'button'; colorBtn.type = 'button';
+
+    function renderPanel() {
+      panelBox.innerHTML = '';
+      if (view === 'faces') {
+        var cid = board.state.coloringId || 'checker';
+        var c = E.getColoring(cid);
+        var card = el('div', 'card');
+        card.appendChild(el('div', 'card-title', c.name));
+        card.appendChild(el('div', 'card-body',
+          '<span class="pill">' + c.family + '</span><br>' + c.idea));
+        var col = E.resolveColoring(cid, 6, 6);
+        var counts = E.colorCounts(col);
+        card.appendChild(el('div', 'card-body',
+          '这套染色把 36 个格子分成：' +
+          col.labels.map(function (L, j) { return '<strong>' + L + ' ' + counts[j] + ' 格</strong>'; }).join('、') + '。'));
+        panelBox.appendChild(card);
+        return;
+      }
+      var box = el('div', 'card');
+      box.appendChild(el('div', 'card-title', '两条路线'));
+      box.appendChild(el('div', 'card-body',
+        '<strong>穷举法</strong>：把所有摆法一个个试过去。<br><strong>染色法</strong>：造一个「怎么摆都改不了」的数，一步说死。'));
+      panelBox.appendChild(box);
+      if (S.bruteText) {
+        var b1 = el('div', 'card');
+        b1.appendChild(el('div', 'card-title', '🐌 穷举法的成绩'));
+        b1.appendChild(el('div', 'card-body', S.bruteText));
+        panelBox.appendChild(b1);
+      }
+      if (S.introReport) {
+        var b2 = el('div', 'card');
+        b2.appendChild(el('div', 'card-title', '🔬 染色法的成绩'));
+        b2.appendChild(renderDetector(S.introReport, {}));
+        panelBox.appendChild(b2);
+      }
+    }
+
+    bruteBtn.addEventListener('click', function () {
+      setStatus('穷举中…');
+      setTimeout(function () {
+        var res = E.solve({ W: 8, H: 8, recipe: [{ pieceId: 'domino', count: 31 }], blocked: CORNERS, budget: 260000 });
+        S.bruteText = res.solved
+          ? '找到了一种铺法。'
+          : (res.exhausted
+            ? '搜遍全部 ' + res.nodes + ' 种摆法，没有一种成功。'
+            : '已经试掉 <strong>' + res.nodes + '</strong> 种摆法，全部失败——而搜索空间还远远没走完。'
+            + '<br>骨牌铺法的数量是指数级的，穷举在这里基本投降。');
+        S.sawBrute = true; bump();
+        setStatus('可操作');
+        renderPanel();
+      }, 30);
+    });
+    colorBtn.addEventListener('click', function () {
+      board.setColoring('checker');
+      S.introReport = E.analyze({
+        W: 8, H: 8, coloring: 'checker',
+        recipe: [{ pieceId: 'domino', count: 31 }], blocked: CORNERS
+      });
+      renderPanel();
+    });
+
+    var stageCard = el('div', 'card');
+    stageCard.appendChild(levelBar);
+    var spacer = el('div'); spacer.style.height = '12px';
+    stageCard.appendChild(spacer);
+    stageCard.appendChild(board.el);
+    var ctl = el('div', 'rack');
+    ctl.style.marginTop = '12px';
+    ctl.appendChild(bruteBtn); ctl.appendChild(colorBtn);
+    stageCard.appendChild(ctl);
+    var chipHost = el('div');
+    chipHost.style.marginTop = '12px';
+    chipHost.appendChild(makeChips(ALL_COLORINGS, function (id) { board.setColoring(id); renderPanel(); }));
+    chipHost.hidden = true;
+    stageCard.appendChild(chipHost);
+
+    var origSetView = setView;
+    setView = function (v) {
+      origSetView(v);
+      chipHost.hidden = (v !== 'faces');
+      ctl.hidden = (v === 'faces');
+      predictCard.hidden = (v === 'faces');
+    };
+
+    var predictCard = el('div', 'card');
+    predictCard.appendChild(predict.el);
+
+    stage.appendChild(predictCard);
+    stage.appendChild(stageCard);
+    stage.appendChild(makeReveal('染色法到底在干什么',
+      '给棋盘染色，等于给每个格子贴一个标签。染完之后，<strong>一块骨牌无论放在哪里、怎么转，它能盖住的某色格数就被死死限制住了</strong>——这就是「不变量」。<br><br>' +
+      '缺角棋盘里：两个被挖掉的角是<strong>同色</strong>的，所以黑白格数从 32:32 变成了 32:30；而每个 1×2 骨牌永远吃 1 黑 1 白，31 块必然是 31:31。31 ≠ 32，矛盾。<br><br>' +
+      '注意染色法的边界：<strong>它只能证否，不能证能</strong>。所有染色都找不出矛盾时，只说明「大概率铺得满」，还得真的把构造摆出来。'));
+
+    setView('deficient');
+    gate(bruteBtn, predict, predict.el);   // 必须在按钮已进 DOM 之后
+    gate(colorBtn, predict, predict.el);
+    panel.appendChild(panelBox);
+  }
+
+  // =========================================================================
+  // 模块 M1 · 黑白染色 · 不变量的诞生
+  // =========================================================================
+  function buildBW(stage, panel) {
+    var pieceIds = ['domino', 'tet-O', 'tet-I', 'tet-L', 'tet-T', 'tet-S'];
+    var cur = 'tet-T', ori = 0, pinned = [], seen = {};
+    var board = makeBoard({ W: 6, H: 6, coloringId: 'checker', maxPx: 420 });
+    var panelBox = el('div');
+
+    function orients() { return E.orientations(cur, true); }
+    function countOf(cells) {
+      var col = board.resolved(), v = [0, 0];
+      cells.forEach(function (q) { v[col.grid[q[0]][q[1]]]++; });
+      return v;
+    }
+    function renderPanel(live) {
+      panelBox.innerHTML = '';
+      var c1 = el('div', 'card');
+      c1.appendChild(el('div', 'card-title', '这一放盖住了'));
+      c1.appendChild(el('div', 'card-body', live
+        ? '<strong style="font-size:19px">黑 ' + live[1] + ' · 白 ' + live[0] + '</strong>'
+        : '把鼠标（或手指）移到棋盘上试试。'));
+      panelBox.appendChild(c1);
+
+      var c2 = el('div', 'card');
+      c2.appendChild(el('div', 'card-title', '我亲手试出来的黑格数'));
+      var ks = Object.keys(seen).map(Number).sort(function (a, b) { return a - b; });
+      c2.appendChild(el('div', 'card-body', ks.length
+        ? '{ ' + ks.join(', ') +' }　（点棋盘钉住一次摆放）'
+        : '还没有记录。点一下棋盘，把当前摆放钉住。'));
+      panelBox.appendChild(c2);
+
+      if (S.m1spec) {
+        var c3 = el('div', 'card');
+        c3.appendChild(el('div', 'card-title', '🔬 全部摆法扫描结果'));
+        c3.appendChild(el('div', 'card-body', S.m1spec));
+        panelBox.appendChild(c3);
+      }
+    }
+
+    var picker = el('div', 'rack');
+    pieceIds.forEach(function (pid) {
+      var b = el('button', 'piece-chip' + (pid === cur ? ' active' : ''));
+      b.type = 'button';
+      b.appendChild(pieceMini(pid, 8));
+      b.appendChild(el('span', null, E.getPiece(pid).name));
+      b.addEventListener('click', function () {
+        cur = pid; ori = 0; pinned = []; seen = {}; S.m1spec = null;
+        $$('.piece-chip', picker).forEach(function (x) { x.classList.remove('active'); });
+        b.classList.add('active');
+        board.setPlacements([]); board.setGhost(null); renderPanel();
+      });
+      picker.appendChild(b);
+    });
+
+    board.grid.addEventListener('mousemove', function (ev) {
+      var rc = board.cellAt(ev); if (!rc) return;
+      var cells = anchorCells(orients()[ori], rc[0], rc[1], 6, 6);
+      board.setGhost({ cells: cells, ok: true });
+      renderPanel(countOf(cells));
+    });
+    board.grid.addEventListener('mouseleave', function () { board.setGhost(null); renderPanel(); });
+    board.grid.addEventListener('click', function (ev) {
+      var rc = board.cellAt(ev); if (!rc) return;
+      var cells = anchorCells(orients()[ori], rc[0], rc[1], 6, 6);
+      var v = countOf(cells);
+      seen[v[1]] = 1;
+      pinned.push({ pieceId: cur, cells: cells });
+      if (pinned.length > 4) pinned.shift();
+      board.setPlacements(pinned);
+      renderPanel(v);
+    });
+
+    var rotBtn = el('button', 'tool-button', '旋转 (R)');
+    rotBtn.type = 'button';
+    rotBtn.addEventListener('click', function () { ori = (ori + 1) % orients().length; });
+    var clrBtn = el('button', 'tool-button', '重置');
+    clrBtn.type = 'button';
+    clrBtn.addEventListener('click', function () {
+      pinned = []; seen = {}; S.m1spec = null; board.setPlacements([]); renderPanel();
+    });
+    var scanBtn = el('button', 'tool-button primary', '扫描全部摆法');
+    scanBtn.type = 'button';
+
+    var predict = makePredict({
+      q: '把 <strong>T 形四连方</strong>放到国际象棋染色的棋盘上，它盖住的<strong>黑格数</strong>会是……',
+      options: [
+        { label: '永远是 2', ok: false },
+        { label: '永远是奇数', ok: true },
+        { label: '什么都可能', ok: false }
+      ]
+    });
+    scanBtn.addEventListener('click', function () {
+      var sp = E.spectrum(cur, 'checker', 6, 6, true);
+      var inf = sp.perColor[1], def = E.getPiece(cur);
+      var n = Math.floor(36 / def.cells.length);          // 铺满 6×6 需要几块
+      var boardBlack = E.colorCounts(E.resolveColoring('checker', 6, 6))[1];
+      var verdict, isInv = false;
+      if (inf.constant !== null) {
+        verdict = '<span class="pill good">恒定 = ' + inf.constant + '</span> 不变量成立：' +
+          n + ' 块合计必然是 <strong>' + (n * inf.constant) + '</strong> 个黑格。';
+        isInv = true;
+      } else if (inf.parity !== null) {
+        verdict = '<span class="pill good">恒为' + (inf.parity ? '奇' : '偶') + '数</span> 不变量成立：' +
+          n + ' 块合计的奇偶被锁死为<strong>' + ((n * inf.parity) % 2 ? '奇' : '偶') + '数</strong>。';
+        isInv = true;
+      } else {
+        verdict = '<span class="pill bad">既不恒定，奇偶也变</span> 这套染色对它没用，总数根本算不出来。';
+      }
+      // 关键一步：算出来的总数，和棋盘真实黑格数对得上吗？
+      var tail;
+      if (inf.constant !== null) {
+        tail = (n * inf.constant === boardBlack)
+          ? '<span class="pill warn">但是</span> 棋盘黑格恰好也是 <strong>' + boardBlack + '</strong> 个，' +
+          '<strong>严丝合缝，一点矛盾都没有</strong>。刀是好刀，可惜砍不动这块料。'
+          : '棋盘黑格是 <strong>' + boardBlack + '</strong> 个，对不上 → 矛盾，铺不满！';
+      } else if (inf.parity !== null) {
+        tail = ((n * inf.parity) % 2 !== boardBlack % 2)
+          ? '棋盘黑格是 <strong>' + boardBlack + '</strong> 个（' + (boardBlack % 2 ? '奇' : '偶') + '数），' +
+          '奇偶对不上 → 矛盾，铺不满！'
+          : '棋盘黑格是 <strong>' + boardBlack + '</strong> 个，奇偶正好一致，没有矛盾。';
+      } else {
+        tail = '';
+      }
+      S.m1spec = '<strong>' + def.name + '</strong> 在 6×6 上共有 <strong>' + sp.placements + '</strong> 种摆法，' +
+        '盖住的黑格数只可能是 <strong>{ ' + inf.values.join(', ') + ' }</strong>。<br><br>' + verdict +
+        (tail ? '<br><br>' + tail : '');
+      S.sawSpectrum = true;
+      if (isInv) S.sawInvariant = true;
+      bump(); renderPanel();
+    });
+
+    document.addEventListener('keydown', function (ev) {
+      if (S.module !== 'bw') return;
+      if (ev.key === 'r' || ev.key === 'R') ori = (ori + 1) % orients().length;
+    });
+
+    var predictCard = el('div', 'card');
+    predictCard.appendChild(predict.el);
+    stage.appendChild(predictCard);
+
+    var card = el('div', 'card');
+    card.appendChild(el('div', 'card-title', '选一种骨牌，在棋盘上到处摆'));
+    card.appendChild(picker);
+    var sp2 = el('div'); sp2.style.height = '12px'; card.appendChild(sp2);
+    card.appendChild(board.el);
+    var ctl = el('div', 'rack'); ctl.style.marginTop = '12px';
+    ctl.appendChild(rotBtn); ctl.appendChild(clrBtn); ctl.appendChild(scanBtn);
+    card.appendChild(ctl);
+    stage.appendChild(card);
+    gate(scanBtn, predict, predict.el);   // 必须在按钮已进 DOM 之后
+
+    stage.appendChild(makeReveal('一把染色的刀，要过两道关',
+      '<strong>第一关：算得出来。</strong>某种骨牌盖住的黑格数必须<strong>恒定</strong>（1×2 永远 1 个）或者<strong>奇偶恒定</strong>（T 形永远奇数个）。' +
+      '只有这样，你才敢说「9 块合计一定是多少」。忽多忽少、奇偶还变的，这套染色对它就是废的。<br><br>' +
+      '<strong>第二关：算出来的还得对不上。</strong>这是最容易被忽略的一步。把六种骨牌逐个扫一遍你会发现：' +
+      '在国际象棋染色下，2×2、1×4、L、S <strong>统统恒吃 2 个黑格</strong>——9 块合计 18 个，' +
+      '而 6×6 的黑格恰好就是 18 个。<span class="pill warn">严丝合缝</span> 一点矛盾都挤不出来。<br><br>' +
+      '唯一的例外是 <strong>T 形</strong>：它恒吃奇数个黑格，9 个奇数相加是奇数，和 18 这个偶数打架 → 一击命中。<br><br>' +
+      '所以「黑白染色证不出来」不是你做错了，是<strong>刀不对</strong>。下一个实验就去换刀。'));
+
+    renderPanel();
+    panel.appendChild(panelBox);
+  }
+
+  // =========================================================================
+  // 通用「选武器打靶」面板（M2 / M3 / M4-B / M5 共用）
+  // =========================================================================
+  function makeArmory(cfg) {
+    // cfg: { board, W, H, recipe, allowFlip, chipIds, blocked, onResult(id, report) }
+    var panelBox = el('div');
+    var lastId = null;
+    var chips = makeChips(cfg.chipIds || ALL_COLORINGS, function (id, btn) {
+      lastId = id;
+      cfg.board.setColoring(id);
+      cfg.board.setLabels(E.getColoring(id).k > 2);
+      cfg.board.setSpot(null);
+      var rep = E.analyze({
+        W: cfg.W, H: cfg.H, coloring: id, recipe: cfg.recipe,
+        allowFlip: cfg.allowFlip, blocked: cfg.blocked
+      });
+      btn.classList.toggle('hit', rep.proved);
+      $('.mark', btn).textContent = rep.proved ? '✅ 打穿' : '✗ 无效';
+      draw(id, rep);
+      if (cfg.onResult) cfg.onResult(id, rep);
+    });
+
+    function draw(id, rep) {
+      panelBox.innerHTML = '';
+      var c = E.getColoring(id);
+      var head = el('div', 'card');
+      head.appendChild(el('div', 'card-title', c.name + ' <span class="pill">' + c.family + '</span>'));
+      head.appendChild(el('div', 'card-body', c.idea));
+      panelBox.appendChild(head);
+
+      var det = el('div', 'card');
+      det.appendChild(el('div', 'card-title', '🔬 矛盾探测器'));
+      det.appendChild(renderDetector(rep, {
+        onSample: function (cells) {
+          cfg.board.setSpot(cells);
+          cfg.board.setPlacements([{ pieceId: 'x', cells: cells }]);
+        }
+      }));
+      panelBox.appendChild(det);
+    }
+
+    function reset() {
+      panelBox.innerHTML = '';
+      panelBox.appendChild(el('div', 'card',
+        '<div class="card-title">🗡️ 挑一把武器</div>' +
+        '<div class="card-body">点左边任意一个染色芯片，探测器会立刻算出：这套染色下每块骨牌能吃几个某色格、' +
+        '全部块合计能凑出多少、和棋盘实际数目对不对得上。</div>'));
+      $$('.color-chip', chips).forEach(function (b) {
+        b.classList.remove('active', 'hit'); $('.mark', b).textContent = '';
+      });
+      lastId = null;
+    }
+    reset();
+    return { chips: chips, panel: panelBox, reset: reset, current: function () { return lastId; } };
+  }
+
+  // =========================================================================
+  // 模块 M2 · 条形染色 · 当黑白失效
+  // =========================================================================
+  function buildStripe(stage, panel) {
+    var W = 5, H = 4, recipe = [{ pieceId: 'tet-L', count: 5 }];
+    var board = makeBoard({ W: W, H: H, coloringId: null, maxPx: 400 });
+    var armory = makeArmory({
+      board: board, W: W, H: H, recipe: recipe, allowFlip: true,
+      chipIds: ['checker', 'stripeH', 'stripeV'],
+      onResult: function (id, rep) {
+        if (id === 'checker' && !rep.proved) { S.sawBWFail = true; bump(); }
+        if ((id === 'stripeH' || id === 'stripeV') && rep.proved) { S.stripeWin = true; bump(); }
+      }
+    });
+
+    var predict = makePredict({
+      q: '5×4 的棋盘，用 <strong>5 个 L 形四连方</strong>（可旋转翻转）恰好铺满 —— 你觉得<strong>黑白染色</strong>能证明它铺不满吗？',
+      options: [{ label: '能证出来', ok: false }, { label: '证不出来', ok: true }],
+      hint: '提示：先想想 L 形在黑白格上会盖住几黑几白。'
+    });
+
+    var pc = el('div', 'card'); pc.appendChild(predict.el); stage.appendChild(pc);
+
+    var card = el('div', 'card');
+    card.appendChild(el('div', 'card-title', '5×4 棋盘 × 5 个 ' + '<span></span>'));
+    $('.card-title span', card).appendChild(pieceMini('tet-L', 9));
+    card.appendChild(board.el);
+    var sp = el('div'); sp.style.height = '12px'; card.appendChild(sp);
+    card.appendChild(armory.chips);
+    stage.appendChild(card);
+
+    gate(armory.chips, predict, predict.el);
+
+    stage.appendChild(makeReveal('黑白染色不是万能的',
+      '黑白（国际象棋型）染色下，5×4 是 10 黑 10 白，而 L 形<strong>恒吃 2 黑 2 白</strong>——5 块合计恰好 10 黑 10 白，' +
+      '和棋盘完全吻合，<strong>一点矛盾都没有</strong>。但「没有矛盾」不等于「铺得满」，只等于「这把刀砍不动」。<br><br>' +
+      '换成条形染色（一行黑一行白）：L 形横放竖放都会盖住 <strong>1 个或 3 个</strong>黑格，永远是奇数。' +
+      '5 个奇数相加还是奇数，可棋盘上的黑格是 10 个，是偶数。奇 ≠ 偶，矛盾出现了。<br><br>' +
+      '<strong>选染色的思路</strong>：盯住图形的形状特点。L 形的「总长 3、出头的一格在端上」使它横竖都跨奇数条纹，条形染色正好吃住这一点。'));
+
+    panel.appendChild(armory.panel);
+  }
+
+  // =========================================================================
+  // 模块 M3 · 轮换四色 · 长条克星
+  // =========================================================================
+  function buildCycle(stage, panel) {
+    var W = 6, H = 6, recipe = [{ pieceId: 'tet-I', count: 9 }];
+    var board = makeBoard({ W: W, H: H, coloringId: 'cycle4', showLabels: true, maxPx: 420 });
+    var ori = 0, panelBox = el('div');
+
+    function live(cells) {
+      var col = board.resolved(), v = [0, 0, 0, 0];
+      cells.forEach(function (q) { v[col.grid[q[0]][q[1]]]++; });
+      return v;
+    }
+    function renderPanel(v) {
+      panelBox.innerHTML = '';
+      var c1 = el('div', 'card');
+      c1.appendChild(el('div', 'card-title', '这一放盖住的四个数'));
+      c1.appendChild(el('div', 'card-body', v
+        ? '<strong style="font-size:17px">1×' + v[0] + '　2×' + v[1] + '　3×' + v[2] + '　4×' + v[3] + '</strong>'
+        : '把 1×4 长条在棋盘上滑一滑，看它盖住的数字组合。'));
+      panelBox.appendChild(c1);
+
+      var col = E.resolveColoring('cycle4', 6, 6), counts = E.colorCounts(col);
+      var c2 = el('div', 'card');
+      c2.appendChild(el('div', 'card-title', '棋盘上四种数各有多少'));
+      var body = el('div', 'card-body');
+      var mx = Math.max.apply(null, counts);
+      counts.forEach(function (n, j) {
+        var row = el('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;margin:5px 0';
+        row.appendChild(el('span', null, col.labels[j]));
+        var bar = el('span');
+        bar.style.cssText = 'height:14px;border-radius:3px;background:var(--accent);width:' + (n / mx * 130) + 'px';
+        row.appendChild(bar);
+        row.appendChild(el('strong', null, String(n)));
+        body.appendChild(row);
+      });
+      c2.appendChild(body);
+      panelBox.appendChild(c2);
+
+      if (S.m3report) {
+        var c3 = el('div', 'card');
+        c3.appendChild(el('div', 'card-title', '🔬 矛盾探测器'));
+        c3.appendChild(renderDetector(S.m3report, {}));
+        panelBox.appendChild(c3);
+      }
+    }
+
+    board.grid.addEventListener('mousemove', function (ev) {
+      var rc = board.cellAt(ev); if (!rc) return;
+      var cells = anchorCells(E.orientations('tet-I', false)[ori], rc[0], rc[1], W, H);
+      board.setGhost({ cells: cells, ok: true });
+      renderPanel(live(cells));
+    });
+    board.grid.addEventListener('mouseleave', function () { board.setGhost(null); renderPanel(); });
+
+    var rotBtn = el('button', 'tool-button', '横放 / 竖放 (R)');
+    rotBtn.type = 'button';
+    rotBtn.addEventListener('click', function () { ori = (ori + 1) % 2; });
+    document.addEventListener('keydown', function (ev) {
+      if (S.module !== 'cycle') return;
+      if (ev.key === 'r' || ev.key === 'R') ori = (ori + 1) % 2;
+    });
+    var proveBtn = el('button', 'tool-button primary', '用轮换四色证否');
+    proveBtn.type = 'button';
+
+    var predict = makePredict({
+      q: '把 1×4 长条放到 1234 轮换染色上，它盖住的四个数……',
+      options: [
+        { label: '总是 1、2、3、4 各一个', ok: true },
+        { label: '看放的位置而定', ok: false },
+        { label: '总有两个一样', ok: false }
+      ]
+    });
+    proveBtn.addEventListener('click', function () {
+      S.m3report = E.analyze({ W: W, H: H, coloring: 'cycle4', recipe: recipe, allowFlip: false });
+      if (S.m3report.proved) { S.cycleWin = true; bump(); }
+      renderPanel();
+    });
+
+    var pc = el('div', 'card'); pc.appendChild(predict.el); stage.appendChild(pc);
+    var card = el('div', 'card');
+    card.appendChild(el('div', 'card-title', '6×6 棋盘 × 9 个 1×4 长条'));
+    card.appendChild(board.el);
+    var ctl = el('div', 'rack'); ctl.style.marginTop = '12px';
+    ctl.appendChild(rotBtn); ctl.appendChild(proveBtn);
+    card.appendChild(ctl);
+    stage.appendChild(card);
+    gate(proveBtn, predict, predict.el);   // 必须在按钮已进 DOM 之后
+
+    stage.appendChild(makeReveal('为什么长方形要用「斜着轮换」的染色',
+      '长方形的横放和竖放，是关于对角线<strong>对称</strong>的。所以要想让「无论怎么放，盖住的某色数都不变」，' +
+      '染色方法自己也得<strong>关于对角线对称</strong>——沿斜线轮换正是最自然的做法。<br><br>' +
+      '1×4 长条不管横放竖放，都恰好跨过连续 4 条斜线，所以必然盖住 1、2、3、4 各一个。' +
+      '9 块合计就必须是 9 个 1、9 个 2、9 个 3、9 个 4；可 6×6 上四种数是 <strong>9 / 10 / 9 / 8</strong>，不一样多，矛盾。<br><br>' +
+      '把这个想法收窄：只把「2」留成黑格（斜线型1），每块长条恰好吃 1 个黑格，9 块吃 9 个，' +
+      '棋盘却有 10 个黑格——同一个矛盾，说法更短。<strong>要铺 1×k 的长条，就用周期 k 的斜线染色。</strong>'));
+
+    renderPanel();
+    panel.appendChild(panelBox);
+  }
+
+  // =========================================================================
+  // 模块 M4 · 靶场：9 个四连方 vs 6×6（核心）
+  // =========================================================================
+  var ARENA = [
+    {
+      id: 1, label: '① 9 个 2×2', recipe: [{ pieceId: 'tet-O', count: 9 }], allowFlip: false,
+      answer: true, q: '9 个 <b>2×2 方块</b>能铺满 6×6 吗？'
+    },
+    {
+      id: 2, label: '② 9 个 L 形', recipe: [{ pieceId: 'tet-L', count: 9 }], allowFlip: true,
+      answer: false, q: '9 个 <b>L 形四连方</b>（可旋转翻转）能铺满 6×6 吗？'
+    },
+    {
+      id: 3, label: '③ 9 个 1×4', recipe: [{ pieceId: 'tet-I', count: 9 }], allowFlip: false,
+      answer: false, q: '9 个 <b>1×4 长条</b>（可旋转）能铺满 6×6 吗？'
+    },
+    {
+      id: 4, label: '④ 9 个 S 形', recipe: [{ pieceId: 'tet-S', count: 9 }], allowFlip: true,
+      answer: false, q: '9 个 <b>S 形四连方</b>（可旋转翻转）能铺满 6×6 吗？'
+    },
+    {
+      id: 5, label: '⑤ 2 个 2×2 + 7 个 1×4',
+      recipe: [{ pieceId: 'tet-O', count: 2 }, { pieceId: 'tet-I', count: 7 }], allowFlip: false,
+      answer: false, q: '<b>2 个 2×2</b> 加 <b>7 个 1×4</b>（可旋转）能铺满 6×6 吗？'
+    }
+  ];
+
+  function buildArena(stage, panel) {
+    var lvl = ARENA[0], phase = 'lay', ori = 0, flip = false, curPiece = null;
+    var placements = [], panelBox = el('div'), armory = null;
+    var board = makeBoard({ W: 6, H: 6, coloringId: null, maxPx: 430 });
+    board.grid.classList.add('clickable');
+
+    var levelBar = el('div', 'level-bar');
+    var stageCard = el('div', 'card');
+    var pickerHost = el('div', 'rack');
+    var ctlHost = el('div', 'rack');
+    var armoryHost = el('div');
+    var predictHost = el('div', 'card');
+    var revealHost = el('div');
+
+    function remaining() {
+      var used = {};
+      placements.forEach(function (p) { used[p.pieceId] = (used[p.pieceId] || 0) + 1; });
+      return lvl.recipe.map(function (it) {
+        return { pieceId: it.pieceId, left: it.count - (used[it.pieceId] || 0), total: it.count };
+      });
+    }
+    function orients() { return E.orientations(curPiece, lvl.allowFlip); }
+    function anyMoveLeft() {
+      var rem = remaining().filter(function (x) { return x.left > 0; });
+      if (!rem.length) return false;
+      for (var i = 0; i < rem.length; i++) {
+        var os = E.orientations(rem[i].pieceId, lvl.allowFlip);
+        for (var o = 0; o < os.length; o++) {
+          var ps = E.placementsOf(os[o], 6, 6);
+          for (var j = 0; j < ps.length; j++) {
+            if (cellsFree(ps[j], placements, {}, 6, 6)) return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function renderPicker() {
+      pickerHost.innerHTML = '';
+      remaining().forEach(function (rm) {
+        var b = el('button', 'piece-chip' + (rm.pieceId === curPiece ? ' active' : ''));
+        b.type = 'button';
+        b.appendChild(pieceMini(rm.pieceId, 8));
+        b.appendChild(el('span', null, E.getPiece(rm.pieceId).name + ' 剩 ' + rm.left));
+        b.disabled = rm.left <= 0;
+        b.addEventListener('click', function () { curPiece = rm.pieceId; ori = 0; renderPicker(); });
+        pickerHost.appendChild(b);
+      });
+    }
+
+    function renderPanel() {
+      panelBox.innerHTML = '';
+      if (phase === 'lay') {
+        var filled = placements.reduce(function (a, p) { return a + p.cells.length; }, 0);
+        var c = el('div', 'card');
+        c.appendChild(el('div', 'card-title', '手铺进度'));
+        c.appendChild(el('div', 'card-body',
+          '已放 <strong>' + placements.length + '</strong> 块，覆盖 <strong>' + filled + '</strong> / 36 格，还剩 <strong>' + (36 - filled) + '</strong> 格空着。<br>' +
+          '<span class="pill">点棋盘放置</span> <span class="pill">点已放的块可取回</span>'));
+        panelBox.appendChild(c);
+        if (S.arenaHint) {
+          var h = el('div', 'card');
+          h.appendChild(el('div', 'card-title', '🧱 卡住了'));
+          h.appendChild(el('div', 'card-body', S.arenaHint));
+          panelBox.appendChild(h);
+        }
+      } else if (armory) {
+        panelBox.appendChild(armory.panel);
+      }
+      if (S.solveText) {
+        var sv = el('div', 'card');
+        sv.appendChild(el('div', 'card-title', '🐌 穷举验证'));
+        sv.appendChild(el('div', 'card-body', S.solveText));
+        panelBox.appendChild(sv);
+      }
+    }
+
+    var predict = null;
+    function setLevel(L) {
+      lvl = L; phase = 'lay'; ori = 0; placements = []; curPiece = L.recipe[0].pieceId;
+      S.arenaHint = null; S.solveText = null;
+      $$('.level-btn', levelBar).forEach(function (b) {
+        b.classList.toggle('active', +b.dataset.id === L.id);
+      });
+      board.setColoring(null); board.setLabels(false); board.setPlacements([]); board.setGhost(null); board.setSpot(null);
+
+      armory = makeArmory({
+        board: board, W: 6, H: 6, recipe: L.recipe, allowFlip: L.allowFlip,
+        onResult: function (id, rep) {
+          if (rep.proved) {
+            if (!S.arenaCleared[L.id]) {
+              if (!S.arenaTried[L.id]) S.oneShot = true;
+              S.arenaCleared[L.id] = 'proved';
+            }
+          }
+          S.arenaTried[L.id] = (S.arenaTried[L.id] || 0) + 1;
+          bump(); renderLevelBar();
+        }
+      });
+      armoryHost.innerHTML = '';
+      armoryHost.appendChild(armory.chips);
+
+      predictHost.innerHTML = '';
+      predict = makePredict({
+        q: L.q,
+        options: [{ label: '能铺满', ok: L.answer === true }, { label: '铺不满', ok: L.answer === false }],
+        onAnswer: function () { syncGate(); }
+      });
+      predictHost.appendChild(predict.el);
+
+      renderPicker(); renderPhase(); renderPanel(); renderReveal();
+    }
+
+    function renderLevelBar() {
+      $$('.level-btn', levelBar).forEach(function (b) {
+        var done = S.arenaCleared[+b.dataset.id];
+        var t = $('.tick', b);
+        if (done && !t) b.appendChild(el('span', 'tick', '✓'));
+      });
+    }
+
+    var toProof = el('button', 'tool-button primary', '卡住了 → 我要证明它铺不满');
+    toProof.type = 'button';
+    var backLay = el('button', 'tool-button', '← 回去继续铺');
+    backLay.type = 'button';
+    var rotBtn = el('button', 'tool-button', '旋转 (R)');
+    rotBtn.type = 'button';
+    var flipBtn = el('button', 'tool-button', '翻转 (F)');
+    flipBtn.type = 'button';
+    var resetBtn = el('button', 'tool-button', '重置');
+    resetBtn.type = 'button';
+    var solveBtn = el('button', 'tool-button', '穷举验证');
+    solveBtn.type = 'button';
+
+    function renderPhase() {
+      ctlHost.innerHTML = '';
+      if (phase === 'lay') {
+        pickerHost.hidden = false;
+        armoryHost.hidden = true;
+        ctlHost.appendChild(rotBtn);
+        if (lvl.allowFlip) ctlHost.appendChild(flipBtn);
+        ctlHost.appendChild(resetBtn);
+        ctlHost.appendChild(toProof);
+        board.grid.classList.add('clickable');
+      } else {
+        pickerHost.hidden = true;
+        armoryHost.hidden = false;
+        ctlHost.appendChild(backLay);
+        ctlHost.appendChild(solveBtn);
+        board.grid.classList.remove('clickable');
+      }
+      syncGate();
+    }
+
+    var gateSync = null;
+    function syncGate() {
+      if (!predict) return;
+      var okAnswered = predict.answered();
+      [rotBtn, flipBtn, resetBtn, toProof].forEach(function (b) {
+        b.classList.toggle('is-locked', !okAnswered);
+      });
+    }
+    [rotBtn, flipBtn, resetBtn, toProof].forEach(function (b) {
+      b.addEventListener('click', function (ev) {
+        if (predict && !predict.answered()) {
+          ev.stopImmediatePropagation(); ev.preventDefault();
+          predictHost.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          predict.el.classList.add('flash');
+          setTimeout(function () { predict.el.classList.remove('flash'); }, 2100);
+        }
+      }, true);
+    });
+
+    rotBtn.addEventListener('click', function () { ori = (ori + 1) % orients().length; });
+    flipBtn.addEventListener('click', function () { ori = (ori + 1) % orients().length; });
+    resetBtn.addEventListener('click', function () {
+      placements = []; S.arenaHint = null; board.setPlacements([]); renderPicker(); renderPanel();
+    });
+    toProof.addEventListener('click', function () {
+      phase = 'proof'; board.setPlacements([]); armory.reset(); renderPhase(); renderPanel();
+    });
+    backLay.addEventListener('click', function () {
+      phase = 'lay'; board.setColoring(null); board.setLabels(false); board.setSpot(null);
+      board.setPlacements(placements); renderPhase(); renderPanel();
+    });
+    solveBtn.addEventListener('click', function () {
+      setStatus('穷举中…');
+      setTimeout(function () {
+        var res = E.solve({ W: 6, H: 6, recipe: lvl.recipe, allowFlip: lvl.allowFlip, budget: 900000 });
+        if (res.solved) {
+          S.solveText = '搜到了一种真实铺法（已画在棋盘上）——所以这一问的答案是「<strong>能</strong>」。' +
+            '染色法打不穿它，不是因为你选错了刀，而是因为<strong>它本来就铺得满</strong>。';
+          board.setColoring(null); board.setLabels(false);
+          board.setPlacements(res.placements);
+          if (!S.arenaCleared[lvl.id]) { S.arenaCleared[lvl.id] = 'built'; bump(); renderLevelBar(); }
+        } else if (res.exhausted) {
+          S.solveText = '搜遍全部 <strong>' + res.nodes + '</strong> 种摆法，一种都不成立——和染色法的结论一致。' +
+            '但注意：穷举只告诉你「没找到」，染色告诉你「<strong>为什么永远找不到</strong>」。';
+        } else {
+          S.solveText = '已经试掉 <strong>' + res.nodes + '</strong> 种摆法全部失败，而搜索空间还没走完。' +
+            '这就是染色法的价值——它不需要试。';
+        }
+        setStatus('可操作'); renderPanel();
+      }, 30);
+    });
+
+    document.addEventListener('keydown', function (ev) {
+      if (S.module !== 'arena' || phase !== 'lay') return;
+      if (ev.key === 'r' || ev.key === 'R') ori = (ori + 1) % orients().length;
+      if ((ev.key === 'f' || ev.key === 'F') && lvl.allowFlip) ori = (ori + 1) % orients().length;
+    });
+
+    board.grid.addEventListener('mousemove', function (ev) {
+      if (phase !== 'lay' || !curPiece) return;
+      var rc = board.cellAt(ev); if (!rc) return;
+      var cells = anchorCells(orients()[ori], rc[0], rc[1], 6, 6);
+      board.setGhost({ cells: cells, ok: cellsFree(cells, placements, {}, 6, 6) });
+    });
+    board.grid.addEventListener('mouseleave', function () { if (phase === 'lay') board.setGhost(null); });
+    board.grid.addEventListener('click', function (ev) {
+      if (phase !== 'lay') return;
+      var rc = board.cellAt(ev); if (!rc) return;
+      // 点已放的块 → 取回
+      for (var i = 0; i < placements.length; i++) {
+        for (var j = 0; j < placements[i].cells.length; j++) {
+          if (placements[i].cells[j][0] === rc[0] && placements[i].cells[j][1] === rc[1]) {
+            placements.splice(i, 1);
+            S.arenaHint = null;
+            board.setPlacements(placements); renderPicker(); renderPanel();
+            return;
+          }
+        }
+      }
+      if (!curPiece) return;
+      var rem = remaining().filter(function (x) { return x.pieceId === curPiece; })[0];
+      if (!rem || rem.left <= 0) return;
+      var cells = anchorCells(orients()[ori], rc[0], rc[1], 6, 6);
+      if (!cellsFree(cells, placements, {}, 6, 6)) return;
+      placements.push({ pieceId: curPiece, cells: cells });
+      board.setPlacements(placements);
+      // 自动切到还有剩余的骨牌
+      var r2 = remaining().filter(function (x) { return x.left > 0; });
+      if (r2.length && !r2.some(function (x) { return x.pieceId === curPiece; })) { curPiece = r2[0].pieceId; ori = 0; }
+      renderPicker();
+
+      var filled = placements.reduce(function (a, p) { return a + p.cells.length; }, 0);
+      if (filled === 36) {
+        S.arenaHint = '🎉 你把它铺满了！这一问的答案就是「能」。';
+        if (!S.arenaCleared[lvl.id]) { S.arenaCleared[lvl.id] = 'built'; bump(); renderLevelBar(); }
+      } else if (!anyMoveLeft()) {
+        S.arenaHint = '再也放不下任何一块了，还剩 <strong>' + (36 - filled) + '</strong> 格空着。<br>' +
+          '但「我试了很多次都失败」不是证明——换个思路：<strong>去证明它永远铺不满</strong>。';
+        S.stuck = true; bump();
+      }
+      renderPanel();
+    });
+
+    function renderReveal() {
+      revealHost.innerHTML = '';
+      revealHost.appendChild(makeReveal('这五个小问，各要用哪把刀',
+        '<strong>① 9 个 2×2</strong>：唯一的「能」。9 个 2×2 正好拼成 6×6，所有染色都打不穿它——这时候该去找构造，而不是继续换刀。<br><br>' +
+        '<strong>② 9 个 L 形</strong>：黑白染色下 L 恒吃 2 黑 2 白，无效。改用<strong>条形染色</strong>，L 恒吃奇数个黑格，9 个奇数相加是奇数，可黑格有 18 个。<br><br>' +
+        '<strong>③ 9 个 1×4</strong>：长条要用<strong>斜线 / 轮换四色</strong>。每块吃 1、2、3、4 各一个，而四种数是 9/10/9/8，不一样多。<br><br>' +
+        '<strong>④ 9 个 S 形</strong>：S 是「2×2 里跑出去一格」的旋转对称图形，所以拿<strong>大方格型染色</strong>（把 2×2 当一大格轮流染）去比它。每块吃奇数个黑格，9 个奇数是奇数，黑格却有 20 个。<br><br>' +
+        '<strong>⑤ 2 个 2×2 + 7 个 1×4</strong>：2×2 太「正则」了，得用不正则的染色。<strong>正方形型</strong>下 2×2 恒吃 1 个黑格、1×4 恒吃偶数个，合计必为偶数，黑格却有 9 个；<strong>斜线型2</strong> 也能打穿。<br><br>' +
+        '<span class="pill warn">通用心法</span> 先看图形的形状特点，再挑一套「让它的吃色数恒定或定奇偶」的染色。刀是为形状打的。'));
+    }
+
+    ARENA.forEach(function (L) {
+      var b = el('button', 'level-btn', L.label);
+      b.type = 'button'; b.dataset.id = L.id;
+      b.addEventListener('click', function () { setLevel(L); });
+      levelBar.appendChild(b);
+    });
+
+    stageCard.appendChild(levelBar);
+    var sp0 = el('div'); sp0.style.height = '12px'; stageCard.appendChild(sp0);
+    stageCard.appendChild(pickerHost);
+    var sp1 = el('div'); sp1.style.height = '10px'; stageCard.appendChild(sp1);
+    stageCard.appendChild(board.el);
+    ctlHost.style.marginTop = '12px';
+    stageCard.appendChild(ctlHost);
+    armoryHost.style.marginTop = '12px';
+    stageCard.appendChild(armoryHost);
+
+    stage.appendChild(predictHost);
+    stage.appendChild(stageCard);
+    stage.appendChild(revealHost);
+    panel.appendChild(panelBox);
+
+    S.arenaTried = S.arenaTried || {};
+    setLevel(ARENA[0]);
+    renderLevelBar();
+  }
+
+  // =========================================================================
+  // 模块 M5 · 大棋盘挑战
+  // =========================================================================
+  var BIG = [
+    {
+      id: 1, label: '① 8×8 = 15 个 L + 1 个 1×4', W: 8, H: 8, allowFlip: true,
+      recipe: [{ pieceId: 'tet-L', count: 15 }, { pieceId: 'tet-I', count: 1 }],
+      tip: '黑白染色对 L 形无效，回想实验 02 的做法。'
+    },
+    {
+      id: 2, label: '② 10×10 = 25 个 1×4', W: 10, H: 10, allowFlip: false,
+      recipe: [{ pieceId: 'tet-I', count: 25 }],
+      tip: '长条题。回想实验 03：四色要一样多才可能。'
+    },
+    {
+      id: 3, label: '③ 8×8 = 1 个 S + 15 个 1×4', W: 8, H: 8, allowFlip: true, trap: true,
+      tip: '⚠️ 这一关有个陷阱：最像样的那把刀，其实砍不动。'
+    }
+  ];
+  BIG[2].recipe = [{ pieceId: 'tet-S', count: 1 }, { pieceId: 'tet-I', count: 15 }];
+
+  function buildBig(stage, panel) {
+    var lvl = BIG[0], armory = null, panelBox = el('div');
+    var board = makeBoard({ W: 8, H: 8, coloringId: null, maxPx: 430 });
+    var levelBar = el('div', 'level-bar');
+    var armoryHost = el('div');
+    var tipHost = el('div', 'card-body');
+    var trapHost = el('div');
+
+    var solveBtn = el('button', 'tool-button', '穷举验证');
+    solveBtn.type = 'button';
+    solveBtn.addEventListener('click', function () {
+      setStatus('穷举中…');
+      setTimeout(function () {
+        var res = E.solve({ W: lvl.W, H: lvl.H, recipe: lvl.recipe, allowFlip: lvl.allowFlip, budget: 600000 });
+        S.bigSolve = res.solved
+          ? '搜到了一种铺法。'
+          : (res.exhausted
+            ? '搜遍全部 <strong>' + res.nodes + '</strong> 种摆法，一种都不成立。'
+            : '试掉 <strong>' + res.nodes + '</strong> 种摆法全部失败，搜索空间还远没走完——棋盘越大，穷举越无力。');
+        setStatus('可操作'); renderPanel();
+      }, 30);
+    });
+
+    function renderPanel() {
+      panelBox.innerHTML = '';
+      if (armory) panelBox.appendChild(armory.panel);
+      if (S.bigSolve) {
+        var c = el('div', 'card');
+        c.appendChild(el('div', 'card-title', '🐌 穷举验证'));
+        c.appendChild(el('div', 'card-body', S.bigSolve));
+        panelBox.appendChild(c);
+      }
+    }
+
+    function setLevel(L) {
+      lvl = L; S.bigSolve = null;
+      $$('.level-btn', levelBar).forEach(function (b) { b.classList.toggle('active', +b.dataset.id === L.id); });
+      board.resize(L.W, L.H);
+      board.setColoring(null); board.setLabels(false); board.setPlacements([]); board.setSpot(null);
+      tipHost.innerHTML = L.tip;
+      armory = makeArmory({
+        board: board, W: L.W, H: L.H, recipe: L.recipe, allowFlip: L.allowFlip,
+        onResult: function (id, rep) {
+          if (L.trap && id === 'block2' && rep.proved) { S.trapFound = true; bump(); }
+          if (L.trap) renderTrap(id, rep);
+          renderPanel();
+        }
+      });
+      armoryHost.innerHTML = '';
+      armoryHost.appendChild(armory.chips);
+      trapHost.innerHTML = '';
+      renderPanel();
+    }
+
+    function renderTrap(id, rep) {
+      trapHost.innerHTML = '';
+      if (id !== 'diag1' && id !== 'block2') return;
+      if (id === 'diag1' && !rep.proved) {
+        trapHost.appendChild(makeReveal('流行的那个标准解法，在这里漏了一手',
+          '这一题最常见的标准解法，用的正是这套<strong>斜线型染色</strong>：8×8 上有 16 个黑格，每个 1×4 长条恰好吃 1 个，' +
+          '15 块吃 15 个；再说「一个 S 形只能盖住 0 个或 2 个」，于是总数只能是 15 或 17，凑不出 16。<br><br>' +
+          '<span class="pill bad">但是</span> 那句话只对 S 形<strong>横放</strong>成立。S 形<strong>竖放</strong>时，' +
+          '它的四个格恰好落在四条不同的斜线上，必然吃 <strong>1 个</strong>黑格——于是 15 + 1 = 16，' +
+          '和黑格数正好吻合，<strong>矛盾消失了</strong>。探测器上面显示的就是这个结果。<br><br>' +
+          '正确的武器是<strong>大方格型染色</strong>：8×8 有 32 个黑格，1×4 恒吃 2 个（偶数），S 形恒吃奇数个，' +
+          '合计必为奇数，与 32 矛盾。去点一下大方格型试试。<br><br>' +
+          '<span class="pill warn">教训</span> 染色论证必须覆盖图形的<strong>每一种朝向</strong>，漏掉一种，整个证明就塌了。'));
+      }
+    }
+
+    BIG.forEach(function (L) {
+      var b = el('button', 'level-btn', L.label);
+      b.type = 'button'; b.dataset.id = L.id;
+      b.addEventListener('click', function () { setLevel(L); });
+      levelBar.appendChild(b);
+    });
+
+    var card = el('div', 'card');
+    card.appendChild(levelBar);
+    card.appendChild(tipHost);
+    card.appendChild(board.el);
+    armoryHost.style.marginTop = '12px';
+    card.appendChild(armoryHost);
+    var ctl = el('div', 'rack'); ctl.style.marginTop = '12px';
+    ctl.appendChild(solveBtn);
+    card.appendChild(ctl);
+    stage.appendChild(card);
+    stage.appendChild(trapHost);
+    stage.appendChild(makeReveal('同一套方法，换个棋盘照样打',
+      '<strong>① 8×8 = 15 个 L + 1 个 1×4</strong>：条形染色。1×4 吃偶数个黑格，L 吃奇数个，' +
+      '15 个奇数相加是奇数，可 8×8 有 32 个黑格，是偶数。<br><br>' +
+      '<strong>② 10×10 = 25 个 1×4</strong>：轮换四色。四种数应各 25 个，实际是 25 / 26 / 25 / 24。<br><br>' +
+      '<strong>③ 8×8 = 1 个 S + 15 个 1×4</strong>：只有大方格型染色能打穿；斜线染色会漏掉 S 的竖放。<br><br>' +
+      '<span class="pill">迁移要点</span> 棋盘变大不会让方法失效，只会让<strong>穷举</strong>失效。这正是构造论证的威力所在。'));
+
+    panel.appendChild(panelBox);
+    setLevel(BIG[0]);
+  }
+
+  // =========================================================================
+  // 模块 M6 · 自由染色沙盘
+  // =========================================================================
+  function buildSandbox(stage, panel) {
+    var W = 6, H = 6;
+    var grid = [];
+    var recipe = [{ pieceId: 'tet-L', count: 9 }];
+    var panelBox = el('div');
+    var board = makeBoard({ W: W, H: H, maxPx: 420 });
+    board.grid.classList.add('clickable');
+    var painted = false;
+
+    function blankGrid() {
+      grid = [];
+      for (var r = 0; r < H; r++) { var row = []; for (var c = 0; c < W; c++) row.push(0); grid.push(row); }
+    }
+    function loadTemplate(id) {
+      var col = E.resolveColoring(id, W, H);
+      grid = col.grid.map(function (row) { return row.map(function (v) { return col.k > 2 ? (v === 1 ? 1 : 0) : v; }); });
+      painted = false;
+      board.setCustom(grid); refresh();
+    }
+    function area() { return recipe.reduce(function (a, it) { return a + E.getPiece(it.pieceId).cells.length * it.count; }, 0); }
+
+    function refresh() {
+      board.setCustom(grid);
+      panelBox.innerHTML = '';
+      var need = area(), have = W * H;
+      var head = el('div', 'card');
+      head.appendChild(el('div', 'card-title', '配方 vs 棋盘'));
+      head.appendChild(el('div', 'card-body',
+        '骨牌总格数 <strong>' + need + '</strong>　棋盘格数 <strong>' + have + '</strong>' +
+        (need === have ? '　<span class="pill good">对得上</span>' : '　<span class="pill bad">对不上</span>')));
+      panelBox.appendChild(head);
+
+      var rep = null;
+      try {
+        rep = E.analyze({
+          W: W, H: H,
+          coloring: { id: 'custom', name: '自定义', k: 2, labels: ['白', '黑'], grid: grid },
+          recipe: recipe, allowFlip: true
+        });
+      } catch (e) { /* 骨牌放不进这么小的棋盘 */ }
+
+      var det = el('div', 'card');
+      det.appendChild(el('div', 'card-title', '🔬 矛盾探测器'));
+      if (!rep) {
+        det.appendChild(el('div', 'card-body', '有骨牌放不进这个尺寸的棋盘，先调大棋盘或换骨牌。'));
+      } else {
+        det.appendChild(renderDetector(rep, { onSample: function (cells) { board.setSpot(cells); } }));
+        if (rep.proved && rep.best.type !== 'area' && painted) { S.sandboxWin = true; bump(); }
+      }
+      panelBox.appendChild(det);
+    }
+
+    board.grid.addEventListener('click', function (ev) {
+      var rc = board.cellAt(ev); if (!rc) return;
+      grid[rc[0]][rc[1]] = grid[rc[0]][rc[1]] ? 0 : 1;
+      painted = true;
+      board.setSpot(null);
+      refresh();
+    });
+
+    // 尺寸滑杆
+    function slider(label, val, min, max, onChange) {
+      var row = el('div', 'slider-row');
+      row.appendChild(el('span', null, label));
+      var i = el('input'); i.type = 'range'; i.min = min; i.max = max; i.value = val; i.step = 1;
+      var v = el('span', 'val', String(val));
+      i.addEventListener('input', function () { v.textContent = i.value; onChange(+i.value); });
+      row.appendChild(i); row.appendChild(v);
+      return row;
+    }
+    var sizeCard = el('div', 'card');
+    sizeCard.appendChild(el('div', 'card-title', '① 定棋盘'));
+    sizeCard.appendChild(slider('宽', W, 4, 10, function (v) { W = v; blankGrid(); board.resize(W, H, grid); refresh(); }));
+    sizeCard.appendChild(slider('高', H, 4, 10, function (v) { H = v; blankGrid(); board.resize(W, H, grid); refresh(); }));
+
+    var tplRow = el('div', 'rack');
+    tplRow.style.marginTop = '8px';
+    ALL_COLORINGS.forEach(function (id) {
+      var c = E.getColoring(id);
+      var b = el('button', 'tool-button', c.name);
+      b.type = 'button';
+      b.style.cssText = 'min-height:34px;padding:0 10px;font-size:12px';
+      b.addEventListener('click', function () { loadTemplate(id); });
+      tplRow.appendChild(b);
+    });
+    var paintCard = el('div', 'card');
+    paintCard.appendChild(el('div', 'card-title', '② 涂染色'));
+    paintCard.appendChild(el('div', 'card-body', '直接<strong>点棋盘格子</strong>切换黑白；也可以先载入一套标准染色，再自己改。'));
+    paintCard.appendChild(tplRow);
+
+    var recipeCard = el('div', 'card');
+    recipeCard.appendChild(el('div', 'card-title', '③ 配骨牌'));
+    var recipeBody = el('div');
+    var numEls = {};
+    function countOf(pid) {
+      var x = recipe.filter(function (r) { return r.pieceId === pid; })[0];
+      return x ? x.count : 0;
+    }
+    // 只重建一次；之后 +/− 就地改数字，不重建 DOM（否则连点会打到已被替换的旧节点上）
+    function renderRecipe() {
+      recipeBody.innerHTML = '';
+      numEls = {};
+      E.PIECES.forEach(function (p) {
+        var row = el('div', 'recipe-row');
+        var nm = el('div', 'nm');
+        nm.appendChild(pieceMini(p.id, 8));
+        nm.appendChild(el('span', null, p.name));
+        row.appendChild(nm);
+        var minus = el('button', 'step-btn', '−'); minus.type = 'button';
+        var num = el('span', 'n', String(countOf(p.id)));
+        var plus = el('button', 'step-btn', '+'); plus.type = 'button';
+        minus.addEventListener('click', function () { setCount(p.id, Math.max(0, countOf(p.id) - 1)); });
+        plus.addEventListener('click', function () { setCount(p.id, countOf(p.id) + 1); });
+        row.appendChild(minus); row.appendChild(num); row.appendChild(plus);
+        numEls[p.id] = num;
+        recipeBody.appendChild(row);
+      });
+    }
+    function setCount(pid, n) {
+      recipe = recipe.filter(function (x) { return x.pieceId !== pid; });
+      if (n > 0) recipe.push({ pieceId: pid, count: n });
+      if (numEls[pid]) numEls[pid].textContent = String(n);
+      refresh();
+    }
+    recipeCard.appendChild(recipeBody);
+
+    blankGrid();
+    loadTemplate('checker');
+    renderRecipe();
+
+    var boardCard = el('div', 'card');
+    boardCard.appendChild(el('div', 'card-title', '你的实验台'));
+    boardCard.appendChild(board.el);
+
+    stage.appendChild(sizeCard);
+    stage.appendChild(paintCard);
+    stage.appendChild(boardCard);
+    stage.appendChild(recipeCard);
+    stage.appendChild(makeReveal('自己造一把刀',
+      '造染色没有玄学，只有一条判据：<strong>让每种骨牌的「吃黑格数」恒定，或者奇偶恒定</strong>。<br><br>' +
+      '做法通常是「照着图形的形状去设计周期」：<br>' +
+      '· 图形是 1×k 长条 → 周期 k 的斜线<br>' +
+      '· 图形有一格「出头」在端上 → 条形<br>' +
+      '· 图形是 2×2 里挪走一格 → 大方格型<br>' +
+      '· 图形本身太正则（如 2×2）→ 反过来用「不正则」的斜线型 / 正方形型<br><br>' +
+      '造好之后，看探测器给的两行数字：<strong>能凑出的总数集合</strong>和<strong>棋盘实际数目</strong>。' +
+      '后者不在前者里，你就造出了一个证明。'));
+
+    panel.appendChild(panelBox);
+    refresh();
+  }
+
+  // =========================================================================
+  // 模块 M7 · 总结闯关
+  // =========================================================================
+  var CONCEPTS = [
+    ['实验 00', '染色 = 造不变量', '给格子贴标签之后，一块骨牌能吃几个某色格就被限死了。这个「怎么摆都改不了」的量就是不变量。'],
+    ['实验 01', '能当武器的条件', '某种骨牌的吃色数必须恒定，或者奇偶恒定。忽多忽少又不定奇偶的，这套染色对它无效。'],
+    ['实验 02', '黑白染色 & 条形染色', '黑白染色对 1×2 最灵；对 L、S、1×4 常常恒吃 2 黑 2 白而失效。这时换条形染色（整行或整列同色）。'],
+    ['实验 03', '轮换四色 & 斜线染色', '要对付 1×k 长条，用周期 k 的斜线染色：长条横放竖放都跨过连续 k 条斜线，吃每色恰好一个。'],
+    ['实验 04', '大方格型 & 正方形型', '大方格型把 2×2 当一大格轮流染，专治「四方块里跑出去一格」的 S 形；正方形型每隔一行一列点一个黑格，专治 2×2 与 1×4 的混合配方。'],
+    ['实验 05', '证否 ≠ 证能', '染色只能证否。所有刀都砍不动时，说明多半真的铺得满——那时要交出一个真实构造，而不是继续换刀。']
+  ];
+  var QUIZ = [
+    {
+      q: '黑白染色算出「没有矛盾」，这说明什么？',
+      opts: ['一定铺得满', '这套染色证不了，得换一套或去找构造', '题目出错了'], right: 1
+    },
+    {
+      q: '要证明若干个 1×5 长条铺不满某棋盘，最该先试哪种染色？',
+      opts: ['国际象棋型（黑白相间）', '大方格型（2×2 一大块）', '周期 5 的斜线 / 五色轮换'], right: 2
+    },
+    {
+      q: '某染色下，一块骨牌能吃 0、1 或 2 个黑格。这套染色对它……',
+      opts: ['有效，因为取值不多', '无效，因为既不恒定、奇偶也不固定', '有效，只要黑格总数是偶数'], right: 1
+    },
+    {
+      q: '9 个 S 形铺不满 6×6，用的是大方格型染色。这套染色为什么专治 S 形？',
+      opts: ['因为 S 形是「2×2 里跑出去一格」，拿 2×2 当一大格去比它就会逼出奇数',
+        '因为大方格型的黑格最多', '因为 S 形可以翻转'], right: 0
+    },
+    {
+      q: '「8×8 = 1 个 S + 15 个 1×4」的流行解法用斜线染色，本课件指出它有漏洞。漏在哪？',
+      opts: ['黑格数数错了', '漏算了 S 形竖放的情况——竖放时它吃 1 个黑格，矛盾就消失了', '1×4 不能竖放'], right: 1
+    }
+  ];
+
+  function buildFinal(stage, panel) {
+    var card1 = el('div', 'card');
+    card1.appendChild(el('div', 'card-title', '概念卡片墙 · 点开一张，先自己复述一遍'));
+    var gridEl = el('div', 'concept-grid');
+    gridEl.style.marginTop = '10px';
+    CONCEPTS.forEach(function (c) {
+      var n = el('div', 'concept');
+      n.appendChild(el('span', 'tag', c[0]));
+      n.appendChild(el('h4', null, c[1]));
+      n.appendChild(el('div', 'hintline', '点开对照 →'));
+      n.appendChild(el('div', 'txt', c[2]));
+      n.addEventListener('click', function () { n.classList.toggle('open'); });
+      gridEl.appendChild(n);
+    });
+    card1.appendChild(gridEl);
+    stage.appendChild(card1);
+
+    var card2 = el('div', 'card');
+    card2.appendChild(el('div', 'card-title', '出师小测 · 5 题'));
+    var right = 0, done = 0;
+    var scoreBox = el('div', 'card-body', '答完 5 题看段位。');
+    QUIZ.forEach(function (q, qi) {
+      var item = el('div', 'quiz-item');
+      item.appendChild(el('div', 'quiz-q', (qi + 1) + '. ' + q.q));
+      var opts = el('div', 'quiz-opts');
+      q.opts.forEach(function (o, oi) {
+        var b = el('button', 'quiz-opt', o);
+        b.type = 'button';
+        b.addEventListener('click', function () {
+          if (item.dataset.done) return;
+          item.dataset.done = '1';
+          $$('.quiz-opt', opts).forEach(function (x) { x.disabled = true; });
+          if (oi === q.right) { b.classList.add('right'); right++; }
+          else {
+            b.classList.add('wrong');
+            $$('.quiz-opt', opts)[q.right].classList.add('right');
+          }
+          done++;
+          if (done === QUIZ.length) {
+            var rank = right === 5 ? '染色宗师' : right >= 4 ? '出师' : right >= 3 ? '入门' : '再练一轮';
+            scoreBox.innerHTML = '答对 <strong>' + right + ' / 5</strong>　段位：<strong>' + rank + '</strong>' +
+              (right === 5 ? '　🎓 你已经能自己挑刀了。' : '　回到对应实验再摆几次，比看答案有用。');
+            if (right === 5) { S.quizPerfect = true; bump(); }
+          }
+        });
+        opts.appendChild(b);
+      });
+      item.appendChild(opts);
+      card2.appendChild(item);
+    });
+    card2.appendChild(scoreBox);
+    stage.appendChild(card2);
+
+    var p = el('div');
+    var c = el('div', 'card');
+    c.appendChild(el('div', 'card-title', '🏆 成就进度'));
+    var body = el('div', 'card-body');
+    var got = ach.count(), tot = ach.total();
+    body.innerHTML = '已解锁 <strong>' + got + ' / ' + tot + '</strong>。' +
+      (got === tot ? '全部拿下 —— 你把这一讲的每条主线都亲手走过了。' : '还有没走到的实验，回去把它们打穿。');
+    c.appendChild(body);
+    p.appendChild(c);
+    panel.appendChild(p);
+  }
+
+  // =========================================================================
+  // 路由
+  // =========================================================================
+  var MODULES = [
+    { id: 'intro', idx: '00', title: '染色法是什么', build: buildIntro, prompt: '先让电脑用穷举法硬试，再用染色法看一眼——比较两者花的力气。' },
+    { id: 'bw', idx: '01', title: '黑白染色 · 不变量的诞生', build: buildBW, prompt: '在棋盘上到处摆同一块骨牌，盯住它盖住的黑格数：它是恒定的、定奇偶的，还是什么都可能？' },
+    { id: 'stripe', idx: '02', title: '条形染色 · 当黑白失效', build: buildStripe, prompt: '先用黑白染色试，看探测器怎么说；证不出来的时候，才知道为什么要换刀。' },
+    { id: 'cycle', idx: '03', title: '轮换四色 · 长条克星', build: buildCycle, prompt: '滑动 1×4 长条，数它盖住的四个数字——横放竖放都试试。' },
+    { id: 'arena', idx: '04', title: '靶场：9 个四连方 vs 6×6', build: buildArena, prompt: '先亲手铺，铺到放不下为止；然后挑一把染色的刀，把「铺不满」证死。' },
+    { id: 'big', idx: '05', title: '大棋盘挑战', build: buildBig, prompt: '棋盘变成 8×8、10×10，穷举开始吃力，染色法却一点不受影响。' },
+    { id: 'sandbox', idx: '06', title: '自由染色沙盘', build: buildSandbox, prompt: '自己涂一套染色、配一套骨牌，看看你造的刀能不能砍动它。' },
+    { id: 'final', idx: '07', title: '总结闯关', build: buildFinal, prompt: '先把卡片标题当题目自己复述，再点开对照；然后做小测。' }
+  ];
+
+  function setStatus(t) { $('#statusText').textContent = t; }
+
+  function go(id) {
+    var m = MODULES.filter(function (x) { return x.id === id; })[0] || MODULES[0];
+    S.module = m.id;
+    $$('.module-item').forEach(function (b) { b.classList.toggle('active', b.dataset.mid === m.id); });
+    $('#modKicker').textContent = '实验 ' + m.idx;
+    $('#modTitle').textContent = m.title;
+    $('#promptText').textContent = m.prompt;
+    setStatus('可操作');
+    var stage = $('#stageHost'), panel = $('#panelHost');
+    stage.innerHTML = ''; panel.innerHTML = '';
+    m.build(stage, panel);
+    window.scrollTo({ top: 0 });
+  }
+
+  function boot() {
+    var list = $('#moduleList');
+    MODULES.forEach(function (m) {
+      var b = el('button', 'module-item');
+      b.type = 'button'; b.dataset.mid = m.id;
+      b.appendChild(el('span', 'module-index', m.idx));
+      b.appendChild(el('span', null, m.title));
+      b.addEventListener('click', function () { go(m.id); });
+      list.appendChild(b);
+    });
+    $('#trophyBtn').addEventListener('click', function () {
+      ach.renderList($('#achList'));
+      $('#achModal').hidden = false;
+    });
+    $('#achClose').addEventListener('click', function () { $('#achModal').hidden = true; });
+    $('#achModal').addEventListener('click', function (ev) {
+      if (ev.target === $('#achModal')) $('#achModal').hidden = true;
+    });
+    S.arenaTried = {};
+    bump();
+    go('intro');
+  }
+
+  window.__coloringLab = { S: S, go: go, engine: E, modules: MODULES };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+
+  </script>
+  </body>
+</html>

@@ -1,0 +1,966 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>一眼几个？数感实验室</title>
+  <link rel="icon" href="data:,">
+  <style data-source="src/styles.css">
+:root{--bg:#f4f7f8;--surface:#fff;--surface-strong:#eef4f5;--line:#d7e1e3;--text:#152529;--muted:#66777d;--accent:#3b82f6;--accent-dark:#2563eb;--accent-soft:#dbeafe;--orange:#f59e0b;--good:#16a34a;--bad:#dc2626;--shadow:0 8px 24px rgba(30,50,60,.08)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,"Segoe UI","PingFang SC",sans-serif}button{font:inherit;color:inherit;min-height:40px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;padding:8px 14px}button:hover{border-color:var(--accent);background:#f8fbff}button:focus-visible{outline:3px solid rgba(59,130,246,.28);outline-offset:2px}.is-hidden{display:none!important}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:18px 24px;border-bottom:1px solid var(--line);background:#fff}.brand-kicker,.eyebrow{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--accent-dark);text-transform:uppercase}.topbar h1{font-size:22px;margin:3px 0 0}.top-actions{display:flex;align-items:center;gap:12px}.ach-mini{width:130px;font-size:12px;color:var(--muted)}.ach-progress-track{margin-top:5px}
+.workspace{display:grid;grid-template-columns:220px minmax(0,1fr) 300px;gap:16px;padding:16px;max-width:1500px;margin:auto}.module-nav,.lab-card,.data-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}.module-nav{padding:10px;display:flex;flex-direction:column;gap:7px}.module-button{text-align:left;display:grid;grid-template-columns:32px 1fr;column-gap:8px;padding:10px;border-color:transparent;background:transparent}.module-button span{grid-row:1/3;font:700 13px ui-monospace,monospace;color:var(--muted)}.module-button b{font-size:14px}.module-button small{color:var(--muted)}.module-button.is-active{background:var(--accent-soft);border-color:#bfdbfe;color:var(--accent-dark)}.module-button.is-done span{color:var(--good)}
+.lab-card{padding:16px;min-width:0}.lab-heading,.data-heading,.dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.lab-heading h2{font-size:20px;margin:3px 0 12px}.progress-pill{font:700 12px ui-monospace,monospace;background:var(--surface-strong);border-radius:999px;padding:7px 10px;color:var(--muted)}.stage-wrap{position:relative;aspect-ratio:16/9;min-height:320px;max-height:590px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#f8fafc}.stage-wrap canvas{display:block;width:100%;height:100%}.stage-message{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}.stage-message b{font-size:clamp(22px,4vw,42px)}.stage-message span{margin-top:8px;color:var(--muted)}
+.control-panel{margin-top:14px;padding:14px;background:#f8fafc;border:1px solid var(--line);border-radius:14px}.question{font-weight:700;margin:0 0 12px}.choice-row,.action-row,.number-pad,.side-choices{display:flex;gap:10px;flex-wrap:wrap}.choice-row button.is-selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-dark);font-weight:700}.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:800}.primary:hover{background:var(--accent-dark);color:#fff}.is-locked{background:#fff!important;color:var(--muted)!important;border-style:dashed!important}.nudge{animation:nudge .55s ease 2}.number-pad{margin-top:12px}.number-pad button{flex:1 1 54px;font:800 20px ui-monospace,monospace}.side-choices{margin-top:12px}.side-choices button{flex:1;font-weight:800;min-height:52px}.side-choices button:first-child{border-color:#93c5fd}.side-choices button:last-child{border-color:#fdba74}
+.data-card{padding:16px;min-width:0}.data-heading button{font-size:12px}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.metric{padding:12px;border:1px solid var(--line);border-radius:12px;background:#f8fafc}.metric span{display:block;font-size:12px;color:var(--muted)}.metric b{display:block;margin-top:4px;font:800 20px ui-monospace,monospace}.conclusion,.science-note{padding:13px;border-radius:12px;margin-top:12px}.conclusion{background:#eff6ff;border:1px solid #bfdbfe}.conclusion p,.science-note p{font-size:13px;line-height:1.6;margin:6px 0 0}.science-note{background:#fffbeb;border:1px solid #fde68a}.report-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}.report-summary .metric{background:#fff}.quiz-panel h3{margin:0 0 10px}.quiz-options{display:grid;gap:8px}.quiz-options button{text-align:left}.quiz-options button.correct{border-color:var(--good);background:#f0fdf4}.quiz-options button.wrong{border-color:var(--bad);background:#fef2f2}
+.prompt-bar{position:sticky;bottom:0;z-index:20;display:grid;grid-template-columns:auto 1fr;align-items:center;gap:16px;padding:12px 20px;border-top:1px solid var(--line);background:rgba(255,255,255,.96);backdrop-filter:blur(10px)}.prompt-tabs{display:flex;gap:6px}.prompt-tabs button{min-height:40px;padding:7px 12px}.prompt-tabs button.is-active{background:var(--accent-soft);border-color:#bfdbfe;color:var(--accent-dark);font-weight:800}.prompt-bar p{margin:0;font-weight:600}.ach-list{display:grid;gap:8px;max-height:65vh;overflow:auto}dialog{border:0;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.22);width:min(620px,92vw)}dialog::backdrop{background:rgba(15,23,42,.35)}
+@keyframes nudge{50%{transform:translateX(5px)}}
+@media (max-width:1099px){.workspace{grid-template-columns:minmax(0,1fr) 280px}.module-nav{grid-column:1/-1;flex-direction:row;overflow-x:auto}.module-button{min-width:170px}.lab-card{grid-column:1}.data-card{grid-column:2}.stage-wrap{min-height:300px}}
+@media (max-width:699px){.topbar{padding:12px;align-items:flex-start}.topbar h1{font-size:18px}.ach-mini{display:none}.workspace{display:flex;flex-direction:column;padding:8px;gap:8px}.module-nav{order:0;border-radius:12px}.module-button{min-width:145px}.lab-card{order:1;padding:10px}.data-card{order:2}.stage-wrap{min-height:250px;aspect-ratio:4/3}.report-summary{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.prompt-bar{grid-template-columns:1fr;gap:7px;padding:8px 10px}.prompt-tabs button{flex:1}.prompt-tabs{width:100%}.prompt-bar p{font-size:13px}.number-pad button{flex-basis:45px}.top-actions{gap:4px}.ach-trophy-btn{padding:0 10px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+</style>
+  <style data-source="src/incentive/achievements.css">
+/*
+ * achievements.css —— 成就系统底座配套样式
+ * 配合 achievements.js 使用；可整段内联进单 HTML。
+ * 颜色沿用数学实验室型变量（品牌蓝 #3b82f6 / 浅色卡片），无变量时有兜底值。
+ */
+
+/* ---- toast 解锁提示（右下角堆叠） ---- */
+.ach-toast-stack {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.ach-toast {
+  min-width: 220px;
+  max-width: 300px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line, #d7e1e3);
+  border-left: 4px solid var(--accent, #3b82f6);
+  box-shadow: 0 6px 20px rgba(15, 30, 40, 0.12);
+  animation: ach-toast-in 0.25s ease-out;
+}
+.ach-toast-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--accent-dark, #2563eb);
+  font-weight: 600;
+}
+.ach-toast-name {
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #152529);
+}
+.ach-toast-desc {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted, #66777d);
+}
+@keyframes ach-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- 奖杯进度条（在任意位置放 [data-ach-progress] 的轨道即可） ---- */
+.ach-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-strong, #eef4f5);
+  overflow: hidden;
+}
+.ach-progress-track > [data-ach-progress] {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: var(--accent, #3b82f6);
+  transition: width 0.3s ease;
+}
+
+/* ---- 成就清单行（奖杯弹窗内） ---- */
+.ach-row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #d7e1e3);
+  background: var(--surface, #ffffff);
+  opacity: 0.55;
+}
+.ach-row.is-unlocked { opacity: 1; border-color: var(--accent-soft, #dbeafe); }
+.ach-row .ach-icon { font-size: 22px; text-align: center; }
+.ach-row .ach-name { font-weight: 600; color: var(--text, #152529); }
+.ach-row .ach-desc { font-size: 12px; color: var(--muted, #66777d); }
+.ach-row .ach-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted, #66777d);
+  white-space: nowrap;
+}
+.ach-row.is-unlocked .ach-status { color: var(--accent-dark, #2563eb); }
+
+/* 触控目标：奖杯入口按钮不小于 40px */
+.ach-trophy-btn {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line, #d7e1e3);
+  background: var(--surface, #ffffff);
+  color: var(--text, #152529);
+  cursor: pointer;
+}
+
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div><span class="brand-kicker">杨老师的 mathlab</span><h1>一眼几个？数感实验室</h1></div>
+    <div class="top-actions">
+      <div class="ach-mini"><span><b data-ach-count>0</b>/<span data-ach-total>0</span> 成就</span><div class="ach-progress-track"><i data-ach-progress></i></div></div>
+      <button id="achButton" class="ach-trophy-btn" type="button">🏆 成就</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <nav id="moduleNav" class="module-nav" aria-label="学习模块">
+      <button class="module-button is-active" data-module="m0"><span>00</span><b>一眼几个</b><small>先猜再闪</small></button>
+      <button class="module-button" data-module="m1"><span>01</span><b>瞬认闪电赛</b><small>1–8 点</small></button>
+      <button class="module-button" data-module="m2"><span>02</span><b>破解分界</b><small>画出双曲线</small></button>
+      <button class="module-button" data-module="m3"><span>03</span><b>两群点对决</b><small>比例挑战</small></button>
+      <button class="module-button" data-module="m4"><span>04</span><b>数感报告</b><small>拟合 Weber w</small></button>
+      <button class="module-button" data-module="m5"><span>05</span><b>数感侦探</b><small>总结闯关</small></button>
+    </nav>
+
+    <section class="lab-card" aria-label="交互实验区">
+      <div class="lab-heading"><div><span id="moduleEyebrow" class="eyebrow">先预测</span><h2 id="moduleTitle">不数数，你能一眼看出几个？</h2></div><div id="trialProgress" class="progress-pill">准备中</div></div>
+      <div class="stage-wrap">
+        <canvas id="stageCanvas" aria-label="点阵实验画板"></canvas>
+        <div id="stageMessage" class="stage-message"><b>先别急着数</b><span>看一眼，凭第一感觉作答。</span></div>
+      </div>
+
+      <section id="m0Controls" class="control-panel">
+        <p class="question">当点从 4 个增加到 7 个，你觉得大脑会怎样？</p>
+        <div id="m0Prediction" class="choice-row">
+          <button type="button" data-predict="same">还是一样快</button>
+          <button type="button" data-predict="slower">会明显变慢</button>
+          <button type="button" data-predict="unsure">先闪给我看</button>
+        </div>
+        <button id="demoButton" class="primary is-locked" type="button">🔒 先预测，再闪三次</button>
+      </section>
+
+      <section id="m1Controls" class="control-panel is-hidden">
+        <div class="action-row"><button id="startSubButton" class="primary" type="button">开始 24 轮</button><button class="reset-button" type="button">重置</button></div>
+        <div id="answerPad" class="number-pad" aria-label="数字答案">
+          <button type="button" data-number="1">1</button><button type="button" data-number="2">2</button><button type="button" data-number="3">3</button><button type="button" data-number="4">4</button>
+          <button type="button" data-number="5">5</button><button type="button" data-number="6">6</button><button type="button" data-number="7">7</button><button type="button" data-number="8">8</button>
+        </div>
+      </section>
+
+      <section id="m2Controls" class="control-panel is-hidden">
+        <p class="question">看你的两条曲线：从几个开始，不再像前面那样又快又准？</p>
+        <div id="thresholdChoices" class="choice-row"><button data-threshold="3">3 个</button><button data-threshold="4">4 个</button><button data-threshold="5">5 个</button><button data-threshold="6">6 个</button></div>
+      </section>
+
+      <section id="m3Controls" class="control-panel is-hidden">
+        <div class="action-row"><button id="startAnsButton" class="primary" type="button">开始比例挑战</button><button class="reset-button" type="button">重置</button></div>
+        <div class="side-choices"><button id="leftChoice" type="button">← 左边更多</button><button id="rightChoice" type="button">右边更多 →</button></div>
+      </section>
+
+      <section id="m4Controls" class="control-panel is-hidden">
+        <div id="reportSummary" class="report-summary"></div>
+        <div class="action-row"><button id="expandButton" class="primary" type="button">继续精测</button><button class="reset-button" type="button">重测 ANS</button></div>
+      </section>
+
+      <section id="m5Controls" class="control-panel is-hidden">
+        <div id="quizPanel" class="quiz-panel"></div>
+      </section>
+    </section>
+
+    <aside class="data-card">
+      <div class="data-heading"><span class="eyebrow">实验读数</span><button id="revealButton" type="button">显示结论</button></div>
+      <div id="metrics" class="metrics"></div>
+      <div id="conclusion" class="conclusion is-hidden"><b>结论仍藏着</b><p>先完成本模块的预测或操作，再来揭晓。</p></div>
+      <div class="science-note"><b>科学边界</b><p>短测只帮助你观察当下策略，不用于判断智力、天赋或学习障碍。</p></div>
+    </aside>
+  </main>
+
+  <footer id="promptBar" class="prompt-bar">
+    <div class="prompt-tabs"><button class="is-active" data-prompt="observe">观察</button><button data-prompt="verify">验证</button><button data-prompt="prove">证明</button></div>
+    <p id="promptText">你是“一眼看见”，还是在心里一个个数？</p>
+  </footer>
+
+  <dialog id="achDialog"><form method="dialog"><div class="dialog-heading"><h2>发现成就</h2><button type="submit">关闭</button></div><div id="achList" class="ach-list"></div></form></dialog>
+
+  <script data-source="src/number-sense-engine.js">
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.NumberSenseEngine = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  const ANS_RATIOS = [0.50, 0.60, 0.67, 0.75, 0.80, 0.86];
+
+  function createRng(seed) {
+    let x = seed >>> 0 || 0x9e3779b9;
+    return function random() {
+      x += 0x6D2B79F5;
+      let t = x;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function shuffled(values, rng) {
+    const out = values.slice();
+    for (let i = out.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(rng() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+  }
+
+  function buildSubitizingPlan({ seed = 1, repeats = 3 } = {}) {
+    const trials = [];
+    for (let repeat = 0; repeat < repeats; repeat += 1) {
+      for (let count = 1; count <= 8; count += 1) trials.push({ count, repeat });
+    }
+    return shuffled(trials, createRng(seed));
+  }
+
+  function buildAnsPlan({ seed = 1, repeatsPerRatio = 4 } = {}) {
+    const trials = [];
+    ANS_RATIOS.forEach((ratioLabel, ratioIndex) => {
+      for (let repeat = 0; repeat < repeatsPerRatio; repeat += 1) {
+        const larger = 14 + ((ratioIndex * 3 + repeat * 2) % 11);
+        const smaller = Math.max(5, Math.min(larger - 1, Math.round(larger * ratioLabel)));
+        trials.push({
+          larger,
+          smaller,
+          ratio: smaller / larger,
+          ratioLabel,
+          correctSide: (ratioIndex + repeat) % 2 ? 'left' : 'right',
+          areaCue: (ratioIndex + repeat) % 2 ? 'congruent' : 'incongruent',
+          colorOrder: (ratioIndex * repeatsPerRatio + repeat) % 2 ? 'blue-orange' : 'orange-blue',
+          seed: seed + ratioIndex * 101 + repeat * 17
+        });
+      }
+    });
+    return shuffled(trials, createRng(seed));
+  }
+
+  function generateDotArray({ count, totalArea = 0.08, seed = 1 } = {}) {
+    if (!Number.isInteger(count) || count < 1 || count > 40) throw new RangeError('count must be an integer from 1 to 40');
+    if (!(totalArea > 0 && totalArea < 0.30)) throw new RangeError('totalArea must be between 0 and 0.30');
+    const rng = createRng(seed);
+    for (let restart = 0; restart < 100; restart += 1) {
+      const weights = Array.from({ length: count }, () => 0.88 + rng() * 0.24);
+      const weightSquares = weights.reduce((sum, value) => sum + value * value, 0);
+      const scale = Math.sqrt(totalArea / (Math.PI * weightSquares));
+      const radii = weights.map((value) => value * scale);
+      const dots = [];
+      for (const r of radii) {
+        let placed = false;
+        for (let attempt = 0; attempt < 900; attempt += 1) {
+          const x = r + 0.025 + rng() * (0.95 - 2 * r);
+          const y = r + 0.025 + rng() * (0.95 - 2 * r);
+          if (dots.every((dot) => Math.hypot(x - dot.x, y - dot.y) >= r + dot.r + 0.006)) {
+            dots.push({ x, y, r });
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) break;
+      }
+      if (dots.length === count) return dots;
+    }
+    throw new Error('Unable to place dot array for the requested density');
+  }
+
+  function generateAnsPair({ leftCount, rightCount, areaCue = 'congruent', seed = 1 } = {}) {
+    if (leftCount === rightCount) throw new RangeError('ANS pair requires different numerosities');
+    if (!['congruent', 'incongruent'].includes(areaCue)) throw new RangeError('Unknown area cue');
+    const leftMore = leftCount > rightCount;
+    const moreArea = areaCue === 'congruent' ? 0.105 : 0.075;
+    const lessArea = areaCue === 'congruent' ? 0.075 : 0.105;
+    const leftArea = leftMore ? moreArea : lessArea;
+    const rightArea = leftMore ? lessArea : moreArea;
+    return {
+      left: generateDotArray({ count: leftCount, totalArea: leftArea, seed }),
+      right: generateDotArray({ count: rightCount, totalArea: rightArea, seed: seed + 997 }),
+      leftArea,
+      rightArea,
+      areaCue
+    };
+  }
+
+  function median(values) {
+    const clean = values.filter(Number.isFinite).slice().sort((a, b) => a - b);
+    if (!clean.length) return null;
+    const middle = Math.floor(clean.length / 2);
+    return clean.length % 2 ? clean[middle] : (clean[middle - 1] + clean[middle]) / 2;
+  }
+
+  function erf(value) {
+    const sign = value < 0 ? -1 : 1;
+    const x = Math.abs(value);
+    const t = 1 / (1 + 0.3275911 * x);
+    const polynomial = (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t);
+    return sign * (1 - polynomial * Math.exp(-x * x));
+  }
+
+  function psychometricAccuracy(n1, n2, w) {
+    if (!(n1 > 0 && n2 > 0 && w > 0)) throw new RangeError('n1, n2, and w must be positive');
+    const z = Math.abs(n1 - n2) / (Math.SQRT2 * w * Math.sqrt(n1 * n1 + n2 * n2));
+    return Math.min(1 - 1e-9, Math.max(0.5 + 1e-9, 0.5 + 0.5 * erf(z)));
+  }
+
+  function fitWeber(trials) {
+    const usable = trials.filter((trial) => trial && trial.smaller > 0 && trial.larger > trial.smaller && typeof trial.correct === 'boolean');
+    if (!usable.length) return { w: 1.5, logLikelihood: 0, n: 0, reliability: 'insufficient' };
+    let bestW = 1.5;
+    let bestLogLikelihood = -Infinity;
+    for (let step = 50; step <= 1500; step += 1) {
+      const w = step / 1000;
+      let logLikelihood = 0;
+      for (const trial of usable) {
+        const p = psychometricAccuracy(trial.smaller, trial.larger, w);
+        logLikelihood += Math.log(trial.correct ? p : 1 - p);
+      }
+      if (logLikelihood > bestLogLikelihood) {
+        bestW = w;
+        bestLogLikelihood = logLikelihood;
+      }
+    }
+    return {
+      w: bestW,
+      logLikelihood: bestLogLikelihood,
+      n: usable.length,
+      reliability: usable.length >= 48 ? 'expanded' : 'exploratory'
+    };
+  }
+
+  function summarizeSubitizing(trials) {
+    return Array.from({ length: 8 }, (_, index) => {
+      const count = index + 1;
+      const rows = trials.filter((trial) => trial && trial.count === count && typeof trial.correct === 'boolean');
+      const correct = rows.filter((trial) => trial.correct).length;
+      return {
+        count,
+        n: rows.length,
+        correct,
+        accuracy: rows.length ? correct / rows.length : 0,
+        medianRt: median(rows.map((trial) => trial.rt))
+      };
+    });
+  }
+
+  function estimateSubitizingSpan(trials) {
+    let span = 0;
+    for (const row of summarizeSubitizing(trials)) {
+      if (row.n >= 2 && row.accuracy >= 2 / 3) span = row.count;
+      else break;
+    }
+    return span;
+  }
+
+  function summarizeAns(trials) {
+    return ANS_RATIOS.map((ratioLabel) => {
+      const rows = trials.filter((trial) => trial && trial.ratioLabel === ratioLabel && typeof trial.correct === 'boolean');
+      const correct = rows.filter((trial) => trial.correct).length;
+      return {
+        ratioLabel,
+        n: rows.length,
+        correct,
+        accuracy: rows.length ? correct / rows.length : 0,
+        medianRt: median(rows.map((trial) => trial.rt))
+      };
+    });
+  }
+
+  return {
+    ANS_RATIOS,
+    createRng,
+    buildSubitizingPlan,
+    buildAnsPlan,
+    generateDotArray,
+    generateAnsPair,
+    median,
+    psychometricAccuracy,
+    fitWeber,
+    summarizeSubitizing,
+    estimateSubitizingSpan,
+    summarizeAns
+  };
+});
+
+</script>
+  <script data-source="src/incentive/achievements.js">
+/*
+ * achievements.js —— 交互课件「成就/激励系统」代码底座
+ * ---------------------------------------------------------------
+ * 来源：从成品 lights-out.html / polyomino-tiling.html 的成就系统提炼。
+ * 特性：零依赖、原生 JS、可直接 file:// 打开、可整段内联进单 HTML。
+ * 用法与设计说明见：references/patterns-library.md →「成就系统底座」。
+ *
+ * 设计要点（务必照做）：
+ *  - 成就奖励「发现 / 掌握」里程碑，不奖励「点击次数」。
+ *  - 声明式成就表 + check(state) 谓词；状态变更后调用 ach.check(state) 即可。
+ *  - localStorage 持久化（带版本号 key），刷新后进度保留。
+ *  - 解锁即 toast；可选奖杯弹窗 + 进度条。
+ * ---------------------------------------------------------------
+ */
+(function (global) {
+  'use strict';
+
+  /**
+   * @param {Object}   options
+   * @param {Array}    options.defs            成就定义：{ id, icon, name, desc, check?(state)=>bool }
+   * @param {string}   options.storageKey      localStorage key，建议带版本号，如 'lights-out-ach-v1'
+   * @param {number}  [options.toastDuration]  toast 停留毫秒，默认 4200
+   * @param {Function}[options.onUnlock]       每解锁一项的回调 (def) => void（可选，用于撒花/音效）
+   */
+  function createAchievements(options) {
+    options = options || {};
+    var defs = options.defs || [];
+    var storageKey = options.storageKey || 'courseware-achievements-v1';
+    var toastDuration = options.toastDuration || 4200;
+    var onUnlock = typeof options.onUnlock === 'function' ? options.onUnlock : null;
+
+    var unlocked = new Set();
+
+    function findDef(id) {
+      for (var i = 0; i < defs.length; i++) { if (defs[i].id === id) return defs[i]; }
+      return null;
+    }
+    function load() {
+      try {
+        var raw = global.localStorage.getItem(storageKey);
+        if (raw) JSON.parse(raw).forEach(function (id) { unlocked.add(id); });
+      } catch (e) { /* 隐私模式 / file:// 受限时静默降级 */ }
+    }
+    function save() {
+      try { global.localStorage.setItem(storageKey, JSON.stringify(Array.from(unlocked))); }
+      catch (e) { /* 静默降级：本次会话仍可用，只是不持久 */ }
+    }
+
+    // ---- toast（懒创建容器，无需在 HTML 里预置） ----
+    function toastStack() {
+      var el = document.getElementById('achToastStack');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'achToastStack';
+        el.className = 'ach-toast-stack';
+        document.body.appendChild(el);
+      }
+      return el;
+    }
+    function showToast(def) {
+      var el = document.createElement('div');
+      el.className = 'ach-toast';
+      el.innerHTML =
+        '<div class="ach-toast-title"><span>🏆</span>解锁成就</div>' +
+        '<div class="ach-toast-name">' + (def.icon || '') + ' ' + def.name + '</div>' +
+        '<div class="ach-toast-desc">' + (def.desc || '') + '</div>';
+      toastStack().appendChild(el);
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, toastDuration);
+    }
+
+    // ---- 进度反馈（按 data 属性自动挂载，无则跳过） ----
+    function updateProgress() {
+      var got = count(), tot = Math.max(1, total());
+      var bar = document.querySelector('[data-ach-progress]');
+      if (bar) bar.style.width = Math.round(got / tot * 100) + '%';
+      var c = document.querySelector('[data-ach-count]'); if (c) c.textContent = count();
+      var t = document.querySelector('[data-ach-total]'); if (t) t.textContent = total();
+    }
+
+    function fire(def) {
+      save();
+      showToast(def);
+      updateProgress();
+      if (onUnlock) onUnlock(def);
+    }
+
+    // 命令式解锁：用于「做了某动作就解锁」的离散事件
+    function unlock(id) {
+      if (unlocked.has(id)) return false;
+      var def = findDef(id);
+      if (!def) return false;
+      unlocked.add(id);
+      fire(def);
+      return true;
+    }
+
+    // 声明式解锁：传入当前 state，自动解锁所有 check(state) 为真者
+    function check(state) {
+      var fresh = [];
+      for (var i = 0; i < defs.length; i++) {
+        var def = defs[i];
+        if (def.check && !unlocked.has(def.id) && def.check(state)) {
+          unlocked.add(def.id);
+          fresh.push(def);
+        }
+      }
+      if (fresh.length) { fresh.forEach(fire); }
+      return fresh;
+    }
+
+    function has(id) { return unlocked.has(id); }
+    function count() { return defs.filter(function (d) { return unlocked.has(d.id); }).length; }
+    function total() { return defs.length; }
+    function reset() { unlocked.clear(); save(); updateProgress(); }
+
+    // 可选：把成就清单渲染进某个容器（用于奖杯弹窗）
+    function renderList(container) {
+      if (!container) return;
+      container.innerHTML = '';
+      defs.forEach(function (def) {
+        var got = unlocked.has(def.id);
+        var row = document.createElement('div');
+        row.className = 'ach-row' + (got ? ' is-unlocked' : '');
+        row.innerHTML =
+          '<div class="ach-icon">' + (got ? (def.icon || '🏆') : '🔒') + '</div>' +
+          '<div class="ach-meta"><div class="ach-name">' + def.name + '</div>' +
+          '<div class="ach-desc">' + (def.desc || '') + '</div></div>' +
+          '<div class="ach-status">' + (got ? '✓ 已解锁' : '未解锁') + '</div>';
+        container.appendChild(row);
+      });
+      updateProgress();
+    }
+
+    load();
+    updateProgress();
+
+    return {
+      check: check,        // 声明式：状态变更后调用 ach.check(state)
+      unlock: unlock,      // 命令式：离散事件触发 ach.unlock(id)
+      has: has,
+      count: count,
+      total: total,
+      reset: reset,
+      renderList: renderList
+    };
+  }
+
+  global.createAchievements = createAchievements;
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { createAchievements: createAchievements }; }
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
+  <script data-source="src/app.js">
+(function () {
+  'use strict';
+
+  const E = window.NumberSenseEngine;
+  const $ = (selector) => document.querySelector(selector);
+  const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+  const modules = {
+    m0: { eyebrow: '先预测', title: '不数数，你能一眼看出几个？' },
+    m1: { eyebrow: '实验一 · 瞬认', title: '瞬认闪电赛' },
+    m2: { eyebrow: '数据侦探', title: '你的分界藏在哪里？' },
+    m3: { eyebrow: '实验二 · 近似数量', title: '两群点，哪边更多？' },
+    m4: { eyebrow: '心理测量', title: '我的数感分辨率' },
+    m5: { eyebrow: '总结闯关', title: '成为数感侦探' }
+  };
+
+  const prompts = {
+    m0: { observe: '你是“一眼看见”，还是在心里一个个数？', verify: '比较 3、7、4 个点的主观感觉，哪次最需要数？', prove: '先保留猜想，实验一会用正确率和反应时检验。' },
+    m1: { observe: '不要数，凭第一眼选择数字。', verify: '留意 1–4 与 5–8 的连击是否一样稳定。', prove: '完成 24 轮后，用两条曲线寻找策略变化。' },
+    m2: { observe: '正确率何时下降？反应时何时抬头？', verify: '两条曲线同时变化的位置，比单看一次错误更可靠。', prove: '瞬认不是“更快的计数”，而是少量对象的并行识别。' },
+    m3: { observe: '别看点有多大，只判断哪边数量更多。', verify: '比较 1:2 和接近 6:7 的题，哪类更容易？', prove: '如果差异由比例决定，相同比例应有相近难度。' },
+    m4: { observe: '经验点和蓝色拟合曲线是否同向？', verify: '比例越接近 1，正确率是否越接近随机猜测线？', prove: 'Weber w 是模型中的噪声尺度；越小表示曲线下降得越晚。' },
+    m5: { observe: '把每个结论连回你亲手做过的实验。', verify: '遇到“点更大”时，先问它是不是视觉陷阱。', prove: '能解释曲线，比单次高分更重要。' }
+  };
+
+  const conclusions = {
+    m0: '少量与较多点的主观感觉常不同。先别急着命名，去实验一留下自己的证据。',
+    m1: '1–4 个对象常能快速瞬认；数量再多时，计数或近似估计更容易介入。分界因人和情境略有变化。',
+    m2: '当正确率下降、反应时上升时，你可能跨过了自己的瞬认区。这里的“4”是常见现象，不是绝对诊断线。',
+    m3: '两组数量越接近，比较越难。大脑主要受比例影响；点的总面积与铺开范围必须被控制。',
+    m4: '心理测量曲线把比例和正确率连起来。模型中的 Weber w 越小，表示近似数量表征越精细；短测只能探索，不能诊断。',
+    m5: '数感不是一个神秘标签，而是一组可以观察、控制变量、画曲线并诚实解释限制的认知现象。'
+  };
+
+  const state = {
+    module: 'm0', phase: 'idle', prompt: 'observe', prediction: null,
+    subPlan: E.buildSubitizingPlan({ seed: 20260704, repeats: 3 }), subIndex: 0, subTrials: [],
+    ansPlan: E.buildAnsPlan({ seed: 20260705, repeatsPerRatio: 4 }), ansIndex: 0, ansTrials: [], expanded: false,
+    accepting: false, onset: 0, timer: null, invalidated: false, currentTrial: null, currentDots: null,
+    thresholdChoice: null, quizIndex: 0, quizScore: 0, quizAnswered: false,
+    completed: new Set(), discoveries: {}
+  };
+
+  const canvas = $('#stageCanvas');
+  const ctx = canvas.getContext('2d');
+  const stageMessage = $('#stageMessage');
+  const controls = ['m0', 'm1', 'm2', 'm3', 'm4', 'm5'].map((id) => $(`#${id}Controls`));
+  let stage = { w: 1, h: 1, dpr: 1 };
+
+  const achievementDefs = [
+    { id: 'first-look', icon: '👀', name: '第一眼', desc: '完成三次快闪观察', check: (s) => s.discoveries.demo },
+    { id: 'flash-eye', icon: '⚡', name: '闪电眼', desc: '完成 24 轮瞬认实验', check: (s) => s.discoveries.subComplete },
+    { id: 'four-zone', icon: '4️⃣', name: '找到分界', desc: '用两条曲线判断瞬认区', check: (s) => s.discoveries.threshold },
+    { id: 'ratio-detective', icon: '⚖️', name: '比例侦探', desc: '完成快速 ANS 比较', check: (s) => s.discoveries.ansComplete },
+    { id: 'cue-breaker', icon: '🪤', name: '视觉陷阱破解者', desc: '在面积反向题中仍判断正确', check: (s) => s.discoveries.cueBreaker },
+    { id: 'precision', icon: '🎯', name: '精测完成', desc: '将 ANS 样本扩展到 60 轮', check: (s) => s.discoveries.expanded },
+    { id: 'sense-detective', icon: '🏆', name: '数感侦探', desc: '完成总结闯关', check: (s) => s.discoveries.quizComplete }
+  ];
+  const ach = window.createAchievements({ storageKey: 'number-sense-ach-v1', defs: achievementDefs });
+
+  function checkAchievements() {
+    ach.check(state);
+    ach.renderList($('#achList'));
+    $$('.module-button').forEach((button) => button.classList.toggle('is-done', state.completed.has(button.dataset.module)));
+  }
+
+  function fitStage() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.max(1, Math.round(rect.width));
+    const h = Math.max(1, Math.round(rect.height));
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    stage = { w, h, dpr };
+    redraw();
+  }
+
+  function clearStage(color = '#f8fafc') {
+    ctx.fillStyle = color; ctx.fillRect(0, 0, stage.w, stage.h);
+  }
+  function showMessage(title, detail) {
+    stageMessage.innerHTML = `<b>${title}</b><span>${detail || ''}</span>`;
+    stageMessage.classList.remove('is-hidden');
+  }
+  function hideMessage() { stageMessage.classList.add('is-hidden'); }
+
+  function drawDots(dots, region, color) {
+    ctx.fillStyle = color;
+    dots.forEach((dot) => {
+      const x = region.x + dot.x * region.w;
+      const y = region.y + dot.y * region.h;
+      const r = dot.r * Math.min(region.w, region.h);
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    });
+  }
+
+  function drawSubStimulus() {
+    clearStage('#ffffff'); hideMessage();
+    drawDots(state.currentDots, { x: stage.w * .18, y: stage.h * .08, w: stage.w * .64, h: stage.h * .84 }, '#2563eb');
+  }
+
+  function drawAnsStimulus() {
+    clearStage('#eef2f3'); hideMessage();
+    const gap = 18, margin = 24, top = 24, height = stage.h - 48;
+    const width = (stage.w - margin * 2 - gap) / 2;
+    const left = { x: margin, y: top, w: width, h: height };
+    const right = { x: margin + width + gap, y: top, w: width, h: height };
+    ctx.fillStyle = '#fff'; ctx.fillRect(left.x, left.y, left.w, left.h); ctx.fillRect(right.x, right.y, right.w, right.h);
+    ctx.strokeStyle = '#d7e1e3'; ctx.strokeRect(left.x, left.y, left.w, left.h); ctx.strokeRect(right.x, right.y, right.w, right.h);
+    drawDots(state.currentDots.left, left, state.currentTrial.leftColor);
+    drawDots(state.currentDots.right, right, state.currentTrial.rightColor);
+  }
+
+  function drawAxes(x, y, w, h, xLabel, yLabel) {
+    ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + h); ctx.lineTo(x + w, y + h); ctx.stroke();
+    ctx.fillStyle = '#66777d'; ctx.font = '12px Segoe UI'; ctx.fillText(yLabel, x, y - 8); ctx.fillText(xLabel, x + w - 30, y + h + 26);
+  }
+
+  function strokeSeries(points, color) {
+    if (!points.length) return;
+    ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.beginPath();
+    points.forEach((point, index) => { if (index === 0) ctx.moveTo(point.x, point.y); else ctx.lineTo(point.x, point.y); });
+    ctx.stroke();
+  }
+
+  function drawSubChart() {
+    clearStage('#fff'); hideMessage();
+    const rows = E.summarizeSubitizing(state.subTrials);
+    if (!state.subTrials.length) { showMessage('还没有曲线', '先完成瞬认闪电赛'); return; }
+    const pad = { l: 52, r: 24, t: 30, b: 46 }, chartW = stage.w - 76, half = (stage.h - 92) / 2;
+    [[0, '正确率', '#2563eb'], [1, '中位反应时', '#f59e0b']].forEach(([index, label, color]) => {
+      const y = pad.t + index * (half + 30); drawAxes(pad.l, y, chartW, half, '点数', label);
+      const points = rows.map((row, i) => {
+        const px = pad.l + (i / 7) * chartW;
+        const value = index === 0 ? row.accuracy : Math.min(1, (row.medianRt || 0) / 1200);
+        const py = y + half - value * half;
+        return { x: px, y: py, label: row.count };
+      });
+      strokeSeries(points, color);
+      points.forEach((point) => {
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(point.x, point.y, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#475569'; ctx.fillText(String(point.label), point.x - 3, y + half + 17);
+      });
+    });
+  }
+
+  function drawAnsChart() {
+    clearStage('#fff'); hideMessage();
+    if (!state.ansTrials.length) { showMessage('还没有报告', '先完成两群点对决'); return; }
+    const rows = E.summarizeAns(state.ansTrials), fit = E.fitWeber(state.ansTrials);
+    const x = 58, y = 34, w = stage.w - 88, h = stage.h - 92;
+    drawAxes(x, y, w, h, '小数÷大数', '正确率');
+    ctx.strokeStyle = '#cbd5e1'; ctx.setLineDash([6, 5]); ctx.beginPath(); ctx.moveTo(x, y + h * .5); ctx.lineTo(x + w, y + h * .5); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 3; ctx.beginPath();
+    for (let i = 0; i <= 80; i += 1) {
+      const ratio = .5 + i / 80 * .38;
+      const p = E.psychometricAccuracy(Math.round(100 * ratio), 100, fit.w);
+      const px = x + ((ratio - .5) / .38) * w, py = y + h - ((p - .5) / .5) * h;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    rows.forEach((row) => {
+      const px = x + ((row.ratioLabel - .5) / .38) * w, py = y + h - ((row.accuracy - .5) / .5) * h;
+      ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#475569'; ctx.fillText(row.ratioLabel.toFixed(2), px - 14, y + h + 18);
+    });
+  }
+
+  function redraw() {
+    if (state.phase === 'sub-stimulus') drawSubStimulus();
+    else if (state.phase === 'ans-stimulus') drawAnsStimulus();
+    else if (state.module === 'm2') drawSubChart();
+    else if (state.module === 'm4') drawAnsChart();
+    else { clearStage(); if (!stageMessage.classList.contains('is-hidden')) return; showMessage('准备好了吗？', '按下开始后，盯住画板中央。'); }
+  }
+
+  function setMetrics(items) {
+    $('#metrics').innerHTML = items.map(([label, value]) => `<div class="metric"><span>${label}</span><b>${value}</b></div>`).join('');
+  }
+
+  function renderMetrics() {
+    if (state.module === 'm1') {
+      const last = state.subTrials.at(-1);
+      setMetrics([['有效试次', `${state.subTrials.length}/24`], ['上次反应', last ? `${Math.round(last.rt)} ms` : '—'], ['连续答对', currentStreak(state.subTrials)], ['当前阶段', state.accepting ? '请作答' : '等待']]);
+    } else if (state.module === 'm2') {
+      setMetrics([['估计瞬认区', state.subTrials.length ? `1–${E.estimateSubitizingSpan(state.subTrials) || '?'} 个` : '—'], ['你的选择', state.thresholdChoice ? `1–${state.thresholdChoice} 个` : '待选择'], ['曲线样本', state.subTrials.length], ['证据', '正确率 + RT']]);
+    } else if (state.module === 'm3' || state.module === 'm4') {
+      const fit = E.fitWeber(state.ansTrials), correct = state.ansTrials.filter((t) => t.correct).length;
+      setMetrics([['有效试次', `${state.ansTrials.length}/${state.expanded ? 60 : 24}`], ['正确率', state.ansTrials.length ? `${Math.round(correct / state.ansTrials.length * 100)}%` : '—'], ['Weber w', state.ansTrials.length ? fit.w.toFixed(3) : '—'], ['报告级别', state.ansTrials.length >= 48 ? '扩展估计' : '探索估计']]);
+    } else if (state.module === 'm5') setMetrics([['闯关进度', `${state.quizIndex}/5`], ['当前得分', state.quizScore], ['目标', '解释规律'], ['最终成就', '数感侦探']]);
+    else setMetrics([['快闪次数', state.discoveries.demo ? '3/3' : '0/3'], ['你的预测', state.prediction ? '已提交' : '未提交'], ['下一站', '瞬认实验'], ['用时', '约 5 分钟']]);
+  }
+
+  function currentStreak(trials) {
+    let streak = 0;
+    for (let i = trials.length - 1; i >= 0 && trials[i].correct; i -= 1) streak += 1;
+    return streak;
+  }
+
+  function updatePrompt() {
+    $$('.prompt-tabs button').forEach((button) => button.classList.toggle('is-active', button.dataset.prompt === state.prompt));
+    $('#promptText').textContent = prompts[state.module][state.prompt];
+  }
+
+  function activate(moduleId) {
+    clearTimeout(state.timer); state.accepting = false; state.phase = 'idle'; state.module = moduleId;
+    $$('.module-button').forEach((button) => button.classList.toggle('is-active', button.dataset.module === moduleId));
+    controls.forEach((panel) => panel.classList.add('is-hidden'));
+    $(`#${moduleId}Controls`).classList.remove('is-hidden');
+    $('#moduleEyebrow').textContent = modules[moduleId].eyebrow; $('#moduleTitle').textContent = modules[moduleId].title;
+    $('#trialProgress').textContent = moduleId === 'm1' ? `${state.subTrials.length}/24` : moduleId === 'm3' ? `${state.ansTrials.length}/${state.expanded ? 60 : 24}` : '探索中';
+    $('#conclusion').classList.add('is-hidden'); $('#revealButton').textContent = '显示结论';
+    state.prompt = 'observe'; updatePrompt(); renderMetrics(); fitStage();
+    if (moduleId === 'm4') renderReport();
+    if (moduleId === 'm5') renderQuiz();
+  }
+
+  function afterPaint() {
+    return new Promise((resolve) => {
+      let finished = false;
+      const finish = () => { if (finished) return; finished = true; resolve(performance.now()); };
+      const fallback = setTimeout(finish, 90);
+      requestAnimationFrame(() => requestAnimationFrame(() => { clearTimeout(fallback); finish(); }));
+    });
+  }
+
+  async function runDemo() {
+    if (!state.prediction) {
+      $('#demoButton').classList.add('nudge'); $('#m0Prediction').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => $('#demoButton').classList.remove('nudge'), 900); return;
+    }
+    $('#demoButton').classList.remove('is-locked');
+    const counts = [3, 7, 4];
+    for (let i = 0; i < counts.length; i += 1) {
+      showMessage('＋', `第 ${i + 1} 次`); await wait(450);
+      state.currentDots = E.generateDotArray({ count: counts[i], totalArea: counts[i] * .0023, seed: 900 + i });
+      state.phase = 'sub-stimulus'; drawSubStimulus(); await wait(420);
+      state.phase = 'idle'; clearStage(); showMessage('刚才有几个？', '记住那种“看见”或“想数”的感觉'); await wait(650);
+    }
+    state.completed.add('m0'); state.discoveries.demo = true; checkAchievements(); renderMetrics();
+    showMessage('感觉到差别了吗？', '下一站：用 24 轮数据检验'); $('#demoButton').textContent = '再闪三次';
+  }
+
+  function wait(ms) { return new Promise((resolve) => { state.timer = setTimeout(resolve, ms); }); }
+
+  function startSub() {
+    if (state.subIndex >= state.subPlan.length) { state.subIndex = 0; state.subTrials = []; }
+    presentSubTrial();
+  }
+  async function presentSubTrial() {
+    if (state.subIndex >= state.subPlan.length) {
+      state.accepting = false; state.phase = 'idle'; state.completed.add('m1'); state.discoveries.subComplete = true; checkAchievements();
+      showMessage('24 轮完成', '去“破解分界”看你的两条曲线'); renderMetrics(); return;
+    }
+    state.currentTrial = state.subPlan[state.subIndex];
+    state.currentDots = E.generateDotArray({ count: state.currentTrial.count, totalArea: state.currentTrial.count * .0023, seed: 1200 + state.subIndex });
+    state.phase = 'fixation'; clearStage('#fff'); showMessage('＋', '盯住中央'); await wait(420);
+    state.phase = 'sub-stimulus'; drawSubStimulus(); state.onset = await afterPaint(); state.accepting = true;
+    state.timer = setTimeout(() => { if (state.phase === 'sub-stimulus') { state.phase = 'sub-response'; clearStage('#fff'); showMessage('几点？', '按数字 1–8 作答'); } }, 250);
+    renderMetrics();
+  }
+  function answerSub(value) {
+    if (!state.accepting || state.module !== 'm1') return;
+    state.accepting = false; clearTimeout(state.timer);
+    const correct = value === state.currentTrial.count;
+    state.subTrials.push({ count: state.currentTrial.count, answer: value, correct, rt: performance.now() - state.onset });
+    state.subIndex += 1; state.phase = 'feedback'; clearStage('#fff');
+    showMessage(correct ? '✓ 对了' : `是 ${state.currentTrial.count} 个`, correct ? `连击 ${currentStreak(state.subTrials)}` : '下一轮继续凭第一眼');
+    $('#trialProgress').textContent = `${state.subTrials.length}/24`; renderMetrics(); state.timer = setTimeout(presentSubTrial, 600);
+  }
+
+  function startAns() {
+    if (state.ansIndex >= state.ansPlan.length) {
+      if (!state.expanded) { state.ansIndex = 0; state.ansTrials = []; state.ansPlan = E.buildAnsPlan({ seed: 20260705, repeatsPerRatio: 4 }); }
+      else if (state.ansTrials.length >= 60) return;
+    }
+    presentAnsTrial();
+  }
+  async function presentAnsTrial() {
+    if (state.ansIndex >= state.ansPlan.length) {
+      state.accepting = false; state.phase = 'idle'; state.completed.add('m3'); state.discoveries.ansComplete = state.ansTrials.length >= 24;
+      state.discoveries.expanded = state.ansTrials.length >= 60; checkAchievements(); showMessage('这一段完成', '去“数感报告”看心理测量曲线'); renderMetrics(); return;
+    }
+    const plan = state.ansPlan[state.ansIndex];
+    const leftCount = plan.correctSide === 'left' ? plan.larger : plan.smaller;
+    const rightCount = plan.correctSide === 'right' ? plan.larger : plan.smaller;
+    const pair = E.generateAnsPair({ leftCount, rightCount, areaCue: plan.areaCue, seed: plan.seed });
+    const colors = plan.colorOrder === 'blue-orange' ? ['#2563eb', '#f59e0b'] : ['#f59e0b', '#2563eb'];
+    state.currentTrial = { ...plan, leftCount, rightCount, leftColor: colors[0], rightColor: colors[1] };
+    state.currentDots = pair; state.phase = 'fixation'; clearStage('#eef2f3'); showMessage('＋', '只看数量'); await wait(420);
+    state.phase = 'ans-stimulus'; drawAnsStimulus(); state.onset = await afterPaint(); state.accepting = true;
+    state.timer = setTimeout(() => { if (state.phase === 'ans-stimulus') { state.phase = 'ans-response'; clearStage('#eef2f3'); showMessage('哪边更多？', '按 ← 或 →'); } }, 600);
+    renderMetrics();
+  }
+  function answerAns(side) {
+    if (!state.accepting || state.module !== 'm3') return;
+    state.accepting = false; clearTimeout(state.timer);
+    const correct = side === state.currentTrial.correctSide;
+    state.ansTrials.push({ ...state.currentTrial, answer: side, correct, rt: performance.now() - state.onset });
+    if (correct && state.currentTrial.areaCue === 'incongruent') state.discoveries.cueBreaker = true;
+    state.ansIndex += 1; state.phase = 'feedback'; clearStage('#eef2f3');
+    showMessage(correct ? '✓ 判断正确' : `更多的是${state.currentTrial.correctSide === 'left' ? '左边' : '右边'}`, `比例 ${state.currentTrial.smaller}:${state.currentTrial.larger}`);
+    $('#trialProgress').textContent = `${state.ansTrials.length}/${state.expanded ? 60 : 24}`; renderMetrics(); checkAchievements(); state.timer = setTimeout(presentAnsTrial, 560);
+  }
+
+  function renderReport() {
+    drawAnsChart(); renderMetrics();
+    if (!state.ansTrials.length) { $('#reportSummary').innerHTML = '<p>先完成两群点对决，报告才会由你的真实数据生成。</p>'; $('#expandButton').classList.add('is-locked'); return; }
+    const fit = E.fitWeber(state.ansTrials), accuracy = state.ansTrials.filter((t) => t.correct).length / state.ansTrials.length;
+    $('#reportSummary').innerHTML = `<div class="metric"><span>Weber w</span><b>${fit.w.toFixed(3)}</b></div><div class="metric"><span>总正确率</span><b>${Math.round(accuracy * 100)}%</b></div><div class="metric"><span>结果性质</span><b>${state.ansTrials.length >= 48 ? '扩展估计' : '探索估计'}</b></div>`;
+    $('#expandButton').classList.toggle('is-hidden', state.ansTrials.length >= 60); $('#expandButton').classList.remove('is-locked');
+  }
+
+  const quiz = [
+    { q: '“瞬认”最接近哪种体验？', options: ['把每个点依次数完', '少量对象几乎同时被看见', '只看点占的面积'], correct: 1, why: '瞬认是少量对象的快速并行识别。' },
+    { q: '12 和 24 与 18 和 24，哪组通常更容易比较？', options: ['12 和 24', '18 和 24', '一样'], correct: 0, why: '1:2 的比例差更大，比 3:4 更容易。' },
+    { q: '为什么要让“更多点”有时反而总面积更小？', options: ['让图更漂亮', '防止用面积代替数量判断', '让点不重叠'], correct: 1, why: '视觉线索若总和数量同向，就会污染数感测量。' },
+    { q: 'Weber w 越小，通常表示什么？', options: ['分辨更精细', '反应一定更快', '数数更多'], correct: 0, why: 'w 表示内部表征的噪声尺度，越小越精细。' },
+    { q: '这份短测最合理的用途是？', options: ['诊断数学天赋', '观察当下策略与比例效应', '判定学习障碍'], correct: 1, why: '课堂短测用于探究，不是诊断工具。' }
+  ];
+  function renderQuiz() {
+    if (state.quizIndex >= quiz.length) {
+      $('#quizPanel').innerHTML = `<h3>闯关完成 · ${state.quizScore}/5</h3><p>你已经能把现象、控制变量和数学曲线连起来。</p>`;
+      state.completed.add('m5'); state.discoveries.quizComplete = true; checkAchievements(); renderMetrics(); return;
+    }
+    const item = quiz[state.quizIndex]; state.quizAnswered = false;
+    $('#quizPanel').innerHTML = `<h3>第 ${state.quizIndex + 1}/5 题</h3><p>${item.q}</p><div class="quiz-options">${item.options.map((option, i) => `<button type="button" data-quiz-option="${i}">${option}</button>`).join('')}</div><p id="quizFeedback"></p>`;
+  }
+  function answerQuiz(index) {
+    if (state.quizAnswered) return; state.quizAnswered = true;
+    const item = quiz[state.quizIndex], correct = index === item.correct;
+    if (correct) state.quizScore += 1;
+    $$('[data-quiz-option]').forEach((button) => {
+      const optionIndex = Number(button.dataset.quizOption);
+      button.classList.toggle('correct', optionIndex === item.correct);
+      button.classList.toggle('wrong', optionIndex === index && optionIndex !== item.correct);
+    });
+    $('#quizFeedback').innerHTML = `${correct ? '✓' : '再想想'} ${item.why} <button id="nextQuiz" type="button">下一题</button>`;
+  }
+
+  function canReveal() {
+    if (state.module === 'm0') return state.discoveries.demo;
+    if (state.module === 'm1') return state.discoveries.subComplete;
+    if (state.module === 'm2') return Boolean(state.thresholdChoice);
+    if (state.module === 'm3') return state.discoveries.ansComplete;
+    if (state.module === 'm4') return state.ansTrials.length >= 24;
+    return state.discoveries.quizComplete;
+  }
+  function toggleReveal() {
+    if (!canReveal()) { $('#revealButton').classList.add('nudge'); $(`#${state.module}Controls`).scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => $('#revealButton').classList.remove('nudge'), 900); return; }
+    const box = $('#conclusion'), show = box.classList.contains('is-hidden'); box.classList.toggle('is-hidden', !show);
+    box.innerHTML = `<b>${show ? '揭晓' : '结论仍藏着'}</b><p>${show ? conclusions[state.module] : '先完成本模块的预测或操作，再来揭晓。'}</p>`;
+    $('#revealButton').textContent = show ? '隐藏结论' : '显示结论';
+  }
+
+  function resetCurrent() {
+    const hasData = state.module === 'm1' ? state.subTrials.length : (state.module === 'm3' || state.module === 'm4') ? state.ansTrials.length : 0;
+    if (hasData && !window.confirm('重置会清除当前实验数据，确定继续吗？')) return;
+    if (state.module === 'm1' || state.module === 'm2') { state.subTrials = []; state.subIndex = 0; state.subPlan = E.buildSubitizingPlan({ seed: Date.now(), repeats: 3 }); }
+    if (state.module === 'm3' || state.module === 'm4') { state.ansTrials = []; state.ansIndex = 0; state.expanded = false; state.ansPlan = E.buildAnsPlan({ seed: Date.now(), repeatsPerRatio: 4 }); }
+    activate(state.module);
+  }
+
+  $$('.module-button').forEach((button) => button.addEventListener('click', () => activate(button.dataset.module)));
+  $$('#m0Prediction button').forEach((button) => button.addEventListener('click', () => { state.prediction = button.dataset.predict; $$('#m0Prediction button').forEach((b) => b.classList.toggle('is-selected', b === button)); $('#demoButton').classList.remove('is-locked'); $('#demoButton').textContent = '闪三次，检验感觉'; renderMetrics(); }));
+  $('#demoButton').addEventListener('click', runDemo); $('#startSubButton').addEventListener('click', startSub); $('#startAnsButton').addEventListener('click', startAns);
+  $$('#answerPad button').forEach((button) => button.addEventListener('click', () => answerSub(Number(button.dataset.number))));
+  $('#leftChoice').addEventListener('click', () => answerAns('left')); $('#rightChoice').addEventListener('click', () => answerAns('right'));
+  $$('#thresholdChoices button').forEach((button) => button.addEventListener('click', () => { state.thresholdChoice = Number(button.dataset.threshold); state.completed.add('m2'); state.discoveries.threshold = true; $$('#thresholdChoices button').forEach((b) => b.classList.toggle('is-selected', b === button)); renderMetrics(); checkAchievements(); }));
+  $('#expandButton').addEventListener('click', () => { if (state.ansTrials.length < 24) { activate('m3'); return; } state.expanded = true; state.ansPlan = E.buildAnsPlan({ seed: 20260706, repeatsPerRatio: 6 }); state.ansIndex = 0; activate('m3'); showMessage('精测加赛', '再完成 36 轮，每档比例累计 10 次'); });
+  $$('.reset-button').forEach((button) => button.addEventListener('click', resetCurrent));
+  $('#quizPanel').addEventListener('click', (event) => { const option = event.target.closest('[data-quiz-option]'); if (option) answerQuiz(Number(option.dataset.quizOption)); if (event.target.id === 'nextQuiz') { state.quizIndex += 1; renderQuiz(); renderMetrics(); } });
+  $('#revealButton').addEventListener('click', toggleReveal);
+  $$('.prompt-tabs button').forEach((button) => button.addEventListener('click', () => { state.prompt = button.dataset.prompt; updatePrompt(); }));
+  $('#achButton').addEventListener('click', () => { ach.renderList($('#achList')); $('#achDialog').showModal(); });
+  window.addEventListener('resize', fitStage);
+  document.addEventListener('keydown', (event) => { if (/^[1-8]$/.test(event.key)) answerSub(Number(event.key)); if (event.key === 'ArrowLeft') answerAns('left'); if (event.key === 'ArrowRight') answerAns('right'); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && state.accepting) { state.accepting = false; state.invalidated = true; clearTimeout(state.timer); showMessage('本轮作废', '回到页面后重新呈现，不计入数据'); } else if (!document.hidden && state.invalidated) { state.invalidated = false; if (state.module === 'm1') presentSubTrial(); if (state.module === 'm3') presentAnsTrial(); } });
+
+  if (new URLSearchParams(location.search).get('test') === '1') {
+    window.__numberSenseTest = {
+      state, activate,
+      seedSub() { state.subTrials = state.subPlan.map((t, i) => ({ ...t, correct: t.count <= 4 || i % 3 === 0, rt: 330 + t.count * 65 })); state.subIndex = 24; state.discoveries.subComplete = true; },
+      seedAns() { state.ansTrials = state.ansPlan.map((t, i) => ({ ...t, correct: i % 4 !== 0, rt: 460 + t.ratioLabel * 180 })); state.ansIndex = 24; state.discoveries.ansComplete = true; }
+    };
+  }
+
+  checkAchievements(); activate('m0');
+})();
+
+</script>
+</body>
+</html>

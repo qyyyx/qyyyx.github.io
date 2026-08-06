@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>斯特鲁普挑战 · 说颜色，别读字！</title>
+<link rel="icon" href="data:,">
+<style>
+:root{
+  --bg:#0a0e1a; --bg2:#111a2e; --card:#16203a; --card2:#1d2a47;
+  --ink:#eaf0ff; --muted:#93a4c8; --line:#26344f;
+  --go:#22c55e; --stop:#ef4444; --warn:#f59e0b; --brand:#3b82f6; --brand2:#60a5fa;
+  --c-red:#ef4444; --c-blue:#3b82f6; --c-green:#22c55e; --c-yellow:#eab308;
+  --shadow:0 10px 40px rgba(0,0,0,.45);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,-apple-system,sans-serif;
+  background:radial-gradient(1200px 600px at 50% -10%,#1a2745 0%,var(--bg) 55%);
+  color:var(--ink); min-height:100vh; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+button{font-family:inherit;cursor:pointer;color:inherit}
+.hidden{display:none!important}
+.wrap{max-width:760px;margin:0 auto;padding:16px 16px 80px}
+
+/* header */
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;max-width:760px;margin:0 auto}
+header .logo{font-weight:800;font-size:18px;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+header .logo .dot{width:12px;height:12px;border-radius:50%;background:var(--warn);box-shadow:0 0 12px var(--warn)}
+.acct{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:10px;font-size:14px;font-weight:600;transition:.15s}
+.btn:hover{border-color:var(--brand);color:var(--brand2)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:#2563eb}
+.btn.ghost{background:transparent}
+.btn.lg{padding:14px 20px;font-size:16px;border-radius:14px}
+.btn.is-locked{border-style:dashed;color:var(--muted);background:transparent}
+.btn.is-locked:hover{border-color:var(--warn);color:var(--warn)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* home */
+h1.title{font-size:clamp(24px,6vw,38px);font-weight:800;text-align:center;margin:8px 0 4px;
+  background:linear-gradient(90deg,#fff,#9ec5ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sub{text-align:center;color:var(--muted);font-size:14px;margin-bottom:16px;line-height:1.6}
+.single-cat{text-align:center;font-size:15px;color:var(--brand2);font-weight:700;margin:0 auto 18px;letter-spacing:2px;border:1px solid var(--line);background:var(--card);padding:8px 18px;border-radius:999px;width:max-content}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.mode-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;text-align:left;transition:.18s;position:relative;overflow:hidden}
+.mode-card:hover{transform:translateY(-3px);border-color:var(--brand);box-shadow:var(--shadow)}
+.mode-card .ic{font-size:30px}
+.mode-card h3{font-size:17px;margin:8px 0 4px;color:#fff}
+.mode-card p{font-size:13px;color:var(--muted);line-height:1.5}
+.mode-card .tag{position:absolute;top:12px;right:12px;font-size:11px;color:var(--muted);border:1px solid var(--line);padding:2px 8px;border-radius:999px}
+.mode-card .done{position:absolute;bottom:10px;right:12px;font-size:11px;color:var(--warn)}
+.mode-card.arcade{border-color:#7c3aed;background:linear-gradient(160deg,#241a45,#16203a)}
+.flash-hi{animation:flashhi 1s ease 2}
+@keyframes flashhi{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 3px var(--warn)}}
+.row-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:18px}
+
+/* play */
+.play{min-height:56vh;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.task-band{width:100%;max-width:560px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:15px;font-weight:700}
+.task-band b{color:var(--warn)}
+.hud{display:flex;gap:10px;width:100%;max-width:560px;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted)}
+.hud .sc{font-size:22px;font-weight:800;color:var(--ink)}
+.hud .cb{font-size:14px;font-weight:700;color:var(--warn)}
+.timebar{width:100%;max-width:560px;height:8px;background:var(--card2);border-radius:999px;overflow:hidden}
+.timebar>div{height:100%;width:100%;background:linear-gradient(90deg,var(--go),var(--warn));transition:width .1s linear}
+#stimBox{width:100%;max-width:560px;height:min(46vh,260px);border-radius:20px;border:2px solid var(--line);
+  background:var(--card);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
+  user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#stimBox.hit{border-color:var(--go);box-shadow:0 0 40px rgba(34,197,94,.35)}
+#stimBox.miss{border-color:var(--stop);box-shadow:0 0 40px rgba(239,68,68,.35)}
+.fix{font-size:44px;color:var(--muted);font-weight:300}
+.stim-word{font-size:clamp(48px,15vw,96px);font-weight:900;letter-spacing:6px;line-height:1}
+.stim-num{font-size:clamp(38px,11vw,72px);font-weight:900;letter-spacing:14px;line-height:1;color:var(--ink)}
+.stim-arrow{font-size:clamp(52px,16vw,96px);font-weight:900;line-height:1;color:var(--brand2);position:absolute;transition:none}
+.stim-bomb{font-size:clamp(52px,16vw,92px);line-height:1}
+.stim-note{position:absolute;bottom:10px;font-size:12px;color:var(--muted)}
+#stimBox.rage{animation:rageshake .5s infinite}
+#stimBox.rage .stim-word{animation:ragetext .45s infinite alternate;text-shadow:4px 0 rgba(255,0,80,.45),-4px 0 rgba(0,200,255,.45)}
+@keyframes rageshake{0%,100%{transform:rotate(-.4deg)}50%{transform:rotate(.4deg)}}
+@keyframes ragetext{from{transform:skewX(-9deg) scale(1)}to{transform:skewX(9deg) scale(1.07)}}
+.rage-flag{position:absolute;top:10px;left:12px;font-size:12px;font-weight:800;color:#fff;background:linear-gradient(90deg,#f43f5e,#f59e0b);padding:3px 10px;border-radius:999px}
+
+/* response buttons */
+.resp{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100%;max-width:560px}
+.resp button{height:66px;border-radius:14px;border:2px solid var(--line);background:var(--card2);font-size:22px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;position:relative;transition:transform .08s,border-color .12s}
+.resp button:active{transform:scale(.95)}
+.resp button .key{position:absolute;bottom:4px;right:7px;font-size:10px;color:var(--muted);font-weight:600}
+.resp button.sw-red{background:var(--c-red)} .resp button.sw-blue{background:var(--c-blue)}
+.resp button.sw-green{background:var(--c-green)} .resp button.sw-yellow{background:var(--c-yellow)}
+.resp button.sw-red .key,.resp button.sw-blue .key,.resp button.sw-green .key,.resp button.sw-yellow .key{color:rgba(0,0,0,.5)}
+.resp.dim button{opacity:.45}
+.live{font-size:15px;color:var(--muted);min-height:24px}
+.prog{font-size:13px;color:var(--muted)}
+.rtbig{font-size:clamp(26px,7vw,38px);font-weight:800}
+
+/* panels */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin:14px 0}
+.panel h2{font-size:18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px;text-align:center}
+.stat{background:var(--card2);border-radius:12px;padding:12px 8px}
+.stat .v{font-size:22px;font-weight:800}
+.stat .k{font-size:12px;color:var(--muted);margin-top:2px}
+.stat.hero{background:linear-gradient(160deg,#2a2148,#1d2a47);border:1px solid var(--warn)}
+.stat.hero .v{color:var(--warn);font-size:28px}
+.norm{margin-top:12px;font-size:15px;text-align:center;line-height:1.6}
+.norm b{color:var(--brand2)}
+canvas{width:100%;max-width:100%;background:var(--bg2);border-radius:12px;border:1px solid var(--line);display:block;margin-top:8px}
+.mathpanel.collapsed .mathbody{display:none}
+.reveal-toggle{font-size:13px;font-weight:600}
+.tiny{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6}
+.tinylink{background:none;border:none;color:var(--brand2);font-size:12px;text-decoration:underline;padding:0}
+
+/* leaderboard */
+.lb-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.lb-tabs button{border:1px solid var(--line);background:var(--card2);color:var(--muted);padding:6px 12px;border-radius:999px;font-size:12px}
+.lb-tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.lb-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;font-size:14px}
+.lb-row+.lb-row{margin-top:6px}
+.lb-row.me{background:rgba(59,130,246,.18);border:1px solid var(--brand)}
+.lb-rank{width:28px;font-weight:800;text-align:center;color:var(--muted)}
+.lb-rank.top{color:var(--warn)}
+.lb-name{flex:1}
+.lb-score{font-weight:700;color:var(--brand2)}
+.lb-bot{font-size:11px;color:var(--muted)}
+
+/* predict / discovery */
+.opt{display:block;width:100%;text-align:left;background:var(--card2);border:1px solid var(--line);color:var(--ink);
+  padding:12px 14px;border-radius:12px;margin-top:8px;font-size:14px}
+.opt:hover{border-color:var(--brand)}
+.opt.sel{border-color:var(--brand);background:rgba(59,130,246,.18)}
+.opt.correct{border-color:var(--go);background:rgba(34,197,94,.18)}
+.opt.wrong{border-color:var(--stop);background:rgba(239,68,68,.14)}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(4,8,18,.72);display:flex;align-items:center;justify-content:center;padding:16px;z-index:60}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:18px;max-width:540px;width:100%;max-height:86vh;overflow:auto;padding:20px;box-shadow:var(--shadow)}
+.modal h2{font-size:20px;margin-bottom:6px}
+.modal .close{float:right;border:none;background:transparent;color:var(--muted);font-size:24px;line-height:1}
+.field{margin-top:12px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+.field input{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);font-size:15px}
+.sci-card{background:var(--card2);border-radius:12px;padding:12px 14px;margin-top:10px;font-size:14px;line-height:1.65}
+.sci-card b{color:var(--brand2)}
+
+/* achievements */
+.ach-toast-stack{position:fixed;right:14px;bottom:14px;display:flex;flex-direction:column;gap:8px;z-index:80}
+.ach-toast{background:var(--card);border:1px solid var(--warn);border-left:4px solid var(--warn);border-radius:12px;padding:10px 14px;min-width:220px;box-shadow:var(--shadow);animation:slidein .25s ease}
+@keyframes slidein{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+.ach-toast-title{font-size:11px;color:var(--warn);font-weight:700;display:flex;gap:5px;align-items:center}
+.ach-toast-name{font-size:15px;font-weight:700;margin-top:2px}
+.ach-toast-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.ach-row{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;background:var(--card2);margin-top:8px;opacity:.55}
+.ach-row.is-unlocked{opacity:1;border:1px solid var(--warn)}
+.ach-icon{font-size:24px;width:34px;text-align:center}
+.ach-meta{flex:1}
+.ach-name{font-weight:700;font-size:14px}
+.ach-desc{font-size:12px;color:var(--muted)}
+.ach-status{font-size:12px;color:var(--muted)}
+.progress-wrap{height:8px;background:var(--card2);border-radius:999px;overflow:hidden;margin:8px 0}
+.progress-wrap>div{height:100%;background:linear-gradient(90deg,var(--brand),var(--warn));width:0;transition:width .3s}
+
+footer{text-align:center;color:var(--muted);font-size:12px;padding:20px;line-height:1.7}
+.notice{font-size:12px;color:var(--warn);text-align:center;margin-top:6px}
+@media(max-width:420px){
+  .resp button{height:58px;font-size:19px}
+  .stim-word{letter-spacing:3px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="dot"></span>斯特鲁普挑战</div>
+  <div class="acct">
+    <span id="acctLabel">游客</span>
+    <button class="btn ghost" id="acctBtn" style="padding:6px 10px">登录/昵称</button>
+    <button class="btn ghost" id="trophyBtn" title="成就" style="padding:6px 10px">🏆 <span data-ach-count>0</span>/<span data-ach-total>0</span></button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- HOME -->
+  <section id="screen-home">
+    <h1 class="title">说颜色，别读字！</h1>
+    <p class="sub">字义和颜色打架时，你会慢多少毫秒？<br>亲手测出属于你自己的「干扰量」。</p>
+    <div class="single-cat">🧠 认知冲突实验室</div>
+    <div class="cards" id="modeCards"></div>
+    <div class="row-actions">
+      <button class="btn lg" id="goDiscovery">🔬 发现之旅</button>
+      <button class="btn lg" id="goLeaderboard">🏁 排行榜</button>
+      <button class="btn lg ghost" id="goScience">📖 科学原理</button>
+    </div>
+  </section>
+
+  <!-- PLAY -->
+  <section id="screen-play" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <button class="btn ghost" id="playBack">← 返回</button>
+      <div class="prog" id="playProg"></div>
+    </div>
+    <div class="play">
+      <div class="task-band" id="taskBand"></div>
+      <div class="hud hidden" id="hud">
+        <div>得分 <span class="sc" id="hudScore">0</span></div>
+        <div class="cb" id="hudCombo"></div>
+        <div>剩余 <span id="hudTime">30.0</span>s</div>
+      </div>
+      <div class="timebar hidden" id="timebar"><div id="timefill"></div></div>
+      <div id="stimBox"><div class="fix">＋</div></div>
+      <div class="resp" id="respRow"></div>
+      <div class="live" id="live"></div>
+      <button class="btn primary lg" id="startBtn">开始</button>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section id="screen-result" class="hidden"></section>
+
+  <!-- DISCOVERY -->
+  <section id="screen-discovery" class="hidden"></section>
+
+  <!-- LEADERBOARD -->
+  <section id="screen-leaderboard" class="hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <button class="btn ghost" id="lbBack">← 返回</button>
+      <h2 style="font-size:18px">🏁 排行榜</h2><span></span>
+    </div>
+    <div class="panel">
+      <div class="lb-tabs" id="lbModeTabs"></div>
+      <div class="lb-tabs" id="lbScopeTabs">
+        <button data-scope="class" class="on">班内</button>
+        <button data-scope="global">全站</button>
+        <button data-period="today">今日</button>
+        <button data-period="all" class="on">总榜</button>
+      </div>
+      <div id="lbList"></div>
+      <div class="notice" id="lbNotice"></div>
+    </div>
+  </section>
+</div>
+
+<footer>西瓜实验室 · 斯特鲁普挑战（认知实验底座）· 单文件离线版<br>
+成绩仅供课堂探究与自我对比，不作任何能力、天赋或障碍的诊断。</footer>
+
+<!-- ============ achievements.js（内联复用工坊底座） ============ -->
+<script>
+(function (global) {
+  'use strict';
+  function createAchievements(options) {
+    options = options || {};
+    var defs = options.defs || [], storageKey = options.storageKey || 'ach-v1';
+    var toastDuration = options.toastDuration || 4200;
+    var onUnlock = typeof options.onUnlock === 'function' ? options.onUnlock : null;
+    var unlocked = new Set();
+    function findDef(id){for(var i=0;i<defs.length;i++){if(defs[i].id===id)return defs[i];}return null;}
+    function load(){try{var raw=global.localStorage.getItem(storageKey);if(raw)JSON.parse(raw).forEach(function(id){unlocked.add(id);});}catch(e){}}
+    function save(){try{global.localStorage.setItem(storageKey,JSON.stringify(Array.from(unlocked)));}catch(e){}}
+    function toastStack(){var el=document.getElementById('achToastStack');if(!el){el=document.createElement('div');el.id='achToastStack';el.className='ach-toast-stack';document.body.appendChild(el);}return el;}
+    function showToast(def){var el=document.createElement('div');el.className='ach-toast';el.innerHTML='<div class="ach-toast-title"><span>🏆</span>解锁成就</div><div class="ach-toast-name">'+(def.icon||'')+' '+def.name+'</div><div class="ach-toast-desc">'+(def.desc||'')+'</div>';toastStack().appendChild(el);setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},toastDuration);}
+    function updateProgress(){var got=count(),tot=Math.max(1,total());var bar=document.querySelector('[data-ach-progress]');if(bar)bar.style.width=Math.round(got/tot*100)+'%';var c=document.querySelector('[data-ach-count]');if(c)c.textContent=count();var t=document.querySelector('[data-ach-total]');if(t)t.textContent=total();}
+    function fire(def){save();showToast(def);updateProgress();if(onUnlock)onUnlock(def);}
+    function unlock(id){if(unlocked.has(id))return false;var def=findDef(id);if(!def)return false;unlocked.add(id);fire(def);return true;}
+    function check(state){var fresh=[];for(var i=0;i<defs.length;i++){var def=defs[i];if(def.check&&!unlocked.has(def.id)&&def.check(state)){unlocked.add(def.id);fresh.push(def);}}if(fresh.length){fresh.forEach(fire);}return fresh;}
+    function has(id){return unlocked.has(id);}
+    function count(){return defs.filter(function(d){return unlocked.has(d.id);}).length;}
+    function total(){return defs.length;}
+    function reset(){unlocked.clear();save();updateProgress();}
+    function renderList(container){if(!container)return;container.innerHTML='';defs.forEach(function(def){var got=unlocked.has(def.id);var row=document.createElement('div');row.className='ach-row'+(got?' is-unlocked':'');row.innerHTML='<div class="ach-icon">'+(got?(def.icon||'🏆'):'🔒')+'</div><div class="ach-meta"><div class="ach-name">'+def.name+'</div><div class="ach-desc">'+(def.desc||'')+'</div></div><div class="ach-status">'+(got?'✓ 已解锁':'未解锁')+'</div>';container.appendChild(row);});updateProgress();}
+    load();updateProgress();
+    return {check:check,unlock:unlock,has:has,count:count,total:total,reset:reset,renderList:renderList,unlockedCount:function(){return count();}};
+  }
+  global.createAchievements = createAchievements;
+})(window);
+</script>
+
+<!-- ============ 认知实验底座（Stats / Engine / Stimuli / Norms / DataStore / Account / Charts） ============ -->
+<script>
+"use strict";
+const SP = {};
+SP.config = { backend:'local', envId:'' };   // 画廊版可切 'cloud' 并填 envId
+
+/* ---------- Stats ---------- */
+SP.Stats = (function(){
+  const sum = a => a.reduce((x,y)=>x+y,0);
+  const mean = a => a.length ? sum(a)/a.length : 0;
+  function median(a){ if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y); const m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+  function sd(a){ if(a.length<2) return 0; const m=mean(a); return Math.sqrt(sum(a.map(x=>(x-m)**2))/(a.length-1)); }
+  // Stroop 的 RT 窗口比简单反应时宽：<200ms 是抢答，>3000ms 是走神
+  function rejectOutliers(rts,{minRT=200,maxRT=3000}={}){ const valid=[],rej=[]; rts.forEach(r=>{ (r>=minRT&&r<=maxRT)?valid.push(r):rej.push(r); }); return {valid,rej}; }
+  return {sum,mean,median,sd,rejectOutliers};
+})();
+
+/* ---------- Engine：计时 + 单试次 ---------- */
+SP.Engine = (function(){
+  const now = ()=>performance.now();
+  const state = { accepting:false, phase:'idle', correctCode:null, mode:null, congruent:null };
+  // 刺激必须在"真正画到屏幕的那一帧"才开始计时；headless 下 rAF 可能永不回调 → 150ms 兜底
+  function presentAndStamp(renderFn){
+    return new Promise(res=>{
+      let rendered=false, settled=false;
+      const render=()=>{ if(!rendered){ rendered=true; renderFn(); } };
+      const settle=()=>{ if(!settled){ settled=true; res(now()); } };
+      requestAnimationFrame(()=>{ render(); requestAnimationFrame(settle); });
+      setTimeout(()=>{ render(); settle(); },150);
+    });
+  }
+  /* opts: {area, fixationMs, onFixation, render, resolveResponse, isCorrect,
+            kind:'go'|'nogo', timeoutMs, signal, onOnset} */
+  function runTrial(opts){
+    const area = opts.area || document;
+    return new Promise(resolve=>{
+      let onset=0, done=false, invalid=false, accepting=false, tf=null, te=null;
+      function cleanup(){
+        document.removeEventListener('keydown',onKey,true);
+        area.removeEventListener('pointerdown',onPointer,true);
+        document.removeEventListener('visibilitychange',onVis);
+        clearTimeout(tf); clearTimeout(te);
+        state.accepting=false; state.phase='idle'; state.correctCode=null;
+      }
+      function finish(r){ if(done) return; done=true; cleanup(); r.invalid=invalid; resolve(r); }
+      if(opts.signal) opts.signal.cancel = ()=>finish({outcome:'aborted',aborted:true,rt:null,response:null,correct:false});
+      function respond(ev){
+        if(done||!accepting) return;
+        const code = opts.resolveResponse ? opts.resolveResponse(ev) : 'go';
+        if(code===null||code===undefined) return;       // 无效按键：忽略（同 jsPsych valid_responses）
+        const rt = now()-onset;
+        if(opts.kind==='nogo'){ finish({outcome:'falseAlarm',rt,response:code,correct:false}); return; }
+        finish({outcome:'hit',rt,response:code,correct:!!(opts.isCorrect&&opts.isCorrect(code))});
+      }
+      function onKey(e){ if(e.repeat) return; respond({type:'key',key:e.key}); }
+      function onPointer(e){ respond({type:'pointer',target:e.target}); }
+      function onVis(){ if(document.hidden) invalid=true; }
+      document.addEventListener('keydown',onKey,true);
+      area.addEventListener('pointerdown',onPointer,true);
+      document.addEventListener('visibilitychange',onVis);
+      state.phase='fixation'; state.accepting=false;
+      opts.onFixation && opts.onFixation();
+      tf = setTimeout(async ()=>{
+        if(done) return;
+        onset = await presentAndStamp(()=>opts.render && opts.render());
+        if(done) return;
+        accepting = true;
+        state.accepting=true; state.phase='stimulus';
+        opts.onOnset && opts.onOnset();
+        te = setTimeout(()=>{
+          if(opts.kind==='nogo') finish({outcome:'correctReject',rt:null,response:null,correct:true});
+          else finish({outcome:'timeout',rt:null,response:null,correct:false,timedOut:true});
+        }, opts.timeoutMs||3000);
+      }, opts.fixationMs||500);
+    });
+  }
+  const rand=(lo,hi)=>lo+Math.random()*(hi-lo);
+  return {now,presentAndStamp,runTrial,rand,state};
+})();
+
+/* ---------- Stimuli：四种冲突条件的试次生成 ---------- */
+SP.Stim = (function(){
+  const COLORS = [
+    {id:0, key:'red',    name:'红', css:'var(--c-red)',    cls:'sw-red'},
+    {id:1, key:'blue',   name:'蓝', css:'var(--c-blue)',   cls:'sw-blue'},
+    {id:2, key:'green',  name:'绿', css:'var(--c-green)',  cls:'sw-green'},
+    {id:3, key:'yellow', name:'黄', css:'var(--c-yellow)', cls:'sw-yellow'}
+  ];
+  // 联想干扰词：不含颜色名，却强烈暗示某个颜色 → 证明干扰发生在"语义"层
+  const ASSOC = [ ['草莓','番茄','枫叶'], ['天空','海水','蓝莓'], ['青草','菠菜','西瓜'], ['柠檬','香蕉','沙滩'] ];
+  const DIRS = [ {id:0,glyph:'←',key:'left'}, {id:1,glyph:'↑',key:'up'}, {id:2,glyph:'↓',key:'down'}, {id:3,glyph:'→',key:'right'} ];
+  const POS  = { left:[-72,0], up:[0,-58], down:[0,58], right:[72,0] };
+
+  const pick = a => a[Math.floor(Math.random()*a.length)];
+  const other = (n,not) => { let v; do{ v=Math.floor(Math.random()*n); }while(v===not); return v; };
+
+  function makeTrial(mode, congruent, assocRate){
+    if(mode==='CLASSIC' || mode==='ARCADE'){
+      const ink = Math.floor(Math.random()*4);
+      const useAssoc = Math.random() < (assocRate==null?0.3:assocRate);
+      let wordColor, text;
+      if(congruent){ wordColor = ink; } else { wordColor = other(4,ink); }
+      text = useAssoc ? pick(ASSOC[wordColor]) : COLORS[wordColor].name;
+      return {mode,congruent,type:'word',text,ink,wordColor,assoc:useAssoc,answer:ink,
+              desc:`${text}/${COLORS[ink].name}墨`};
+    }
+    if(mode==='REVERSE'){
+      // 反向：读字义、忽略墨色 → 只用纯色词（联想词没有可读的"词义颜色"）
+      const wordColor = Math.floor(Math.random()*4);
+      const ink = congruent ? wordColor : other(4,wordColor);
+      return {mode,congruent,type:'word',text:COLORS[wordColor].name,ink,wordColor,assoc:false,answer:wordColor,
+              desc:`${COLORS[wordColor].name}/${COLORS[ink].name}墨`};
+    }
+    if(mode==='NUMBER'){
+      const count = 1+Math.floor(Math.random()*4);
+      const digit = congruent ? count : (1+other(4,count-1));
+      return {mode,congruent,type:'num',count,digit,answer:count-1,
+              desc:`${count}个${digit}`};
+    }
+    if(mode==='ARROW'){
+      const dir = Math.floor(Math.random()*4);
+      const pos = congruent ? dir : other(4,dir);
+      return {mode,congruent,type:'arrow',dir,pos,answer:dir,
+              desc:`${DIRS[dir].glyph}在${DIRS[pos].key}`};
+    }
+    throw new Error('unknown mode '+mode);
+  }
+
+  // 一致∶不一致 = 1∶1，打乱后修正：正确答案不连续 3 次、同一致性不连续 4 次
+  function buildBlock(mode,n){
+    const flags=[]; for(let i=0;i<n;i++) flags.push(i<n/2);
+    for(let i=flags.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [flags[i],flags[j]]=[flags[j],flags[i]]; }
+    const out=[];
+    for(let i=0;i<n;i++){
+      let t=null;
+      for(let tries=0;tries<40;tries++){
+        t=makeTrial(mode,flags[i]);
+        const a=out.length>=2 && out[out.length-1].answer===t.answer && out[out.length-2].answer===t.answer;
+        if(!a) break;
+      }
+      out.push(t);
+    }
+    return out;
+  }
+  function respOptions(mode){
+    if(mode==='CLASSIC'||mode==='ARCADE') return COLORS.map(c=>({label:'',cls:c.cls}));
+    if(mode==='REVERSE') return COLORS.map(c=>({label:c.name,cls:''}));
+    if(mode==='NUMBER')  return [1,2,3,4].map(v=>({label:String(v),cls:''}));
+    if(mode==='ARROW')   return DIRS.map(d=>({label:d.glyph,cls:''}));
+    return [];
+  }
+  return {COLORS,ASSOC,DIRS,POS,makeTrial,buildBlock,respOptions};
+})();
+
+/* ---------- 模式定义 ---------- */
+SP.modes = {
+  CLASSIC: {id:'CLASSIC',ic:'🎨',name:'经典色词',n:24,practice:4,
+            task:'说出<b>字的颜色</b>，不要读字！',
+            desc:'字义和颜色打架。测出你的干扰量——这就是斯特鲁普效应。',
+            metric:'interference', dir:'asc', unit:'ms'},
+  REVERSE: {id:'REVERSE',ic:'🔁',name:'反向读字',n:24,practice:4,
+            task:'读出<b>字本身</b>，不要管它什么颜色！',
+            desc:'反过来做：颜色能干扰你读字吗？答案会让你意外。',
+            metric:'interference', dir:'asc', unit:'ms'},
+  NUMBER:  {id:'NUMBER',ic:'🔢',name:'数字斯特鲁普',n:24,practice:4,
+            task:'报告<b>有几个数字</b>，不是数字本身！',
+            desc:'看到「5 5」要答 2。数量和数值也会打架吗？',
+            metric:'interference', dir:'asc', unit:'ms'},
+  ARROW:   {id:'ARROW',ic:'🧭',name:'方向斯特鲁普',n:24,practice:4,
+            task:'报告箭头<b>指向哪</b>，不是它出现在哪！',
+            desc:'箭头偏在左边却指向右。位置也会插队干扰你。',
+            metric:'interference', dir:'asc', unit:'ms'},
+  ARCADE:  {id:'ARCADE',ic:'🔥',name:'街机狂潮',n:0,practice:0,duration:30000,
+            task:'说出<b>字的颜色</b>！看到 💣 千万别点！',
+            desc:'30 秒限时抢分：连击、暴走、炸弹题。求快要付出什么代价？',
+            metric:'score', dir:'desc', unit:'分'}
+};
+
+/* ---------- Norms：干扰量常模（示意值，待真实班级数据校准） ---------- */
+SP.Norms = (function(){
+  // 单位 ms；p10 = 抗干扰强（干扰量小），p90 = 容易被干扰
+  const N = {
+    CLASSIC:{p10:55,p50:140,p90:290},
+    REVERSE:{p10:0,p50:30,p90:95},
+    NUMBER:{p10:20,p50:70,p90:160},
+    ARROW:{p10:15,p50:60,p90:140}
+  };
+  // 干扰量越小越"抗干扰" → 返回"你比约 X% 的同龄人更抗干扰"
+  function percentBetter(v,mode){
+    const n=N[mode]; if(!n||v==null||!isFinite(v)) return null;
+    let pct;
+    if(v<=n.p10) pct = 90 + Math.min(9,(n.p10-v)/Math.max(1,n.p10)*40);
+    else if(v<=n.p50) pct = 50 + (n.p50-v)/(n.p50-n.p10)*40;
+    else if(v<=n.p90) pct = 10 + (n.p90-v)/(n.p90-n.p50)*40;
+    else pct = Math.max(1,10-(v-n.p90)/Math.max(1,n.p90)*20);
+    return Math.round(Math.max(1,Math.min(99,pct)));
+  }
+  return {N,percentBetter};
+})();
+
+/* ---------- DataStore：local 实现 + cloud 适配器接口 ---------- */
+SP.DataStore = (function(){
+  const K_SESS='sp:sessions', K_PROFILE='sp:profile', K_QUEUE='sp:queue', K_SEED='sp:seeded', K_AST='sp:ast';
+  function read(k,def){try{const v=JSON.parse(localStorage.getItem(k)); return v==null?def:v;}catch(e){return def;}}
+  function write(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function dayKey(d=new Date()){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+  const local = {
+    async init(){ seedGhosts(); },
+    online(){ return true; },
+    async saveSession(s){ const all=read(K_SESS,[]); all.push(s); write(K_SESS,all.slice(-400)); return {id:s.ts,queued:false}; },
+    async getLeaderboard({mode,scope,period,classCode,limit=20}){
+      const better = (SP.modes[mode]&&SP.modes[mode].dir==='desc') ? (a,b)=>a>b : (a,b)=>a<b;
+      let all=read(K_SESS,[]).filter(s=>s.mode===mode);
+      if(period==='today'){ const d=dayKey(); all=all.filter(s=>s.dayKey===d); }
+      if(scope==='class'&&classCode){ all=all.filter(s=>s.classCode===classCode||s.ghost); }
+      const best={};
+      all.forEach(s=>{ const k=s.uid||s.nickname; if(!best[k]||better(s.score,best[k].score)) best[k]=s; });
+      return Object.values(best).sort((a,b)=>better(a.score,b.score)?-1:1).slice(0,limit);
+    },
+    async getMyHistory({mode,uid,limit=40}){ return read(K_SESS,[]).filter(s=>s.mode===mode&&s.uid===uid).slice(-limit); },
+    async flushQueue(){}
+  };
+
+  // 云后端（CloudBase）适配器：接口就位，需 SDK + envId；离线自动降级到 local
+  const cloud = {
+    _fallback:false, app:null, db:null, auth:null, _user:null,
+    async init(){
+      if(!window.cloudbase || !SP.config.envId){ this._fallback=true; return local.init(); }
+      this.app=window.cloudbase.init({env:SP.config.envId});
+      this.auth=this.app.auth({persistence:'local'}); this.db=this.app.database();
+      try{ const st=await this.auth.getLoginState(); if(st) this._user=st.user; }catch(e){}
+    },
+    online(){ return !this._fallback && navigator.onLine; },
+    async _anon(){ if(this._user) return this._user; const r=await this.auth.signInAnonymously(); this._user=r.user||(await this.auth.getLoginState()).user; return this._user; },
+    async saveSession(s){
+      if(this._fallback||!navigator.onLine){ const q=read(K_QUEUE,[]); q.push(s); write(K_QUEUE,q); return {id:s.ts,queued:true}; }
+      try{ await this._anon(); await this.db.collection('stroop_sessions').add(s); return {id:s.ts,queued:false}; }
+      catch(e){ const q=read(K_QUEUE,[]); q.push(s); write(K_QUEUE,q); return {id:s.ts,queued:true}; }
+    },
+    async getLeaderboard(o){
+      if(this._fallback||!navigator.onLine) return local.getLeaderboard(o);
+      try{
+        const dir=(SP.modes[o.mode]&&SP.modes[o.mode].dir)||'asc';
+        let where={mode:o.mode};
+        if(o.period==='today') where.dayKey=dayKey();
+        if(o.scope==='class'&&o.classCode) where.classCode=o.classCode;
+        const r=await this.db.collection('stroop_sessions').where(where).orderBy('score',dir).limit(o.limit||20).get();
+        return r.data||[];
+      }catch(e){ return local.getLeaderboard(o); }
+    },
+    async getMyHistory(o){ return local.getMyHistory(o); },
+    async flushQueue(){
+      if(this._fallback||!navigator.onLine) return;
+      const q=read(K_QUEUE,[]); if(!q.length) return; const rest=[];
+      for(const s of q){ try{ await this._anon(); await this.db.collection('stroop_sessions').add(s); }catch(e){ rest.push(s); } }
+      write(K_QUEUE,rest);
+    }
+  };
+
+  // 本地"电脑选手"种子：让离线榜也有参照（清楚标注 🤖）
+  function seedGhosts(){
+    if(read(K_SEED,false)) return;
+    const names=['🤖 冷静君','🤖 阅读机器','🤖 平均同学','🤖 手速侠','🤖 新手村'];
+    const all=read(K_SESS,[]);
+    Object.keys(SP.Norms.N).forEach(mode=>{
+      const n=SP.Norms.N[mode]; const pts=[n.p10+5,n.p50-25,n.p50,n.p50+35,n.p90-10];
+      names.forEach((nm,i)=>{
+        all.push({uid:'ghost'+i,nickname:nm,classCode:'示例班',ghost:true,mode,score:Math.round(pts[i]),
+          interference:Math.round(pts[i]),conRT:600,incRT:600+Math.round(pts[i]),accuracy:.95,n:24,
+          ts:Date.now()-i,dayKey:dayKey()});
+      });
+    });
+    [220,180,140,95,60].forEach((sc,i)=>{
+      all.push({uid:'ghost'+i,nickname:names[i],classCode:'示例班',ghost:true,mode:'ARCADE',score:sc,
+        maxCombo:8-i,accuracy:.9,n:20,ts:Date.now()-i,dayKey:dayKey()});
+    });
+    write(K_SESS,all); write(K_SEED,true);
+  }
+
+  const impl = ()=> SP.config.backend==='cloud' ? cloud : local;
+  return {
+    async init(){ return impl().init(); },
+    online(){ return impl().online(); },
+    saveSession(s){ return impl().saveSession(s); },
+    getLeaderboard(o){ return impl().getLeaderboard(o); },
+    getMyHistory(o){ return impl().getMyHistory(o); },
+    flushQueue(){ return impl().flushQueue(); },
+    dayKey, _read:read, _write:write, K_PROFILE, K_AST
+  };
+})();
+
+/* ---------- Account：昵称 + 班级码（不收集真实身份） ---------- */
+SP.Account = (function(){
+  let cur = SP.DataStore._read(SP.DataStore.K_PROFILE,null);
+  function current(){ return cur; }
+  async function signIn({nickname,classCode}){
+    const uid=(cur&&cur.uid)||'u_'+Math.random().toString(36).slice(2,10);
+    cur={uid,nickname:(nickname||'').trim().slice(0,12)||'无名氏',classCode:(classCode||'').trim().slice(0,16)||'未分班'};
+    SP.DataStore._write(SP.DataStore.K_PROFILE,cur); return cur;
+  }
+  function signOut(){ cur=null; try{localStorage.removeItem(SP.DataStore.K_PROFILE);}catch(e){} }
+  return {current,signIn,signOut};
+})();
+
+/* ---------- Charts：Canvas 2D 自绘 ---------- */
+SP.Charts = (function(){
+  const css=k=>getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+  function setup(canvas,h){ const dpr=window.devicePixelRatio||1; const w=canvas.clientWidth||520;
+    canvas.width=w*dpr; canvas.height=h*dpr; canvas.style.height=h+'px';
+    const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return {ctx,w,h}; }
+
+  // 一致 vs 不一致 双柱 + 干扰量括号
+  function barCompare(canvas,con,inc,labels){
+    const {ctx,w,h}=setup(canvas,230); ctx.clearRect(0,0,w,h);
+    const pad=34, base=h-40, top=34;
+    const max=Math.max(con,inc,1)*1.18;
+    const Y=v=>base-(v/max)*(base-top);
+    const bw=Math.min(96,(w-pad*2)/3), gap=(w-pad*2-bw*2)/3;
+    const x1=pad+gap, x2=pad+gap*2+bw;
+    ctx.strokeStyle=css('--line'); ctx.beginPath(); ctx.moveTo(pad-6,base); ctx.lineTo(w-pad+6,base); ctx.stroke();
+    ctx.fillStyle=css('--go');   ctx.fillRect(x1,Y(con),bw,base-Y(con));
+    ctx.fillStyle=css('--stop'); ctx.fillRect(x2,Y(inc),bw,base-Y(inc));
+    ctx.font='bold 15px sans-serif'; ctx.textAlign='center'; ctx.fillStyle=css('--ink');
+    ctx.fillText(Math.round(con)+'ms',x1+bw/2,Y(con)-8);
+    ctx.fillText(Math.round(inc)+'ms',x2+bw/2,Y(inc)-8);
+    ctx.font='13px sans-serif'; ctx.fillStyle=css('--muted');
+    ctx.fillText(labels[0],x1+bw/2,base+18);
+    ctx.fillText(labels[1],x2+bw/2,base+18);
+    // 干扰量括号
+    if(inc>con+1){
+      const yTop=Y(inc), yBot=Y(con), xb=x2+bw+10;
+      ctx.strokeStyle=css('--warn'); ctx.lineWidth=2; ctx.beginPath();
+      ctx.moveTo(x2+bw/2,yTop); ctx.lineTo(xb,yTop); ctx.lineTo(xb,yBot); ctx.lineTo(x1+bw/2,yBot); ctx.stroke();
+      ctx.lineWidth=1;
+      ctx.fillStyle=css('--warn'); ctx.font='bold 13px sans-serif'; ctx.textAlign='left';
+      const ty=Math.max(16,(yTop+yBot)/2);
+      ctx.fillText('干扰量 '+Math.round(inc-con)+'ms', Math.min(xb+6,w-96), ty);
+    }
+    ctx.fillStyle=css('--muted'); ctx.font='12px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('反应时中位数（越低越快）',w/2,16);
+  }
+
+  // 跨条件干扰量剖面（可含负值）
+  function profile(canvas,rows){
+    const {ctx,w,h}=setup(canvas,220); ctx.clearRect(0,0,w,h);
+    const pad=40, base=h-42, top=30;
+    const vals=rows.map(r=>r.v);
+    const max=Math.max(10,...vals.map(v=>Math.abs(v)))*1.25;
+    const zero = vals.some(v=>v<0) ? (top+base)/2 : base;
+    const Y=v=>zero-(v/max)*(zero-top);
+    ctx.strokeStyle=css('--line'); ctx.beginPath(); ctx.moveTo(pad-8,zero); ctx.lineTo(w-14,zero); ctx.stroke();
+    const bw=Math.min(70,(w-pad-20)/rows.length-14), step=(w-pad-20)/rows.length;
+    rows.forEach((r,i)=>{
+      const x=pad+i*step+(step-bw)/2, y=Y(r.v);
+      ctx.fillStyle = r.v>=0 ? css('--brand') : css('--muted');
+      ctx.fillRect(x,Math.min(y,zero),bw,Math.abs(zero-y));
+      ctx.textAlign='center'; ctx.font='bold 13px sans-serif'; ctx.fillStyle=css('--ink');
+      ctx.fillText(Math.round(r.v)+'', x+bw/2, r.v>=0 ? y-6 : y+16);
+      ctx.font='12px sans-serif'; ctx.fillStyle=css('--muted');
+      ctx.fillText(r.name, x+bw/2, base+16);
+    });
+    ctx.fillStyle=css('--muted'); ctx.font='12px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('各条件的干扰量（ms，越高越被干扰）',w/2,16);
+  }
+  return {barCompare,profile};
+})();
+</script>
+
+<!-- ============ UI 编排 ============ -->
+<script>
+"use strict";
+(function(){
+  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+  const screens=['home','play','result','discovery','leaderboard'];
+  function show(name){ screens.forEach(s=>$('#screen-'+s).classList.toggle('hidden',s!==name)); window.scrollTo(0,0); }
+  const TEST = /[?&]test=1/.test(location.search);
+
+  /* ---- 成就：只奖励"发现"与"掌握"，无点击型成就 ---- */
+  const ach = createAchievements({ storageKey:'stroop-ach-v1', defs:[
+    {id:'witness',  icon:'🔬',name:'干扰量证人',    desc:'完成经典色词，亲手量出大于 0 的干扰量',            check:s=>s.classicInt>0},
+    {id:'asymmetry',icon:'⚖️',name:'不对称发现者',  desc:'经典 + 反向都做完，发现"读字几乎不被颜色干扰"',   check:s=>s.classicInt!=null&&s.reverseInt!=null&&s.reverseInt<s.classicInt*0.5},
+    {id:'transfer', icon:'🧭',name:'迁移侦探',      desc:'在数字或方向条件里也测出了正干扰量',               check:s=>s.transferInt>0},
+    {id:'automatic',icon:'📖',name:'自动化的代价',  desc:'干扰量超过 150ms——你的阅读太熟练了',              check:s=>s.classicInt>150},
+    {id:'resist',   icon:'🛡️',name:'抗干扰高手',    desc:'某个条件的干扰量小于 60ms',                       check:s=>s.minInt!=null&&s.minInt<60},
+    {id:'flawless', icon:'💯',name:'零失误',        desc:'一整个正式区组全部答对',                           check:s=>s.flawless},
+    {id:'steady',   icon:'🎯',name:'稳定大师',      desc:'一轮反应时标准差小于 120ms',                       check:s=>s.lowSd},
+    {id:'rage',     icon:'🔥',name:'暴走王',        desc:'街机狂潮里连对 10 题',                             check:s=>s.arcadeMaxCombo>=10},
+    {id:'bomb',     icon:'💣',name:'拆弹专家',      desc:'街机一局里所有炸弹题都忍住没点（至少 2 颗）',      check:s=>s.bombPerfect},
+    {id:'tradeoff', icon:'⚡',name:'权衡侦探',      desc:'亲自撞见"求快 = 错更多"：街机错误率高于实验条件',  check:s=>s.sawTradeoff},
+    {id:'pb',       icon:'🚀',name:'破纪录',        desc:'刷新自己在某个条件上的最小干扰量',                 check:s=>s.newPB},
+    {id:'master',   icon:'🏆',name:'斯特鲁普大师',  desc:'解锁前面 6 项成就',                                check:()=>ach&&ach.unlockedCount()>=6}
+  ]});
+
+  /* ---- 跨局累积状态（持久化，成就与剖面图都靠它） ---- */
+  const AST = Object.assign({
+    int:{}, bestInt:{}, arcadeMaxCombo:0, arcadeBest:0, expErr:null, arcadeErr:null, sawTradeoff:false, bombPerfect:false
+  }, SP.DataStore._read(SP.DataStore.K_AST,{}) || {});
+  function saveAST(){ SP.DataStore._write(SP.DataStore.K_AST,AST); }
+  function achState(extra){
+    const ints=Object.values(AST.int).filter(v=>v!=null&&isFinite(v));
+    return Object.assign({
+      classicInt: AST.int.CLASSIC!=null?AST.int.CLASSIC:null,
+      reverseInt: AST.int.REVERSE!=null?AST.int.REVERSE:null,
+      transferInt: Math.max(AST.int.NUMBER!=null?AST.int.NUMBER:-1, AST.int.ARROW!=null?AST.int.ARROW:-1),
+      minInt: ints.length?Math.min(...ints):null,
+      arcadeMaxCombo: AST.arcadeMaxCombo, bombPerfect: AST.bombPerfect, sawTradeoff: AST.sawTradeoff,
+      flawless:false, lowSd:false, newPB:false
+    }, extra||{});
+  }
+
+  /* ---- 主页 ---- */
+  function renderHome(){
+    const c=$('#modeCards'); c.innerHTML='';
+    Object.values(SP.modes).forEach(m=>{
+      const el=document.createElement('button');
+      el.className='mode-card'+(m.id==='ARCADE'?' arcade':''); el.id='card-'+m.id;
+      const got = m.id==='ARCADE' ? (AST.arcadeBest?`最高 ${AST.arcadeBest} 分`:'')
+                                  : (AST.int[m.id]!=null?`干扰量 ${Math.round(AST.int[m.id])}ms`:'');
+      el.innerHTML=`<span class="tag">${m.id==='ARCADE'?'30秒':m.n+'试次'}</span>
+        <div class="ic">${m.ic}</div><h3>${m.name}</h3><p>${m.desc}</p>
+        ${got?`<span class="done">✓ ${got}</span>`:''}`;
+      el.onclick=()=>startMode(m.id);
+      c.appendChild(el);
+    });
+  }
+
+  /* ---- 播放区 ---- */
+  const stimBox=$('#stimBox'), respRow=$('#respRow'), live=$('#live'), prog=$('#playProg'),
+        band=$('#taskBand'), startBtn=$('#startBtn'), playArea=$('.play'),
+        hud=$('#hud'), timebar=$('#timebar'), timefill=$('#timefill');
+  const KEYMAP={'d':0,'f':1,'j':2,'k':3,'D':0,'F':1,'J':2,'K':3,'1':0,'2':1,'3':2,'4':3};
+  const ARROWMAP={'ArrowLeft':0,'ArrowUp':1,'ArrowDown':2,'ArrowRight':3};
+  let curMode=null, RUN=null;
+
+  function newRun(){ if(RUN){ RUN.aborted=true; try{RUN.signal&&RUN.signal.cancel&&RUN.signal.cancel();}catch(e){} } RUN={aborted:false,signal:null}; return RUN; }
+  function abortRun(){ if(RUN){ RUN.aborted=true; try{RUN.signal&&RUN.signal.cancel&&RUN.signal.cancel();}catch(e){} } RUN=null; }
+  const pause=ms=>new Promise(r=>setTimeout(r,ms));
+  const uid=()=>{ const c=SP.Account.current(); return c?c.uid:'guest-local'; };
+
+  function buildResp(mode){
+    respRow.innerHTML='';
+    const keys=['D','F','J','K'];
+    SP.Stim.respOptions(mode).forEach((o,i)=>{
+      const b=document.createElement('button');
+      b.className=o.cls; b.dataset.idx=i;
+      b.innerHTML=`<span>${o.label}</span><span class="key">${keys[i]}</span>`;
+      respRow.appendChild(b);
+    });
+  }
+  function showFixation(){ stimBox.className=''; stimBox.innerHTML='<div class="fix">＋</div>'; }
+  function renderStim(t,rage){
+    stimBox.className = rage?'rage':'';
+    const C=SP.Stim.COLORS;
+    if(t.type==='bomb'){ stimBox.innerHTML='<div class="stim-bomb">💣</div><div class="stim-note">别点！忍住就安全</div>'; return; }
+    if(t.type==='word'){
+      stimBox.innerHTML=`<div class="stim-word" style="color:${C[t.ink].css}">${t.text}</div>`
+        + (rage?'<div class="rage-flag">⚡ 暴走</div>':'');
+      return;
+    }
+    if(t.type==='num'){
+      stimBox.innerHTML=`<div class="stim-num">${Array(t.count).fill(t.digit).join(' ')}</div>`;
+      return;
+    }
+    if(t.type==='arrow'){
+      const p=SP.Stim.POS[SP.Stim.DIRS[t.pos].key];
+      stimBox.innerHTML=`<div class="stim-arrow" style="transform:translate(${p[0]}px,${p[1]}px)">${SP.Stim.DIRS[t.dir].glyph}</div>`;
+      return;
+    }
+  }
+  function resolver(mode){
+    return ev=>{
+      if(ev.type==='pointer'){ const b=ev.target.closest('#respRow button'); return b?Number(b.dataset.idx):null; }
+      if(ev.key in KEYMAP) return KEYMAP[ev.key];
+      if(mode==='ARROW' && ev.key in ARROWMAP) return ARROWMAP[ev.key];
+      return null;
+    };
+  }
+
+  function startMode(id){
+    curMode=SP.modes[id]; show('play'); abortRun();
+    band.innerHTML=curMode.task;
+    buildResp(id); respRow.classList.add('dim');
+    showFixation(); live.textContent=''; prog.textContent='';
+    hud.classList.toggle('hidden',id!=='ARCADE');
+    timebar.classList.toggle('hidden',id!=='ARCADE');
+    startBtn.classList.remove('hidden');
+    startBtn.textContent = id==='ARCADE' ? '开始 30 秒冲刺' : '开始（先练 '+curMode.practice+' 次）';
+    startBtn.onclick=()=>{ startBtn.classList.add('hidden'); respRow.classList.remove('dim'); id==='ARCADE'?runArcade():runBlock(); };
+    $('#playBack').onclick=()=>{ abortRun(); show('home'); };
+  }
+
+  /* ---- 实验模式：练习 + 正式区组 ---- */
+  async function runBlock(){
+    const run=newRun(), mode=curMode;
+    // 练习
+    live.textContent='练习中（不计入成绩）';
+    const pr=SP.Stim.buildBlock(mode.id,mode.practice);
+    for(let i=0;i<pr.length;i++){
+      prog.textContent='练习 '+(i+1)+' / '+mode.practice;
+      const r=await oneTrial(mode.id,pr[i],run,true);
+      if(run.aborted) return;
+      await pause(430); if(run.aborted) return;
+    }
+    // 正式
+    const plan=SP.Stim.buildBlock(mode.id,mode.n), trials=[];
+    live.textContent='';
+    for(let i=0;i<plan.length;i++){
+      prog.textContent='正式 '+(i+1)+' / '+mode.n;
+      const r=await oneTrial(mode.id,plan[i],run,false);
+      if(run.aborted) return;
+      trials.push(r);
+      await pause(380); if(run.aborted) return;
+    }
+    finishBlock(mode,trials);
+  }
+
+  function oneTrial(modeId,t,run,isPractice){
+    const signal={}; if(run) run.signal=signal;
+    return SP.Engine.runTrial({
+      area:playArea, signal, kind:'go',
+      fixationMs: 400+Math.round(SP.Engine.rand(0,320)),
+      timeoutMs: 3000,
+      onFixation(){ showFixation(); },
+      render(){ renderStim(t,false); SP.Engine.state.correctCode=t.answer; SP.Engine.state.mode=modeId; SP.Engine.state.congruent=t.congruent; },
+      resolveResponse: resolver(modeId),
+      isCorrect: code=>code===t.answer
+    }).then(r=>{
+      if(run&&run.aborted) return r;
+      Object.assign(r,{congruent:t.congruent,answer:t.answer,desc:t.desc,assoc:!!t.assoc});
+      feedback(r,isPractice);
+      return r;
+    });
+  }
+
+  function feedback(r,isPractice){
+    if(r.outcome==='timeout'){ stimBox.className='miss'; live.innerHTML='<span style="color:var(--warn)">⏰ 太慢了，下一题</span>'; return; }
+    if(r.correct){ stimBox.className='hit';
+      live.innerHTML=`<span class="rtbig" style="color:var(--go)">${Math.round(r.rt)}</span> <span style="color:var(--muted)">ms</span>`;
+    } else { stimBox.className='miss';
+      live.innerHTML='<span style="color:var(--stop)">✗ 答错了'+(isPractice?'——记住：按<b>题目要求</b>的那个属性':'')+'</span>';
+    }
+  }
+
+  /* ---- 统计：一致 / 不一致 / 干扰量 ---- */
+  function summarize(trials){
+    const valid=trials.filter(t=>!t.invalid&&!t.aborted);
+    const grp=f=>{
+      const g=valid.filter(f);
+      const corr=g.filter(t=>t.outcome==='hit'&&t.correct&&t.rt!=null);
+      const {valid:clean}=SP.Stats.rejectOutliers(corr.map(t=>t.rt));
+      return {n:g.length, nCorrect:corr.length, rts:clean,
+              median:clean.length?SP.Stats.median(clean):null,
+              err: g.length? 1-corr.length/g.length : 0};
+    };
+    const con=grp(t=>t.congruent), inc=grp(t=>!t.congruent);
+    const all=[...con.rts,...inc.rts];
+    const interference=(con.median!=null&&inc.median!=null)?inc.median-con.median:null;
+    return {con,inc,interference,
+      n:valid.length,
+      accuracy: valid.length? valid.filter(t=>t.outcome==='hit'&&t.correct).length/valid.length : 0,
+      sd: all.length>1?SP.Stats.sd(all):0,
+      reliable: con.rts.length>=4&&inc.rts.length>=4};
+  }
+
+  let lastTrials=[], lastMode=null;
+  async function finishBlock(mode,trials){
+    lastTrials=trials; lastMode=mode;
+    const S=summarize(trials);
+    const prevBest=AST.bestInt[mode.id];
+    let newPB=false;
+    if(S.interference!=null){
+      AST.int[mode.id]=Math.round(S.interference);
+      if(prevBest==null||S.interference<prevBest){ AST.bestInt[mode.id]=Math.round(S.interference); newPB=(prevBest!=null); }
+    }
+    AST.expErr = 1-S.accuracy;
+    if(AST.arcadeErr!=null && AST.arcadeErr > AST.expErr+0.02) AST.sawTradeoff=true;
+    saveAST();
+
+    await SP.DataStore.saveSession({
+      uid:uid(), nickname:(SP.Account.current()||{}).nickname||'我(游客)',
+      classCode:(SP.Account.current()||{}).classCode||'未分班',
+      mode:mode.id, score:S.interference!=null?Math.round(S.interference):9999,
+      interference:S.interference!=null?Math.round(S.interference):null,
+      conRT:S.con.median!=null?Math.round(S.con.median):null, incRT:S.inc.median!=null?Math.round(S.inc.median):null,
+      accuracy:Number(S.accuracy.toFixed(3)), n:S.n, sd:Math.round(S.sd),
+      device: matchMedia('(pointer:coarse)').matches?'mobile':'desktop',
+      ts:Date.now(), dayKey:SP.DataStore.dayKey()
+    });
+    const rank=await myRank(mode.id, S.interference!=null?Math.round(S.interference):9999);
+    ach.check(achState({flawless:S.accuracy===1, lowSd:S.sd>0&&S.sd<120, newPB}));
+    renderBlockResult(mode,S,{rank,newPB});
+  }
+
+  async function myRank(modeId,score){
+    const rows=await SP.DataStore.getLeaderboard({mode:modeId,scope:'global',period:'all',limit:999});
+    const desc=SP.modes[modeId].dir==='desc';
+    let rank=1; rows.forEach(r=>{ if(desc? r.score>score : r.score<score) rank++; });
+    return rank;
+  }
+
+  /* ---- 结算：实验模式 ---- */
+  function renderBlockResult(mode,S,info){
+    const I=S.interference;
+    const pct=I!=null?SP.Norms.percentBetter(I,mode.id):null;
+    const labels = mode.id==='REVERSE' ? ['一致（颜色配得上字）','不一致（颜色捣乱）']
+                 : mode.id==='NUMBER'  ? ['一致（3个3）','不一致（2个5）']
+                 : mode.id==='ARROW'   ? ['一致（位置=指向）','不一致（位置≠指向）']
+                 : ['一致（红字写红）','不一致（红字写蓝）'];
+    const profRows=Object.keys(SP.Norms.N).filter(k=>AST.int[k]!=null).map(k=>({name:SP.modes[k].name.replace('斯特鲁普',''),v:AST.int[k]}));
+    const el=$('#screen-result');
+    el.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <button class="btn ghost" id="rHome">← 主页</button><h2 style="font-size:18px">${mode.ic} ${mode.name}·成绩</h2><span></span>
+      </div>
+      <div class="panel">
+        <div class="stat-grid">
+          <div class="stat"><div class="v">${S.con.median!=null?Math.round(S.con.median):'-'}</div><div class="k">一致(ms)</div></div>
+          <div class="stat"><div class="v">${S.inc.median!=null?Math.round(S.inc.median):'-'}</div><div class="k">不一致(ms)</div></div>
+          <div class="stat hero"><div class="v">${I!=null?Math.round(I):'-'}</div><div class="k">干扰量(ms)</div></div>
+          <div class="stat"><div class="v">${Math.round(S.accuracy*100)}%</div><div class="k">正确率</div></div>
+        </div>
+        ${!S.reliable?'<div class="notice">有效试次偏少（漏答或超时较多），这次的干扰量只能当粗略参考，建议再跑一轮。</div>':''}
+        ${pct!=null?`<div class="norm">你比约 <b>${pct}%</b> 的同龄人更抗干扰 <span style="color:var(--muted);font-size:12px">（常模为示意值，待真实班级数据校准）</span></div>`:''}
+        ${info.newPB?'<div class="norm">🚀 破纪录！你把自己的干扰量压得更低了</div>':''}
+        <div class="norm">榜单名次：第 <b>${info.rank}</b> 名（${mode.name}·全站）</div>
+      </div>
+
+      <div class="panel">
+        <h2>两种条件差在哪</h2>
+        <canvas id="cmpCanvas"></canvas>
+        <p class="tiny">用<b>中位数</b>不用平均数：反应时分布右偏，偶尔一次走神就能把平均值拉飞。已剔除 &lt;200ms 的抢答与 &gt;3000ms 的走神。
+        正确率也要一起看——如果靠<b>乱按变快</b>，干扰量会假性变小。
+        <button class="tinylink" id="csvBtn">导出本轮试次 CSV</button></p>
+      </div>
+
+      ${profRows.length>=2?`
+      <div class="panel">
+        <h2>你的四种冲突剖面</h2>
+        <canvas id="profCanvas"></canvas>
+        <p class="tiny">同样是 4 选 1，干扰量却差这么多。哪一根特别矮？想想它和别的条件哪里不一样。</p>
+      </div>`:''}
+
+      <div class="panel mathpanel collapsed">
+        <h2>为什么会这样？ <button class="btn ghost reveal-toggle" id="revToggle">显示结论</button></h2>
+        <div class="mathbody">
+          <div class="sci-card">对熟练的读者来说，<b>阅读已经自动化</b>了——看到字就自动读出意思，根本关不掉。而"说出颜色"是<b>控制加工</b>，需要费劲。自动化的那个反应会抢先冲出来，你得把它按住，这一按就是那几十上百毫秒的<b>干扰量</b>。</div>
+          <div class="sci-card">所以干扰是<b>单向</b>的：字义能干扰颜色，颜色却几乎干扰不了字义。想验证？去玩<b>反向读字</b>，比比两个干扰量。</div>
+          <div class="sci-card">这也说明干扰量大<b>不是笨</b>——恰恰说明你阅读太熟练了。刚学认字的一年级学生，Stroop 干扰量反而很小。</div>
+        </div>
+      </div>
+
+      <div class="row-actions">
+        <button class="btn primary" id="rRetry">再来一次</button>
+        <button class="btn" id="rDisc">🔬 发现之旅</button>
+        <button class="btn" id="rBoard">🏁 排行榜</button>
+        <button class="btn ghost" id="rBack">换个条件</button>
+      </div>`;
+    show('result');
+    SP.Charts.barCompare($('#cmpCanvas'),S.con.median||0,S.inc.median||0,labels);
+    if(profRows.length>=2) SP.Charts.profile($('#profCanvas'),profRows);
+    $('#rHome').onclick=$('#rBack').onclick=()=>{ renderHome(); show('home'); };
+    $('#rRetry').onclick=()=>startMode(mode.id);
+    $('#rDisc').onclick=openDiscovery;
+    $('#rBoard').onclick=()=>openLeaderboard(mode.id);
+    $('#csvBtn').onclick=()=>exportCSV(mode,lastTrials);
+    const rt=$('#revToggle');
+    rt.onclick=()=>{ const p=rt.closest('.mathpanel'); p.classList.toggle('collapsed');
+      rt.textContent=p.classList.contains('collapsed')?'显示结论':'隐藏结论'; };
+  }
+
+  /* ---- 街机狂潮：30 秒 · 连击 · 暴走 · 炸弹 ---- */
+  async function runArcade(){
+    const run=newRun(), DUR=SP.modes.ARCADE.duration;
+    let score=0, combo=0, maxCombo=0, rage=false, bombs=0, bombsSafe=0;
+    let elapsed=0, last=performance.now(), paused=false, over=false;
+    const trials=[];
+    hud.classList.remove('hidden'); timebar.classList.remove('hidden');
+    $('#hudScore').textContent='0'; $('#hudCombo').textContent='';
+    // 墙钟计时（headless 下 rAF 会冻结，必须用 setInterval + 真实时间差）
+    const timer=setInterval(()=>{
+      const t=performance.now(); if(!paused) elapsed+=t-last; last=t;
+      const left=Math.max(0,DUR-elapsed);
+      $('#hudTime').textContent=(left/1000).toFixed(1);
+      timefill.style.width=(left/DUR*100)+'%';
+      if(left<=0 && !over){ over=true; clearInterval(timer); try{run.signal&&run.signal.cancel&&run.signal.cancel();}catch(e){} }
+    },100);
+
+    while(!over && !run.aborted){
+      const isBomb = Math.random()<0.15;
+      const t = isBomb ? {type:'bomb',mode:'ARCADE',congruent:null,answer:null,desc:'💣'}
+                       : SP.Stim.makeTrial('ARCADE', Math.random()<0.35, 0.3);
+      const signal={}; run.signal=signal;
+      if(isBomb) paused=true;                       // 炸弹题暂停倒计时，保证公平
+      const r=await SP.Engine.runTrial({
+        area:playArea, signal, kind:isBomb?'nogo':'go',
+        fixationMs: 260+Math.round(SP.Engine.rand(0,180)),
+        timeoutMs: isBomb?1400:2000,
+        onFixation(){ showFixation(); },
+        render(){ renderStim(t,rage&&!isBomb); SP.Engine.state.correctCode=t.answer; SP.Engine.state.mode='ARCADE'; },
+        resolveResponse: resolver('ARCADE'),
+        isCorrect: code=>code===t.answer
+      });
+      paused=false;
+      if(run.aborted||r.aborted) break;
+      // 计分
+      if(isBomb){
+        bombs++;
+        if(r.outcome==='correctReject'){ bombsSafe++; stimBox.className='hit'; live.innerHTML='<span style="color:var(--go)">✅ 忍住了！</span>'; }
+        else { score=Math.max(0,score-10); combo=0; rage=false; stimBox.className='miss'; live.innerHTML='<span style="color:var(--stop)">💥 炸了 −10</span>'; }
+      } else if(r.outcome==='timeout'){
+        score=Math.max(0,score-3); combo=0; rage=false; stimBox.className='miss';
+        live.innerHTML='<span style="color:var(--warn)">⏰ 超时 −3</span>';
+      } else if(r.correct){
+        combo++; maxCombo=Math.max(maxCombo,combo);
+        let g = combo>=10?30 : combo>=5?20 : 10;
+        if(r.rt<400) g+=5; else if(r.rt<600) g+=3;
+        score+=g; if(combo>=5) rage=true;
+        stimBox.className='hit';
+        live.innerHTML=`<span style="color:var(--go)">+${g}</span> <span style="color:var(--muted)">${Math.round(r.rt)}ms</span>`;
+      } else {
+        score=Math.max(0,score-5); combo=0; rage=false; stimBox.className='miss';
+        live.innerHTML='<span style="color:var(--stop)">✗ −5</span>';
+      }
+      if(!isBomb) trials.push(Object.assign(r,{congruent:t.congruent,answer:t.answer,desc:t.desc,assoc:!!t.assoc}));
+      $('#hudScore').textContent=score;
+      $('#hudCombo').textContent = combo>=2 ? (rage?'⚡ 暴走 ×'+combo:'🔥 连击 ×'+combo) : '';
+      await pause(230);
+    }
+    clearInterval(timer);
+    if(run.aborted && !over) return;
+    finishArcade({score,maxCombo,bombs,bombsSafe,trials});
+  }
+
+  async function finishArcade(A){
+    lastTrials=A.trials; lastMode=SP.modes.ARCADE;
+    const answered=A.trials.filter(t=>t.outcome==='hit'||t.outcome==='timeout');
+    const acc = answered.length? A.trials.filter(t=>t.correct).length/answered.length : 0;
+    const S=summarize(A.trials);
+    AST.arcadeMaxCombo=Math.max(AST.arcadeMaxCombo,A.maxCombo);
+    AST.arcadeBest=Math.max(AST.arcadeBest,A.score);
+    AST.arcadeErr=1-acc;
+    if(A.bombs>=2 && A.bombsSafe===A.bombs) AST.bombPerfect=true;
+    if(AST.expErr!=null && AST.arcadeErr > AST.expErr+0.02) AST.sawTradeoff=true;
+    saveAST();
+    await SP.DataStore.saveSession({
+      uid:uid(), nickname:(SP.Account.current()||{}).nickname||'我(游客)',
+      classCode:(SP.Account.current()||{}).classCode||'未分班',
+      mode:'ARCADE', score:A.score, maxCombo:A.maxCombo, accuracy:Number(acc.toFixed(3)),
+      n:A.trials.length, ts:Date.now(), dayKey:SP.DataStore.dayKey()
+    });
+    const rank=await myRank('ARCADE',A.score);
+    ach.check(achState({}));
+
+    const expErrTxt = AST.expErr!=null ? Math.round(AST.expErr*100)+'%' : '—';
+    const el=$('#screen-result');
+    el.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <button class="btn ghost" id="rHome">← 主页</button><h2 style="font-size:18px">🔥 街机狂潮·成绩</h2><span></span>
+      </div>
+      <div class="panel">
+        <div class="stat-grid">
+          <div class="stat hero"><div class="v">${A.score}</div><div class="k">得分</div></div>
+          <div class="stat"><div class="v">${A.maxCombo}</div><div class="k">最高连击</div></div>
+          <div class="stat"><div class="v">${A.bombsSafe}/${A.bombs}</div><div class="k">炸弹拆除</div></div>
+          <div class="stat"><div class="v">${Math.round(acc*100)}%</div><div class="k">正确率</div></div>
+        </div>
+        <div class="norm">榜单名次：第 <b>${rank}</b> 名（街机·全站）</div>
+      </div>
+      <div class="panel mathpanel collapsed">
+        <h2>快，代价是什么？ <button class="btn ghost reveal-toggle" id="revToggle">显示结论</button></h2>
+        <div class="mathbody">
+          <div class="sci-card">你在街机里的错误率是 <b>${Math.round((1-acc)*100)}%</b>，在慢慢做的实验条件里是 <b>${expErrTxt}</b>。
+          ${AST.expErr!=null && (1-acc)>AST.expErr+0.02 ? '压力一上来，你就在用<b>准确率换速度</b>——这叫<b>速度—准确性权衡</b>。' :
+            AST.expErr==null ? '还没有实验条件的数据可比——先去玩一次「经典色词」，回来这里就能对照。' :
+            '你顶住了压力，错误率没怎么涨——说明这个速度还在你的舒适区内，可以再逼自己快一点试试。'}</div>
+          <div class="sci-card">这就是为什么科学家<b>不能只看反应时</b>：一个只报"我更快"的成绩，可能只是错得更多而已。真正的比较必须<b>速度和正确率一起看</b>。</div>
+          <div class="sci-card">💣 炸弹题考的是<b>反应抑制</b>：明明手已经准备好了，却要临时刹住。这和"忍住不读字"用的是同一套刹车系统。</div>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button class="btn primary" id="rRetry">再冲一次</button>
+        <button class="btn" id="rBoard">🏁 排行榜</button>
+        <button class="btn ghost" id="rBack">换个条件</button>
+      </div>`;
+    show('result');
+    $('#rHome').onclick=$('#rBack').onclick=()=>{ renderHome(); show('home'); };
+    $('#rRetry').onclick=()=>startMode('ARCADE');
+    $('#rBoard').onclick=()=>openLeaderboard('ARCADE');
+    const rt=$('#revToggle');
+    rt.onclick=()=>{ const p=rt.closest('.mathpanel'); p.classList.toggle('collapsed');
+      rt.textContent=p.classList.contains('collapsed')?'显示结论':'隐藏结论'; };
+  }
+
+  /* ---- CSV ---- */
+  function exportCSV(mode,trials){
+    const head='mode,trial,congruent,stimulus,answer_idx,response_idx,rt_ms,correct,outcome,assoc\n';
+    const body=trials.map((t,i)=>[mode.id,i+1,t.congruent,'"'+(t.desc||'')+'"',t.answer,t.response==null?'':t.response,
+      t.rt?Math.round(t.rt):'',t.correct,t.outcome,t.assoc].join(',')).join('\n');
+    const blob=new Blob(['﻿'+head+body],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='stroop-'+mode.id+'-trials.csv'; a.click();
+  }
+
+  /* ---- 排行榜 ---- */
+  let lbMode='CLASSIC', lbScope='class', lbPeriod='all';
+  function buildLbTabs(){ const t=$('#lbModeTabs'); t.innerHTML='';
+    Object.values(SP.modes).forEach(m=>{ const b=document.createElement('button');
+      b.textContent=m.ic+' '+m.name.replace('斯特鲁普',''); b.className=m.id===lbMode?'on':'';
+      b.onclick=()=>{ lbMode=m.id; buildLbTabs(); renderLb(); }; t.appendChild(b); });
+  }
+  $$('#lbScopeTabs button').forEach(b=>b.onclick=()=>{
+    if(b.dataset.scope){ lbScope=b.dataset.scope; $$('#lbScopeTabs [data-scope]').forEach(x=>x.classList.toggle('on',x===b)); }
+    if(b.dataset.period){ lbPeriod=b.dataset.period; $$('#lbScopeTabs [data-period]').forEach(x=>x.classList.toggle('on',x===b)); }
+    renderLb();
+  });
+  async function renderLb(){
+    const c=SP.Account.current(), myUid=uid();
+    const rows=await SP.DataStore.getLeaderboard({mode:lbMode,scope:lbScope,period:lbPeriod,classCode:c?c.classCode:'示例班',limit:20});
+    const list=$('#lbList'); list.innerHTML='';
+    if(!rows.length){ list.innerHTML='<p style="color:var(--muted)">这个榜还空着，去玩一局上榜吧！</p>'; }
+    const unit = lbMode==='ARCADE' ? '分' : 'ms';
+    rows.forEach((r,i)=>{
+      const me=r.uid===myUid&&!r.ghost; const d=document.createElement('div'); d.className='lb-row'+(me?' me':'');
+      d.innerHTML=`<div class="lb-rank ${i<3?'top':''}">${i+1}</div>
+        <div class="lb-name">${r.nickname}${me?'（我）':''}<div class="lb-bot">${r.classCode||''}</div></div>
+        <div class="lb-score">${r.score}${unit}</div>`;
+      list.appendChild(d);
+    });
+    $('#lbNotice').textContent = lbMode==='ARCADE' ? '街机榜按得分从高到低。' : '实验条件榜按干扰量从小到大——干扰量越小，越不容易被字义带跑。含 🤖 电脑选手作参照。';
+  }
+  function openLeaderboard(mode){ lbMode=mode; buildLbTabs(); renderLb(); show('leaderboard'); }
+  $('#lbBack').onclick=()=>{ renderHome(); show('home'); };
+  $('#goLeaderboard').onclick=()=>openLeaderboard(lbMode);
+
+  /* ---- 发现之旅：predict → 用自己的数据 reveal ---- */
+  const QUESTIONS=[
+    { id:'q1', title:'预测：「说颜色时被字义干扰」和「读字时被颜色干扰」，哪个更严重？',
+      opts:[['a','① 说颜色被干扰得更厉害'],['b','② 读字被干扰得更厉害'],['c','③ 两边差不多']],
+      right:'a', need:['CLASSIC','REVERSE'], needName:'经典色词 + 反向读字',
+      reveal(){ const a=AST.int.CLASSIC,b=AST.int.REVERSE;
+        return `✅ 答案是 <b>①</b>。你自己的数据：说颜色时干扰量 <b>${a}ms</b>，读字时只有 <b>${b}ms</b>。
+        干扰是<b>单向</b>的——因为<b>阅读已经自动化</b>，会强行插队；而"命名颜色"这种控制加工插不了阅读的队。
+        这也是为什么刚学认字的小朋友几乎没有 Stroop 效应：他们的阅读还没自动化。`; } },
+    { id:'q2', title:'预测：把颜色词换成数字、换成箭头，还会有冲突吗？',
+      opts:[['a','① 不会，冲突是颜色和字的专利'],['b','② 会，只要两条信息打架就会'],['c','③ 只有数字会，箭头不会']],
+      right:'b', need:['NUMBER','ARROW'], needName:'数字 或 方向斯特鲁普', anyOf:true,
+      reveal(){ const parts=[]; if(AST.int.NUMBER!=null) parts.push(`数字条件 <b>${AST.int.NUMBER}ms</b>`);
+        if(AST.int.ARROW!=null) parts.push(`方向条件 <b>${AST.int.ARROW}ms</b>`);
+        return `✅ 答案是 <b>②</b>。你的实测：${parts.join('、')}。
+        只要一条自动、快速的信息和当前任务<b>指向不同的答案</b>，大脑就得花时间压住它。
+        颜色、数量、空间位置都是这样——这类任务统称<b>冲突任务</b>（Flanker、Simon 都是它的亲戚）。`; } },
+    { id:'q3', title:'预测：在 30 秒限时的街机模式里拼命求快，会发生什么？',
+      opts:[['a','① 又快又准，纯属练熟了'],['b','② 变快了，但错误率也上去了'],['c','③ 变快了，正确率不受影响']],
+      right:'b', need:['ARCADE'], needName:'街机狂潮',
+      reveal(){ const ae=AST.arcadeErr!=null?Math.round(AST.arcadeErr*100)+'%':'—';
+        const ee=AST.expErr!=null?Math.round(AST.expErr*100)+'%':'—';
+        return `✅ 通常是 <b>②</b>。你的实测：街机错误率 <b>${ae}</b>，慢做实验时 <b>${ee}</b>。
+        这叫<b>速度—准确性权衡</b>：把速度调上去，错误就会冒出来。所以只报"我更快"是没有意义的，
+        <b>速度和正确率必须一起看</b>——这是所有反应时研究的铁律。`; } }
+  ];
+  function hasData(q){
+    if(q.id==='q3') return AST.arcadeErr!=null;
+    return q.anyOf ? q.need.some(m=>AST.int[m]!=null) : q.need.every(m=>AST.int[m]!=null);
+  }
+  function openDiscovery(){
+    const el=$('#screen-discovery');
+    el.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <button class="btn ghost" id="dBack">← 主页</button><h2 style="font-size:18px">🔬 发现之旅</h2><span></span>
+      </div>
+      <p class="sub" style="margin:10px 0 0">先押一个答案，再用<b>你自己测出来的数据</b>验证。</p>
+      ${QUESTIONS.map(q=>`
+        <div class="panel" data-q="${q.id}">
+          <h2 style="display:block;font-size:16px;line-height:1.5">${q.title}</h2>
+          ${q.opts.map(([k,t])=>`<button class="opt" data-pick="${k}">${t}</button>`).join('')}
+          <div class="row-actions" style="justify-content:flex-start;margin-top:12px">
+            <button class="btn ${hasData(q)?'primary':'is-locked'}" data-reveal="${q.id}">
+              ${hasData(q)?'用我的数据揭晓':'🔒 先去玩「'+q.needName+'」'}</button>
+          </div>
+          <div class="reveal-slot"></div>
+        </div>`).join('')}`;
+    show('discovery');
+    $('#dBack').onclick=()=>{ renderHome(); show('home'); };
+    QUESTIONS.forEach(q=>{
+      const panel=el.querySelector(`[data-q="${q.id}"]`);
+      let picked=null;
+      panel.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{
+        panel.querySelectorAll('[data-pick]').forEach(x=>x.classList.remove('sel'));
+        b.classList.add('sel'); picked=b.dataset.pick;
+      });
+      panel.querySelector('[data-reveal]').onclick=ev=>{
+        const btn=ev.currentTarget;
+        // 数据门禁：可点的锁定态，点了给出口，不用裸 disabled
+        if(btn.classList.contains('is-locked')){
+          const first=q.need.find(m=>q.anyOf? AST.int[m]==null : AST.int[m]==null) || q.need[0];
+          renderHome(); show('home');
+          const card=document.getElementById('card-'+first);
+          if(card){ card.scrollIntoView({behavior:'smooth',block:'center'}); card.classList.add('flash-hi');
+            setTimeout(()=>card.classList.remove('flash-hi'),2200); }
+          return;
+        }
+        if(!picked){ panel.querySelectorAll('[data-pick]')[0].scrollIntoView({behavior:'smooth',block:'center'});
+          btn.textContent='先选一个预测再揭晓'; setTimeout(()=>btn.textContent='用我的数据揭晓',1600); return; }
+        panel.querySelectorAll('[data-pick]').forEach(x=>{
+          if(x.dataset.pick===q.right) x.classList.add('correct');
+          else if(x.dataset.pick===picked) x.classList.add('wrong');
+        });
+        panel.querySelector('.reveal-slot').innerHTML='<div class="sci-card">'+q.reveal()+'</div>';
+        btn.classList.add('hidden');
+      };
+    });
+  }
+  $('#goDiscovery').onclick=openDiscovery;
+
+  /* ---- 科学原理 ---- */
+  $('#goScience').onclick=()=>modal(`<h2>📖 斯特鲁普效应背后的科学</h2>
+    <div class="sci-card"><b>怎么玩</b>：屏幕出现一个刺激，按题目要求的那个属性作答——经典条件要你说<b>墨水颜色</b>，忽略字念什么。点四个按钮，或用键盘 <b>D / F / J / K</b>（方向条件也可用方向键）。</div>
+    <div class="sci-card"><b>Stroop 1935</b>：说出色词的墨水颜色，当词义和颜色冲突时会明显变慢。这是心理学被重复验证次数最多的效应之一。</div>
+    <div class="sci-card"><b>干扰量</b> = 不一致条件的反应时 − 一致条件的反应时。它把"我感觉有点卡"变成了一个能比较、能上榜、能画图的<b>毫秒数</b>。</div>
+    <div class="sci-card"><b>自动化 vs 控制加工</b>：熟练阅读是自动的（关不掉），命名颜色是控制的（要费劲）。自动的过程抢先插队，你得把它按住——按住的时间就是干扰量。</div>
+    <div class="sci-card"><b>为什么用中位数</b>：反应时分布右偏，一次走神就能把平均值拉飞，中位数更稳。同时必须看<b>正确率</b>，否则"乱按变快"会伪装成"抗干扰强"。</div>
+    <div class="sci-card"><b>计时怎么做到准</b>：用 <code>performance.now()</code> 高精度时钟，并且要等刺激<b>真正画到屏幕的那一帧</b>才开始计时。屏幕和键盘有几毫秒固定延迟，但比较两个条件时会互相抵消——这正是为什么我们比<b>差值</b>而不是比绝对值。</div>
+    <div class="sci-card"><b>色觉不便的同学</b>：直接玩<b>数字</b>或<b>方向</b>条件，一样能测出属于你的干扰量。</div>
+    <div class="sci-card" style="border:1px solid var(--warn)"><b>诚实声明</b>：本页常模为<b>示意值</b>，试次量也远少于正式实验。成绩只用于课堂探究和自我对比，<b>不能</b>用来判断注意力好坏、智力高低或任何障碍。</div>`);
+
+  /* ---- modal ---- */
+  function modal(html){
+    const bg=document.createElement('div'); bg.className='modal-bg';
+    bg.innerHTML=`<div class="modal"><button class="close">×</button>${html}</div>`;
+    bg.onclick=e=>{ if(e.target===bg||e.target.classList.contains('close')) bg.remove(); };
+    document.body.appendChild(bg); return bg;
+  }
+
+  /* ---- 账号 ---- */
+  function refreshAcct(){ const c=SP.Account.current(); $('#acctLabel').textContent=c?(c.nickname+'@'+c.classCode):'游客'; }
+  $('#acctBtn').onclick=()=>{
+    const c=SP.Account.current();
+    const bg=modal(`<h2>设置昵称 / 班级</h2>
+      <p style="font-size:13px;color:var(--muted)">仅用昵称 + 班级码，不收集真实姓名 / 手机 / 邮箱。</p>
+      <div class="field"><label>昵称（2–12 字）</label><input id="inName" maxlength="12" value="${c?c.nickname:''}" placeholder="如：小心眼"></div>
+      <div class="field"><label>班级码</label><input id="inClass" maxlength="16" value="${c?c.classCode:''}" placeholder="如：5年2班"></div>
+      <div class="row-actions" style="margin-top:16px">
+        <button class="btn primary" id="saveAcct">保存</button>
+        ${c?'<button class="btn ghost" id="outAcct">退出登录</button>':''}
+      </div>`);
+    bg.querySelector('#saveAcct').onclick=async()=>{
+      const nm=bg.querySelector('#inName').value; if(!nm.trim()){ bg.querySelector('#inName').focus(); return; }
+      await SP.Account.signIn({nickname:nm,classCode:bg.querySelector('#inClass').value});
+      refreshAcct(); bg.remove();
+    };
+    const out=bg.querySelector('#outAcct'); if(out) out.onclick=()=>{ SP.Account.signOut(); refreshAcct(); bg.remove(); };
+  };
+  $('#trophyBtn').onclick=()=>{ const bg=modal('<h2>🏆 成就</h2><div class="progress-wrap"><div data-ach-progress></div></div><div id="achList"></div>');
+    ach.renderList(bg.querySelector('#achList')); };
+
+  /* ---- init ---- */
+  (async function init(){
+    await SP.DataStore.init();
+    await SP.DataStore.flushQueue();
+    renderHome(); refreshAcct(); buildLbTabs();
+    window.SP=SP;
+    if(TEST){
+      // headless 实玩验证钩子：能读到每题真值 → 走真实响应通路作答
+      window.__stroopTest={
+        state:SP.Engine.state, AST, ach,
+        startMode, show,
+        answer(i){ const b=respRow.children[i]; if(b) b.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true})); },
+        answerCorrect(){ const c=SP.Engine.state.correctCode; if(c!=null) this.answer(c); },
+        get trials(){ return lastTrials; },
+        get mode(){ return lastMode; }
+      };
+    }
+  })();
+})();
+</script>
+</body>
+</html>
